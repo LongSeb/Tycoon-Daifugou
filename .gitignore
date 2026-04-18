@@ -1,0 +1,96 @@
+# ==============================================================================
+# macOS
+# ==============================================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# ==============================================================================
+# Xcode — user-specific files (per-dev, never commit)
+# ==============================================================================
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# ==============================================================================
+# Xcode — build artifacts
+# ==============================================================================
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+*.xccheckout
+*.moved-aside
+
+# ==============================================================================
+# Swift Package Manager
+# ==============================================================================
+.build/
+.swiftpm/
+Packages/*/.build/
+Packages/*/.swiftpm/
+Package.resolved
+
+# Keep the top-level Package.resolved for reproducible builds if we add one,
+# but ignore nested ones from sub-packages
+!/Package.resolved
+
+# ==============================================================================
+# CocoaPods (we don't use it, but just in case)
+# ==============================================================================
+Pods/
+*.xcworkspace/xcuserdata/
+
+# ==============================================================================
+# Carthage (we don't use it, but just in case)
+# ==============================================================================
+Carthage/Build/
+
+# ==============================================================================
+# fastlane (future TestFlight deploys)
+# ==============================================================================
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# ==============================================================================
+# IDEs / editors
+# ==============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ==============================================================================
+# Claude / AI tooling
+# ==============================================================================
+.claude/
+.cursor/
+
+# ==============================================================================
+# Secrets — never commit
+# ==============================================================================
+*.pem
+*.key
+*.p12
+*.mobileprovision
+.env
+.env.*
+!.env.example
+references/
