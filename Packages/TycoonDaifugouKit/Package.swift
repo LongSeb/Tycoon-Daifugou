@@ -18,14 +18,14 @@ let package = Package(
     dependencies: [
         // SwiftLint as a build-tool plugin. Runs on every build.
         // Pin minor version — avoid silent major upgrades.
-        //.package(url: "https://github.com/realm/SwiftLint.git", from: "0.54.0"),
+        .package(url: "https://github.com/realm/SwiftLint.git", from: "0.54.0"),
     ],
     targets: [
         .target(
             name: "TycoonDaifugouKit",
             dependencies: [],
             plugins: [
-                //.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLint"),
+                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLint"),
             ]
         ),
         .testTarget(
