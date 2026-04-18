@@ -99,8 +99,8 @@ Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first. Short version:
 
 ## The team
 
-- [@your-handle](https://github.com/your-handle) — *role*
-- [@your-friend](https://github.com/your-friend) — *role*
+- [@LongSeb](https://github.com/LongSeb) — *Lead Dev*
+- [@LunariaDev18](https://github.com/lunariadev18) — *Lead Dev*
 
 ## Acknowledgments
 
