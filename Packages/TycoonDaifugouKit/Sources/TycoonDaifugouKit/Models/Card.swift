@@ -99,8 +99,8 @@ public enum Deck {
     public static func deck(withJokers jokers: Int) -> [Card] {
         precondition((0...2).contains(jokers), "Deck supports 0, 1, or 2 Jokers")
         var cards = standard52()
-        for i in 0..<jokers {
-            cards.append(.joker(index: i))
+        for joker in 0..<jokers {
+            cards.append(.joker(index: joker))
         }
         return cards
     }
