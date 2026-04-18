@@ -11,13 +11,13 @@ jobs:
     name: Engine tests (Linux)
     runs-on: ubuntu-latest
     container:
-      image: swift:5.10
+      image: swift:6.0
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: swift build --package-path Packages/TycoonDaifugouKit --disable-build-tool-plugins
+        run: swift build --package-path Packages/TycoonDaifugouKit
       - name: Test
-        run: swift test --package-path Packages/TycoonDaifugouKit --disable-build-tool-plugins
+        run: swift test --package-path Packages/TycoonDaifugouKit
 
   app-build:
     name: App build + tests (macOS)
