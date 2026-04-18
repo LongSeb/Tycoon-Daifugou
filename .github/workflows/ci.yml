@@ -15,9 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: swift build --package-path Packages/TycoonDaifugouKit
+        run: swift build --package-path Packages/TycoonDaifugouKit --disable-build-tool-plugins
       - name: Test
-        run: swift test --package-path Packages/TycoonDaifugouKit
+        run: swift test --package-path Packages/TycoonDaifugouKit --disable-build-tool-plugins
 
   app-build:
     name: App build + tests (macOS)
