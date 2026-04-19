@@ -102,11 +102,71 @@ struct RegressionTests {
 
     // MARK: Scenario: Revolution House Rule
 
-    @Test("Revolution flips card strength mid-game", .disabled("Not yet implemented"))
+    @Test("Revolution flips card strength mid-game")
     func revolutionFlipsStrength() throws {
-        // When a player plays 4-of-a-kind, the next valid move must be
-        // evaluated against FLIPPED strength order. Record a scenario where
-        // this actually happens and verify the engine enforces it.
+        // Scenario:
+        //   P0 holds a quad of 7s (revolution trigger) and a 5♣ (lead after winning the trick).
+        //   P1 holds a 4♣ (weaker than 5 normally, stronger in revolution) and a 6♣ (stronger
+        //   than 5 normally, weaker in revolution) and an A♥ (extra card so P1 doesn't go out).
+        //   P2 holds an 8♠ so the round doesn't end prematurely.
+        //
+        //   1. P0 plays quad of 7s → revolution activates.
+        //   2. P1 and P2 pass → P0 wins the trick; revolution persists.
+        //   3. P0 leads 5♣.
+        //   4. P1's 6♣ (normally stronger than 5) is rejected — weakened by revolution.
+        //   5. P1's 4♣ (normally weaker than 5) is accepted — strengthened by revolution.
+
+        let p0 = Player(displayName: "P0", hand: [
+            .regular(.seven, .clubs), .regular(.seven, .diamonds),
+            .regular(.seven, .hearts), .regular(.seven, .spades),
+            .regular(.five, .clubs),
+        ])
+        let p1 = Player(displayName: "P1", hand: [
+            .regular(.four, .clubs),
+            .regular(.six, .clubs),
+            .regular(.ace, .hearts),
+        ])
+        let p2 = Player(displayName: "P2", hand: [.regular(.eight, .spades)])
+        let players = [p0, p1, p2]
+        let scores = Dictionary(uniqueKeysWithValues: players.map { ($0.id, 0) })
+
+        var state = GameState(
+            players: players,
+            deck: [],
+            currentPlayerIndex: 0,
+            phase: .playing,
+            ruleSet: RuleSet(revolution: true),
+            isRevolutionActive: false,
+            round: 1,
+            scoresByPlayer: scores
+        )
+
+        // Step 1: P0 plays quad of 7s
+        let quadOf7s: [Card] = [
+            .regular(.seven, .clubs), .regular(.seven, .diamonds),
+            .regular(.seven, .hearts), .regular(.seven, .spades),
+        ]
+        state = try state.apply(.play(cards: quadOf7s, by: p0.id))
+        #expect(state.isRevolutionActive, "Quad must trigger revolution")
+
+        // Step 2: P1 and P2 pass; P0 wins the trick
+        state = try state.apply(.pass(by: p1.id))
+        state = try state.apply(.pass(by: p2.id))
+        #expect(state.currentTrick.isEmpty, "Trick must reset after all pass")
+        #expect(state.currentPlayerIndex == 0, "P0 (last to play) must lead the new trick")
+        #expect(state.isRevolutionActive, "Revolution must persist across the trick reset")
+
+        // Step 3: P0 leads 5♣
+        state = try state.apply(.play(cards: [.regular(.five, .clubs)], by: p0.id))
+
+        // Step 4: P1's 6♣ is normally stronger than 5 but weaker in revolution — rejected
+        #expect(throws: GameError.notStrongerThanCurrent) {
+            try state.apply(.play(cards: [.regular(.six, .clubs)], by: p1.id))
+        }
+
+        // Step 5: P1's 4♣ is normally weaker than 5 but stronger in revolution — accepted
+        let afterFour = try state.apply(.play(cards: [.regular(.four, .clubs)], by: p1.id))
+        #expect(afterFour.currentTrick.last?.rank == .four, "4 must beat 5 in revolution")
     }
 
     // MARK: Scenario: Bankruptcy rule
