@@ -50,7 +50,10 @@ extension GameState {
 
         if let lastHand = currentTrick.last {
             let size = lastHand.type.rawValue
-            for (rank, cards) in byRank where rank > lastHand.rank && cards.count >= size {
+            for (rank, cards) in byRank
+                where Revolution.isStronger(rank, than: lastHand.rank, revolutionActive: isRevolutionActive)
+                    && cards.count >= size
+            {
                 for combo in combinations(of: cards, count: size) {
                     moves.append(.play(cards: combo, by: playerID))
                 }
@@ -97,11 +100,14 @@ extension GameState {
             throw GameError.invalidHand(.mixedRanks)
         }
 
+        let newRevolutionActive = Revolution.newState(
+            active: isRevolutionActive, after: newHand, ruleEnabled: ruleSet.revolution)
+
         if let lastHand = currentTrick.last {
             guard newHand.type == lastHand.type else {
                 throw GameError.handTypeMismatch
             }
-            guard newHand > lastHand else {
+            guard Revolution.isStronger(newHand, than: lastHand, revolutionActive: isRevolutionActive) else {
                 throw GameError.notStrongerThanCurrent
             }
         }
@@ -129,7 +135,7 @@ extension GameState {
                     currentPlayerIndex: currentPlayerIndex,
                     phase: .roundEnded,
                     ruleSet: ruleSet,
-                    isRevolutionActive: isRevolutionActive,
+                    isRevolutionActive: newRevolutionActive,
                     round: round,
                     scoresByPlayer: updatedScores,
                     passCountSinceLastPlay: 0,
@@ -147,7 +153,7 @@ extension GameState {
             currentPlayerIndex: nextIndex,
             phase: phase,
             ruleSet: ruleSet,
-            isRevolutionActive: isRevolutionActive,
+            isRevolutionActive: newRevolutionActive,
             round: round,
             scoresByPlayer: updatedScores,
             passCountSinceLastPlay: 0,
