@@ -178,6 +178,72 @@ struct RegressionTests {
         // Beggar and are out of play for the remainder of the round."
     }
 
+    // MARK: Scenario: 8-Stop House Rule
+
+    @Test("8-Stop clears trick mid-game and returns lead to the 8-player")
+    func eightStopClearsTrick() throws {
+        // Scenario: 3 players, 8-Stop enabled.
+        //   P0 leads 7♣.
+        //   P1 plays 8♣ → 8-Stop fires: trick clears, P1 leads next.
+        //   P1 leads 5♦.
+        //   P2 passes; P0 plays 6♣ (beats 5); P1 and P2 pass → P0 wins trick.
+        //   Verify card conservation throughout.
+
+        let p0 = Player(displayName: "P0", hand: [
+            .regular(.seven, .clubs),
+            .regular(.six, .clubs),
+            .regular(.ace, .hearts),
+        ])
+        let p1 = Player(displayName: "P1", hand: [
+            .regular(.eight, .clubs),
+            .regular(.five, .diamonds),
+            .regular(.king, .spades),
+        ])
+        let p2 = Player(displayName: "P2", hand: [.regular(.four, .hearts)])
+
+        let players = [p0, p1, p2]
+        let scores = Dictionary(uniqueKeysWithValues: players.map { ($0.id, 0) })
+        let totalCards = players.flatMap { $0.hand }.count
+
+        var state = GameState(
+            players: players,
+            deck: [],
+            currentPlayerIndex: 0,
+            phase: .playing,
+            ruleSet: RuleSet(eightStop: true),
+            round: 1,
+            scoresByPlayer: scores
+        )
+
+        // P0 leads 7♣
+        state = try state.apply(.play(cards: [.regular(.seven, .clubs)], by: p0.id))
+        #expect(state.currentTrick.count == 1)
+        #expect(state.currentPlayerIndex == 1)
+
+        // P1 plays 8♣ → 8-Stop fires
+        state = try state.apply(.play(cards: [.regular(.eight, .clubs)], by: p1.id))
+        #expect(state.currentTrick.isEmpty, "Trick must reset on 8-Stop")
+        #expect(state.currentPlayerIndex == 1, "P1 must lead after 8-Stop")
+        #expect(state.playedPile.contains(.regular(.seven, .clubs)))
+        #expect(state.playedPile.contains(.regular(.eight, .clubs)))
+        #expect(state.allCards.count == totalCards)
+
+        // P1 leads 5♦ (fresh trick, no 8-Stop for 5)
+        state = try state.apply(.play(cards: [.regular(.five, .diamonds)], by: p1.id))
+        #expect(state.currentTrick.count == 1)
+
+        // P2 passes, then P0 plays 6♣ (beats 5)
+        state = try state.apply(.pass(by: p2.id))
+        state = try state.apply(.play(cards: [.regular(.six, .clubs)], by: p0.id))
+
+        // P1 and P2 pass → P0 wins the trick
+        state = try state.apply(.pass(by: p1.id))
+        state = try state.apply(.pass(by: p2.id))
+        #expect(state.currentTrick.isEmpty, "Trick must clear when all others pass")
+        #expect(state.currentPlayerIndex == 0, "P0 wins trick and leads next")
+        #expect(state.allCards.count == totalCards, "Card count must be conserved")
+    }
+
     // MARK: Past bugs
 
     // Template for future regression tests. When you fix a bug, add a test
