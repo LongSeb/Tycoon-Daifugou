@@ -293,6 +293,45 @@ struct RegressionTests {
         #expect(state.allCards.count == totalCards, "Card count must be conserved")
     }
 
+    // MARK: Rule scenario: 3-Spade Reversal
+
+    @Test("3-Spade Reversal: 3♠ beats a solo Joker, clears trick, and awards lead in a live game")
+    func threeSpadeReversalScenario() throws {
+        // P0 plays Joker; P1 counters with 3♠, wins the trick, then leads normally.
+        let p0 = Player(displayName: "P0", hand: [.joker(index: 0), .regular(.king, .hearts)])
+        let p1 = Player(displayName: "P1", hand: [.regular(.three, .spades), .regular(.ace, .clubs), .regular(.seven, .diamonds)])
+        let scores = Dictionary(uniqueKeysWithValues: [p0, p1].map { ($0.id, 0) })
+        let initial = GameState(
+            players: [p0, p1],
+            deck: [],
+            currentTrick: [],
+            currentPlayerIndex: 0,
+            phase: .playing,
+            ruleSet: RuleSet(jokers: true, threeSpadeReversal: true, jokerCount: 1),
+            round: 1,
+            scoresByPlayer: scores
+        )
+
+        // P0 leads with solo Joker
+        let afterJoker = try initial.apply(.play(cards: [.joker(index: 0)], by: p0.id))
+        #expect(afterJoker.currentTrick.last?.isSoloJoker == true)
+        #expect(afterJoker.currentPlayerIndex == 1)
+
+        // P1 counters with 3♠ — reversal fires
+        let afterReversal = try afterJoker.apply(.play(cards: [.regular(.three, .spades)], by: p1.id))
+        #expect(afterReversal.currentTrick.isEmpty, "Trick must be cleared by 3-Spade Reversal")
+        #expect(
+            afterReversal.players.first { $0.id == p1.id }?.id == afterReversal.players[afterReversal.currentPlayerIndex].id,
+            "P1 must hold the lead after the reversal"
+        )
+        #expect(afterReversal.playedPile.contains(.joker(index: 0)))
+        #expect(afterReversal.playedPile.contains(.regular(.three, .spades)))
+
+        // P1 can now lead normally with A♣
+        let afterLead = try afterReversal.apply(.play(cards: [.regular(.ace, .clubs)], by: p1.id))
+        #expect(afterLead.currentTrick.last?.rank == .ace)
+    }
+
     // MARK: Past bugs
 
     // Template for future regression tests. When you fix a bug, add a test
