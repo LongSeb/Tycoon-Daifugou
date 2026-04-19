@@ -8,7 +8,11 @@ public enum GameError: Error, Sendable, Equatable {
     case handTypeMismatch
     case notStrongerThanCurrent
     case invalidHand(HandError)
-    case tradingNotSupportedYet
+    case wrongPhase
+    case noSuchTrade
+    case wrongCardCount(expected: Int, got: Int)
+    case mustGiveStrongestCards
+    case mustCompletePartnerTrade
 }
 
 // MARK: - Reducer
@@ -23,8 +27,8 @@ extension GameState {
             return try applyPlay(cards: cards, by: by)
         case .pass(let by):
             return try applyPass(by: by)
-        case .trade:
-            throw GameError.tradingNotSupportedYet
+        case .trade(let cards, let from, let to):
+            return try applyTrade(cards: cards, from: from, to: to)
         }
     }
 

@@ -242,13 +242,13 @@ struct ReducerPassTests {
 @Suite("Reducer — trade moves")
 struct ReducerTradeTests {
 
-    @Test("Trade throws tradingNotSupportedYet")
-    func tradingThrows() {
+    @Test("Trade outside trading phase throws wrongPhase")
+    func tradingInWrongPhaseThrows() {
         let p0 = makePlayer("P0", cards: [.regular(.two, .spades)])
         let p1 = makePlayer("P1", cards: [.regular(.three, .clubs)])
-        let initial = makeState(players: [p0, p1])
+        let initial = makeState(players: [p0, p1])  // phase is .playing
 
-        #expect(throws: GameError.tradingNotSupportedYet) {
+        #expect(throws: GameError.wrongPhase) {
             try initial.apply(.trade(cards: [.regular(.two, .spades)], from: p0.id, to: p1.id))
         }
     }

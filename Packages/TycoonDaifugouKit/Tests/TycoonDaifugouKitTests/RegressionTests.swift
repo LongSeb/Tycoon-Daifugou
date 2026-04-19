@@ -17,52 +17,92 @@ import Testing
 // PATTERN: define the scenario as data (seed for dealing, list of moves),
 // then assert on the final state. Never hand-construct a `GameState` mid-
 // scenario — that defeats the point.
-//
-// All tests below are `.disabled` until the corresponding engine work is
-// complete. Enable them one at a time as you build the engine.
 
-/// A recorded scenario: a deterministic seed, a rule set, and a sequence
-/// of moves. The engine should be able to replay it and arrive at a
-/// predictable final state.
-///
-/// This type is a fixture for tests only — it does not belong in
-/// Sources/TycoonDaifugouKit.
-struct Scenario {
-    let name: String
-    let seed: UInt64
-    // Uncomment once these types exist:
-    // let ruleSet: RuleSet
-    // let players: [PlayerID]
-    // let moves: [Move]
-    // let expectedFinalRanking: [PlayerID: Title]
-}
-
-@Suite("Engine regression scenarios", .disabled("Enable once apply(move:to:) exists"))
+@Suite("Engine regression scenarios")
 struct RegressionTests {
 
-    // MARK: Scenario: vanilla 4-player, no house rules
+    // MARK: Helpers
 
-    @Test("4-player game with base rules completes successfully")
+    private static func makePlayers() -> [Player] {
+        ["P0", "P1", "P2", "P3"].map { Player(displayName: $0) }
+    }
+
+    private static func tradingStrength(_ card: Card) -> Int {
+        switch card {
+        case .joker: return Int.max
+        case .regular(let rank, _): return rank.rawValue
+        }
+    }
+
+    private static func strongest(_ n: Int, from player: Player) -> [Card] {
+        Array(player.hand.sorted { tradingStrength($0) > tradingStrength($1) }.prefix(n))
+    }
+
+    // MARK: Scenario: vanilla 4-player, two full rounds with trading
+
+    @Test("4-player base game: round 1 completes, trading executes correctly, round 2 begins")
     func fourPlayerBaseGame() throws {
-        // let scenario = Scenario(
-        //     name: "base-4p-seed-42",
-        //     seed: 42,
-        //     ruleSet: .baseOnly,
-        //     players: [.alice, .bob, .carol, .dave],
-        //     moves: ScenarioFixtures.base4PlayerMoves,
-        //     expectedFinalRanking: [
-        //         .alice: .millionaire,
-        //         .bob:   .rich,
-        //         .carol: .poor,
-        //         .dave:  .beggar
-        //     ]
-        // )
-        // try assertScenarioReplays(scenario)
+        let players = Self.makePlayers()
+        let initial = GameState.newGame(players: players, ruleSet: .baseOnly, seed: 42)
+
+        // Play round 1 to completion
+        let states = SimulatedPlaythrough.states(from: initial)
+        guard let roundEnded = states.last, roundEnded.phase == .roundEnded else {
+            Issue.record("Round 1 did not reach .roundEnded")
+            return
+        }
+
+        // All 4 players must have titles after round 1
+        #expect(roundEnded.players.allSatisfy { $0.currentTitle != nil })
+
+        // Confirm expected title structure exists for trading
+        #expect(roundEnded.players.contains { $0.currentTitle == .millionaire })
+        #expect(roundEnded.players.contains { $0.currentTitle == .beggar })
+
+        // Start round 2
+        let round2 = roundEnded.startNextRound(seed: 99)
+        #expect(round2.phase == .trading)
+        #expect(round2.round == 2)
+
+        // 52 cards conserved across the re-deal
+        #expect(round2.allCards.count == 52)
+
+        // Pending trades: Beg→Mill×2, Poor→Rich×1, Mill→Beg×2, Rich→Poor×1
+        let pending = requiredTrades(for: round2)
+        #expect(pending.count == 4)
+        #expect(pending[0].cardCount == 2 && pending[0].mustGiveStrongest)
+        #expect(pending[1].cardCount == 1 && pending[1].mustGiveStrongest)
+        #expect(pending[2].cardCount == 2 && !pending[2].mustGiveStrongest)
+        #expect(pending[3].cardCount == 1 && !pending[3].mustGiveStrongest)
+
+        // Apply all trades in the scheduled order
+        var state = round2
+        for trade in pending {
+            let player = state.players.first { $0.id == trade.from }!
+            let cards: [Card]
+            if trade.mustGiveStrongest {
+                cards = Self.strongest(trade.cardCount, from: player)
+            } else {
+                cards = Array(player.hand.prefix(trade.cardCount))
+            }
+            state = try state.apply(.trade(cards: cards, from: trade.from, to: trade.to))
+        }
+
+        // After all trades, phase must be .playing
+        #expect(state.phase == .playing)
+
+        // All titles cleared; 52 cards still conserved
+        #expect(state.players.allSatisfy { $0.currentTitle == nil })
+        #expect(state.allCards.count == 52)
+
+        // 3♦ holder leads
+        let leader = state.players[state.currentPlayerIndex]
+        #expect(leader.hand.contains(.regular(.three, .diamonds)))
     }
 
     // MARK: Scenario: Revolution House Rule
 
-    @Test("Revolution flips card strength mid-game")
+    @Test("Revolution flips card strength mid-game", .disabled("Not yet implemented"))
     func revolutionFlipsStrength() throws {
         // When a player plays 4-of-a-kind, the next valid move must be
         // evaluated against FLIPPED strength order. Record a scenario where
@@ -71,13 +111,11 @@ struct RegressionTests {
 
     // MARK: Scenario: Bankruptcy rule
 
-    @Test("Millionaire who can't keep title becomes Beggar (Bankruptcy)")
+    @Test("Millionaire who can't keep title becomes Beggar (Bankruptcy)", .disabled("Not yet implemented"))
     func millionaireBankruptcy() throws {
         // Per the rules doc: "When playing with 4+ players, if the Millionaire
         // is not able to keep their title, they will instantly become the
         // Beggar and are out of play for the remainder of the round."
-        //
-        // Record a scenario that triggers this transition and verify.
     }
 
     // MARK: Past bugs
@@ -85,25 +123,4 @@ struct RegressionTests {
     // Template for future regression tests. When you fix a bug, add a test
     // here titled `regression_<issueNumber>_<short_description>`. The test
     // body should reproduce the exact scenario that triggered the bug.
-
-    // @Test("Regression #12: passing when no valid moves existed was rejected")
-    // func regression_12_forcedPass() throws {
-    //     // Reproduce the exact hand and trick pile that triggered #12.
-    // }
 }
-
-// MARK: - Test helper (once engine is ready, move to a TestHelpers.swift file)
-
-// /// Replays a scenario through the engine and asserts the final state.
-// func assertScenarioReplays(_ scenario: Scenario) throws {
-//     var state = try GameState.newGame(
-//         players: scenario.players,
-//         ruleSet: scenario.ruleSet,
-//         seed: scenario.seed
-//     )
-//     for move in scenario.moves {
-//         state = try state.apply(move: move)
-//     }
-//     #expect(state.phase == .roundEnded)
-//     #expect(state.finalRanking == scenario.expectedFinalRanking)
-// }
