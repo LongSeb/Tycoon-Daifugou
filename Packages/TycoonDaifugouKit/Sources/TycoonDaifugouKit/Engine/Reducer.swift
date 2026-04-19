@@ -64,6 +64,13 @@ extension GameState {
                 for joker in jokerCards {
                     moves.append(.play(cards: [joker], by: playerID))
                 }
+                if lastHand.isSoloJoker && ruleSet.threeSpadeReversal && ruleSet.jokers
+                    && !isRevolutionActive {
+                    let threeSpades = Card.regular(.three, .spades)
+                    if player.hand.contains(threeSpades) {
+                        moves.append(.play(cards: [threeSpades], by: playerID))
+                    }
+                }
             }
         } else {
             for (_, cards) in byRank {
@@ -117,14 +124,19 @@ extension GameState {
         let newRevolutionActive = Revolution.newState(
             active: isRevolutionActive, after: newHand, ruleEnabled: ruleSet.revolution)
 
-        if let lastHand = currentTrick.last {
+        let trickTop = currentTrick.last
+
+        if let lastHand = trickTop {
             guard newHand.type == lastHand.type else {
                 throw GameError.handTypeMismatch
             }
-            let isStronger = Joker.isSoloStronger(newHand: newHand, ruleEnabled: ruleSet.jokers)
-                || Revolution.isStronger(newHand, than: lastHand, revolutionActive: isRevolutionActive)
-            guard isStronger else {
-                throw GameError.notStrongerThanCurrent
+            let isReversal = ThreeSpadeReversal.triggers(newHand: newHand, onto: lastHand, ruleSet: ruleSet)
+            if !isReversal {
+                let isStronger = Joker.isSoloStronger(newHand: newHand, ruleEnabled: ruleSet.jokers)
+                    || Revolution.isStronger(newHand, than: lastHand, revolutionActive: isRevolutionActive)
+                guard isStronger else {
+                    throw GameError.notStrongerThanCurrent
+                }
             }
         }
 
@@ -164,20 +176,14 @@ extension GameState {
         let nextIndex = nextActive(after: playerIndex, in: newPlayers)
 
         if !updatedPlayer.hand.isEmpty, EightStop.triggers(hand: newHand, ruleEnabled: ruleSet.eightStop) {
-            return GameState(
-                players: newPlayers,
-                deck: deck,
-                currentTrick: [],
-                currentPlayerIndex: playerIndex,
-                phase: phase,
-                ruleSet: ruleSet,
-                isRevolutionActive: newRevolutionActive,
-                round: round,
-                scoresByPlayer: updatedScores,
-                passCountSinceLastPlay: 0,
-                lastPlayedByIndex: nil,
-                playedPile: playedPile + currentTrick.flatMap { $0.cards } + newHand.cards
-            )
+            return trickCleared(newHand: newHand, leadIndex: playerIndex, players: newPlayers,
+                scores: updatedScores, revolutionActive: newRevolutionActive)
+        }
+
+        if let trickTop, !updatedPlayer.hand.isEmpty,
+            ThreeSpadeReversal.triggers(newHand: newHand, onto: trickTop, ruleSet: ruleSet) {
+            return trickCleared(newHand: newHand, leadIndex: playerIndex, players: newPlayers,
+                scores: updatedScores, revolutionActive: newRevolutionActive)
         }
 
         return GameState(
@@ -242,6 +248,31 @@ extension GameState {
                 playedPile: playedPile
             )
         }
+    }
+
+    /// Returns a new state where the current trick is cleared and `leadIndex` gets the lead.
+    /// Used by rules that end a trick mid-play (8-Stop, 3-Spade Reversal).
+    private func trickCleared(
+        newHand: Hand,
+        leadIndex: Int,
+        players newPlayers: [Player],
+        scores updatedScores: [PlayerID: Int],
+        revolutionActive newRevolutionActive: Bool
+    ) -> GameState {
+        GameState(
+            players: newPlayers,
+            deck: deck,
+            currentTrick: [],
+            currentPlayerIndex: leadIndex,
+            phase: phase,
+            ruleSet: ruleSet,
+            isRevolutionActive: newRevolutionActive,
+            round: round,
+            scoresByPlayer: updatedScores,
+            passCountSinceLastPlay: 0,
+            lastPlayedByIndex: nil,
+            playedPile: playedPile + currentTrick.flatMap { $0.cards } + newHand.cards
+        )
     }
 
     private func nextActive(after index: Int, in playerList: [Player]) -> Int {
