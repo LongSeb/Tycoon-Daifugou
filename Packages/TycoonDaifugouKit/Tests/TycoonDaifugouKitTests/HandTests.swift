@@ -113,11 +113,11 @@ struct HandRejectionTests {
         }
     }
 
-    @Test("Single Joker throws allJokers")
-    func singleJoker() {
-        #expect(throws: HandError.allJokers) {
-            try Hand(cards: [.joker(index: 0)])
-        }
+    @Test("Single Joker produces a valid .single hand with isSoloJoker set")
+    func singleJoker() throws {
+        let hand = try Hand(cards: [.joker(index: 0)])
+        #expect(hand.type == .single)
+        #expect(hand.isSoloJoker)
     }
 
     @Test("Two Jokers throw allJokers")
