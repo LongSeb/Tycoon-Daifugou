@@ -146,6 +146,24 @@ extension GameState {
         }
 
         let nextIndex = nextActive(after: playerIndex, in: newPlayers)
+
+        if !updatedPlayer.hand.isEmpty, EightStop.triggers(hand: newHand, ruleEnabled: ruleSet.eightStop) {
+            return GameState(
+                players: newPlayers,
+                deck: deck,
+                currentTrick: [],
+                currentPlayerIndex: playerIndex,
+                phase: phase,
+                ruleSet: ruleSet,
+                isRevolutionActive: newRevolutionActive,
+                round: round,
+                scoresByPlayer: updatedScores,
+                passCountSinceLastPlay: 0,
+                lastPlayedByIndex: nil,
+                playedPile: playedPile + currentTrick.flatMap { $0.cards } + newHand.cards
+            )
+        }
+
         return GameState(
             players: newPlayers,
             deck: deck,
