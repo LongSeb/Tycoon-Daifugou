@@ -55,7 +55,7 @@ struct ReducerPlayTests {
     @Test("Second player beats first player's single")
     func secondPlayerBeatsFirst() throws {
         let p0 = makePlayer("P0", cards: [.regular(.five, .clubs)])
-        let p1 = makePlayer("P1", cards: [.regular(.king, .hearts)])
+        let p1 = makePlayer("P1", cards: [.regular(.king, .hearts), .regular(.ace, .spades)])
         let fiveTrick = try Hand(cards: [.regular(.five, .clubs)])
         let initial = makeState(
             players: [p0, p1],
