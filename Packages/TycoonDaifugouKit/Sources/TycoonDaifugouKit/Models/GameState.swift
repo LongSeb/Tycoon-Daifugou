@@ -21,6 +21,9 @@ public struct GameState: Sendable, Equatable {
     public let passCountSinceLastPlay: Int
     /// Index into `players` of whoever played the most recent `Hand` in the current trick.
     public let lastPlayedByIndex: Int?
+    /// Cards from completed tricks — accumulated when `currentTrick` is cleared.
+    /// Keeps total card count constant across the entire round.
+    public let playedPile: [Card]
 
     public init(
         players: [Player],
@@ -33,7 +36,8 @@ public struct GameState: Sendable, Equatable {
         round: Int,
         scoresByPlayer: [PlayerID: Int],
         passCountSinceLastPlay: Int = 0,
-        lastPlayedByIndex: Int? = nil
+        lastPlayedByIndex: Int? = nil,
+        playedPile: [Card] = []
     ) {
         self.players = players
         self.deck = deck
@@ -46,6 +50,14 @@ public struct GameState: Sendable, Equatable {
         self.scoresByPlayer = scoresByPlayer
         self.passCountSinceLastPlay = passCountSinceLastPlay
         self.lastPlayedByIndex = lastPlayedByIndex
+        self.playedPile = playedPile
+    }
+
+    /// Every card that exists in this state: player hands + current trick + discard pile.
+    public var allCards: [Card] {
+        players.flatMap { $0.hand }
+            + currentTrick.flatMap { $0.cards }
+            + playedPile
     }
 
     /// Creates a fresh round-1 game state. Cards are deterministically shuffled

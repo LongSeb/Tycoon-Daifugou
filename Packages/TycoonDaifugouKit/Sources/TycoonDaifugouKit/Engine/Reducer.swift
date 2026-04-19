@@ -116,7 +116,8 @@ extension GameState {
             round: round,
             scoresByPlayer: scoresByPlayer,
             passCountSinceLastPlay: 0,
-            lastPlayedByIndex: playerIndex
+            lastPlayedByIndex: playerIndex,
+            playedPile: playedPile
         )
     }
 
@@ -146,7 +147,8 @@ extension GameState {
                 round: round,
                 scoresByPlayer: scoresByPlayer,
                 passCountSinceLastPlay: 0,
-                lastPlayedByIndex: nil
+                lastPlayedByIndex: nil,
+                playedPile: playedPile + currentTrick.flatMap { $0.cards }
             )
         } else {
             let nextIdx = nextActive(after: currentPlayerIndex, in: players)
@@ -161,7 +163,8 @@ extension GameState {
                 round: round,
                 scoresByPlayer: scoresByPlayer,
                 passCountSinceLastPlay: newPassCount,
-                lastPlayedByIndex: lastPlayedByIndex
+                lastPlayedByIndex: lastPlayedByIndex,
+                playedPile: playedPile
             )
         }
     }
