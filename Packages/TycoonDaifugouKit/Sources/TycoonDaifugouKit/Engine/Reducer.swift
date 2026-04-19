@@ -48,6 +48,8 @@ extension GameState {
         let nonJokers = player.hand.filter { !$0.isJoker }
         let byRank = Dictionary(grouping: nonJokers) { $0.rank! }
 
+        let jokerCards = ruleSet.jokers ? player.hand.filter { $0.isJoker } : []
+
         if let lastHand = currentTrick.last {
             let size = lastHand.type.rawValue
             for (rank, cards) in byRank
@@ -58,6 +60,11 @@ extension GameState {
                     moves.append(.play(cards: combo, by: playerID))
                 }
             }
+            if lastHand.type == .single {
+                for joker in jokerCards {
+                    moves.append(.play(cards: [joker], by: playerID))
+                }
+            }
         } else {
             for (_, cards) in byRank {
                 for size in 1...min(cards.count, 4) {
@@ -65,6 +72,9 @@ extension GameState {
                         moves.append(.play(cards: combo, by: playerID))
                     }
                 }
+            }
+            for joker in jokerCards {
+                moves.append(.play(cards: [joker], by: playerID))
             }
         }
 
@@ -100,6 +110,10 @@ extension GameState {
             throw GameError.invalidHand(.mixedRanks)
         }
 
+        if newHand.isSoloJoker && !ruleSet.jokers {
+            throw GameError.invalidHand(.allJokers)
+        }
+
         let newRevolutionActive = Revolution.newState(
             active: isRevolutionActive, after: newHand, ruleEnabled: ruleSet.revolution)
 
@@ -107,7 +121,9 @@ extension GameState {
             guard newHand.type == lastHand.type else {
                 throw GameError.handTypeMismatch
             }
-            guard Revolution.isStronger(newHand, than: lastHand, revolutionActive: isRevolutionActive) else {
+            let isStronger = Joker.isSoloStronger(newHand: newHand, ruleEnabled: ruleSet.jokers)
+                || Revolution.isStronger(newHand, than: lastHand, revolutionActive: isRevolutionActive)
+            guard isStronger else {
                 throw GameError.notStrongerThanCurrent
             }
         }

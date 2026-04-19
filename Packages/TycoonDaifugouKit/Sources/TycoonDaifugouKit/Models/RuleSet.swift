@@ -1,5 +1,9 @@
 import Foundation
 
+public enum RuleSetError: Error, Sendable, Equatable {
+    case jokersEnabledButCountIsZero
+}
+
 public struct RuleSet: Sendable, Codable, Equatable {
     public var revolution: Bool
     public var eightStop: Bool
@@ -26,4 +30,11 @@ public struct RuleSet: Sendable, Codable, Equatable {
     }
 
     public static let baseOnly = RuleSet()
+
+    /// Throws if the rule configuration is internally inconsistent.
+    public func validate() throws(RuleSetError) {
+        if jokers && jokerCount == 0 {
+            throw .jokersEnabledButCountIsZero
+        }
+    }
 }

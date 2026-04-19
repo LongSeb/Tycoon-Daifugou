@@ -244,6 +244,55 @@ struct RegressionTests {
         #expect(state.allCards.count == totalCards, "Card count must be conserved")
     }
 
+    // MARK: Scenario: Joker house rule
+
+    @Test("Solo Joker beats strongest regular single and wins the round at endgame")
+    func jokerSoloEndgame() throws {
+        // Scenario:
+        //   P0 leads 2♣ — the strongest regular single.
+        //   P1 holds only a Joker. Joker appears in validMoves.
+        //   P1 plays the Joker — it beats 2♣.
+        //   P1's hand is now empty; only P0 remains → round ends immediately.
+
+        let p0 = Player(displayName: "P0", hand: [
+            .regular(.two, .clubs),
+            .regular(.five, .hearts),
+        ])
+        let p1 = Player(displayName: "P1", hand: [.joker(index: 0)])
+        let players = [p0, p1]
+        let scores = Dictionary(uniqueKeysWithValues: players.map { ($0.id, 0) })
+        let totalCards = players.flatMap { $0.hand }.count
+
+        var state = GameState(
+            players: players,
+            deck: [],
+            currentPlayerIndex: 0,
+            phase: .playing,
+            ruleSet: RuleSet(jokers: true, jokerCount: 1),
+            round: 1,
+            scoresByPlayer: scores
+        )
+
+        // P0 leads 2♣
+        state = try state.apply(.play(cards: [.regular(.two, .clubs)], by: p0.id))
+        #expect(state.currentTrick.count == 1)
+        #expect(state.currentPlayerIndex == 1)
+
+        // Joker appears in validMoves
+        #expect(state.validMoves(for: p1.id).contains(.play(cards: [.joker(index: 0)], by: p1.id)))
+
+        // P1 plays Joker — beats 2♣
+        state = try state.apply(.play(cards: [.joker(index: 0)], by: p1.id))
+
+        // P1 went out; P0 is the sole remaining player → round ends
+        #expect(state.phase == .roundEnded)
+        let p1Final = state.players.first { $0.id == p1.id }!
+        let p0Final = state.players.first { $0.id == p0.id }!
+        #expect(p1Final.currentTitle == .millionaire)
+        #expect(p0Final.currentTitle == .beggar)
+        #expect(state.allCards.count == totalCards, "Card count must be conserved")
+    }
+
     // MARK: Past bugs
 
     // Template for future regression tests. When you fix a bug, add a test
