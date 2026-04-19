@@ -98,14 +98,24 @@ struct EngineInvariantTests {
 
     @Test(
         "Total XP awarded per round equals the sum in the scoring table",
-        .disabled("Not yet implemented"),
         arguments: testSeeds
     )
     func scoringConservation(seed: UInt64) throws {
-        // INVARIANT: the sum of XP awarded across all players at round end
-        // must match the entry in the scoring table for the active player
-        // count. If it doesn't, either titles are being assigned wrong or
-        // XP is being double-counted.
+        let players = Self.makePlayers()
+        let initial = GameState.newGame(players: players, ruleSet: .baseOnly, seed: seed)
+        let states = SimulatedPlaythrough.states(from: initial)
+
+        guard let final = states.last, final.phase == .roundEnded else {
+            Issue.record("Seed \(seed): game did not reach .roundEnded")
+            return
+        }
+
+        let totalXP = final.scoresByPlayer.values.reduce(0, +)
+        let expected = Scoring.totalXP(playerCount: players.count)
+        #expect(
+            totalXP == expected,
+            "Seed \(seed): expected \(expected) total XP, got \(totalXP)"
+        )
     }
 
     // MARK: Move legality

@@ -29,9 +29,10 @@ extension GameState {
     }
 
     /// All legal `Move`s the given player may make right now.
-    /// Returns `[]` if it is not `playerID`'s turn.
+    /// Returns `[]` if it is not `playerID`'s turn or the round has ended.
     /// Pass is omitted when the trick is empty — the leader must play.
     public func validMoves(for playerID: PlayerID) -> [Move] {
+        guard phase == .playing else { return [] }
         guard players[currentPlayerIndex].id == playerID else { return [] }
         let player = players[currentPlayerIndex]
         var moves: [Move] = []
@@ -103,8 +104,38 @@ extension GameState {
 
         var newPlayers = players
         newPlayers[playerIndex] = updatedPlayer
-        let nextIndex = nextActive(after: playerIndex, in: newPlayers)
+        var updatedScores = scoresByPlayer
 
+        if updatedPlayer.hand.isEmpty {
+            let finishPosition = newPlayers.filter { $0.currentTitle != nil }.count
+            let titleForPlayer = Scoring.title(forFinishPosition: finishPosition, playerCount: newPlayers.count)
+            newPlayers[playerIndex] = updatedPlayer.withTitle(titleForPlayer)
+            updatedScores[updatedPlayer.id, default: 0] += Scoring.xp(for: titleForPlayer)
+
+            let remainingIndices = newPlayers.indices.filter { newPlayers[$0].currentTitle == nil }
+            if remainingIndices.count == 1 {
+                let lastIdx = remainingIndices[0]
+                let lastPlayerID = newPlayers[lastIdx].id
+                newPlayers[lastIdx] = newPlayers[lastIdx].withTitle(.beggar)
+                updatedScores[lastPlayerID, default: 0] += Scoring.xp(for: .beggar)
+                return GameState(
+                    players: newPlayers,
+                    deck: deck,
+                    currentTrick: [],
+                    currentPlayerIndex: currentPlayerIndex,
+                    phase: .roundEnded,
+                    ruleSet: ruleSet,
+                    isRevolutionActive: isRevolutionActive,
+                    round: round,
+                    scoresByPlayer: updatedScores,
+                    passCountSinceLastPlay: 0,
+                    lastPlayedByIndex: nil,
+                    playedPile: playedPile + currentTrick.flatMap { $0.cards } + newHand.cards
+                )
+            }
+        }
+
+        let nextIndex = nextActive(after: playerIndex, in: newPlayers)
         return GameState(
             players: newPlayers,
             deck: deck,
@@ -114,7 +145,7 @@ extension GameState {
             ruleSet: ruleSet,
             isRevolutionActive: isRevolutionActive,
             round: round,
-            scoresByPlayer: scoresByPlayer,
+            scoresByPlayer: updatedScores,
             passCountSinceLastPlay: 0,
             lastPlayedByIndex: playerIndex,
             playedPile: playedPile

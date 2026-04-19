@@ -46,6 +46,11 @@ public struct Player: Sendable, Hashable {
         Player(id: id, displayName: displayName, hand: hand + cards, currentTitle: currentTitle)
     }
 
+    /// Returns a new `Player` with `title` set, preserving all other fields.
+    public func withTitle(_ title: Title) -> Player {
+        Player(id: id, displayName: displayName, hand: hand, currentTitle: title)
+    }
+
     /// Returns a new `Player` with the given cards removed from the hand.
     /// Throws `PlayerError.missingCards` listing every card that was absent.
     public func removing(_ cards: [Card]) throws -> Player {

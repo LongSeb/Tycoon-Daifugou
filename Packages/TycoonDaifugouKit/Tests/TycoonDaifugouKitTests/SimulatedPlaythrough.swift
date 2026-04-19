@@ -17,6 +17,7 @@ struct SimulatedPlaythrough {
         var current = initial
 
         for _ in 0..<maxMoves {
+            if current.phase == .roundEnded { break }
             if current.players.allSatisfy({ $0.hand.isEmpty }) { break }
 
             let playerID = current.players[current.currentPlayerIndex].id
