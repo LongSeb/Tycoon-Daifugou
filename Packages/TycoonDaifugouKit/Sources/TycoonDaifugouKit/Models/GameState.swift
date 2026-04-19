@@ -17,6 +17,10 @@ public struct GameState: Sendable, Equatable {
     /// 1-indexed round counter.
     public let round: Int
     public let scoresByPlayer: [PlayerID: Int]
+    /// Number of consecutive passes since the last `.play` move.
+    public let passCountSinceLastPlay: Int
+    /// Index into `players` of whoever played the most recent `Hand` in the current trick.
+    public let lastPlayedByIndex: Int?
 
     public init(
         players: [Player],
@@ -27,7 +31,9 @@ public struct GameState: Sendable, Equatable {
         ruleSet: RuleSet,
         isRevolutionActive: Bool = false,
         round: Int,
-        scoresByPlayer: [PlayerID: Int]
+        scoresByPlayer: [PlayerID: Int],
+        passCountSinceLastPlay: Int = 0,
+        lastPlayedByIndex: Int? = nil
     ) {
         self.players = players
         self.deck = deck
@@ -38,6 +44,8 @@ public struct GameState: Sendable, Equatable {
         self.isRevolutionActive = isRevolutionActive
         self.round = round
         self.scoresByPlayer = scoresByPlayer
+        self.passCountSinceLastPlay = passCountSinceLastPlay
+        self.lastPlayedByIndex = lastPlayedByIndex
     }
 
     /// Creates a fresh round-1 game state. Cards are deterministically shuffled
