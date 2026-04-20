@@ -8,6 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		945354972F942816007F8599 /* TycoonDaifugouKit in Frameworks */ = {isa = PBXBuildFile; productRef = 945354962F942816007F8599 /* TycoonDaifugouKit */; };
+		945354FF2F95E25F007F8599 /* GradientCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 945354F82F95E25F007F8599 /* GradientCard.swift */; };
+		945355002F95E25F007F8599 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 945354FD2F95E25F007F8599 /* Typography.swift */; };
+		945355012F95E25F007F8599 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 945354FC2F95E25F007F8599 /* Colors.swift */; };
+		945355022F95E25F007F8599 /* PlayerAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 945354FA2F95E25F007F8599 /* PlayerAvatar.swift */; };
+		945355032F95E25F007F8599 /* PillButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 945354F92F95E25F007F8599 /* PillButton.swift */; };
+		945355072F95E275007F8599 /* InstrumentSans.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 945355052F95E275007F8599 /* InstrumentSans.ttf */; };
+		945355082F95E275007F8599 /* Fraunces-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 945355042F95E275007F8599 /* Fraunces-Italic.ttf */; };
 		F61F6C992F95DCC9008C0D7A /* PillButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F61F6C932F95DCC9008C0D7A /* PillButton.swift */; };
 		F61F6C9A2F95DCC9008C0D7A /* PlayerAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F61F6C942F95DCC9008C0D7A /* PlayerAvatar.swift */; };
 		F61F6C9B2F95DCC9008C0D7A /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = F61F6C962F95DCC9008C0D7A /* Colors.swift */; };
@@ -38,6 +45,13 @@
 		9453544D2F941EFB007F8599 /* TycoonDaifugou.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TycoonDaifugou.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9453545C2F941EFC007F8599 /* TycoonDaifugouTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TycoonDaifugouTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		945354662F941EFC007F8599 /* TycoonDaifugouUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TycoonDaifugouUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		945354F82F95E25F007F8599 /* GradientCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientCard.swift; sourceTree = "<group>"; };
+		945354F92F95E25F007F8599 /* PillButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillButton.swift; sourceTree = "<group>"; };
+		945354FA2F95E25F007F8599 /* PlayerAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAvatar.swift; sourceTree = "<group>"; };
+		945354FC2F95E25F007F8599 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
+		945354FD2F95E25F007F8599 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		945355042F95E275007F8599 /* Fraunces-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces-Italic.ttf"; sourceTree = "<group>"; };
+		945355052F95E275007F8599 /* InstrumentSans.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = InstrumentSans.ttf; sourceTree = "<group>"; };
 		F61F6C922F95DCC9008C0D7A /* GradientCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientCard.swift; sourceTree = "<group>"; };
 		F61F6C932F95DCC9008C0D7A /* PillButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillButton.swift; sourceTree = "<group>"; };
 		F61F6C942F95DCC9008C0D7A /* PlayerAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAvatar.swift; sourceTree = "<group>"; };
@@ -107,6 +121,8 @@
 		945354442F941EFB007F8599 = {
 			isa = PBXGroup;
 			children = (
+				945355062F95E275007F8599 /* Fonts */,
+				945354FE2F95E25F007F8599 /* DesignSystem */,
 				F61F6CA02F95DD07008C0D7A /* Fonts */,
 				F61F6C982F95DCC9008C0D7A /* DesignSystem */,
 				9453544F2F941EFB007F8599 /* TycoonDaifugou */,
@@ -132,6 +148,37 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		945354FB2F95E25F007F8599 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				945354F82F95E25F007F8599 /* GradientCard.swift */,
+				945354F92F95E25F007F8599 /* PillButton.swift */,
+				945354FA2F95E25F007F8599 /* PlayerAvatar.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		945354FE2F95E25F007F8599 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				945354FB2F95E25F007F8599 /* Components */,
+				945354FC2F95E25F007F8599 /* Colors.swift */,
+				945354FD2F95E25F007F8599 /* Typography.swift */,
+			);
+			name = DesignSystem;
+			path = TycoonDaifugou/DesignSystem;
+			sourceTree = "<group>";
+		};
+		945355062F95E275007F8599 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				945355042F95E275007F8599 /* Fraunces-Italic.ttf */,
+				945355052F95E275007F8599 /* InstrumentSans.ttf */,
+			);
+			name = Fonts;
+			path = TycoonDaifugou/Resources/Fonts;
 			sourceTree = "<group>";
 		};
 		F61F6C952F95DCC9008C0D7A /* Components */ = {
@@ -288,6 +335,8 @@
 			files = (
 				F61F6CA12F95DD07008C0D7A /* InstrumentSans.ttf in Resources */,
 				F61F6CA22F95DD07008C0D7A /* Fraunces-Italic.ttf in Resources */,
+				945355072F95E275007F8599 /* InstrumentSans.ttf in Resources */,
+				945355082F95E275007F8599 /* Fraunces-Italic.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -317,6 +366,11 @@
 				F61F6C9B2F95DCC9008C0D7A /* Colors.swift in Sources */,
 				F61F6C9C2F95DCC9008C0D7A /* Typography.swift in Sources */,
 				F61F6C9D2F95DCC9008C0D7A /* GradientCard.swift in Sources */,
+				945354FF2F95E25F007F8599 /* GradientCard.swift in Sources */,
+				945355002F95E25F007F8599 /* Typography.swift in Sources */,
+				945355012F95E25F007F8599 /* Colors.swift in Sources */,
+				945355022F95E25F007F8599 /* PlayerAvatar.swift in Sources */,
+				945355032F95E25F007F8599 /* PillButton.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -482,6 +536,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TycoonDaifugou/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -515,6 +571,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TycoonDaifugou/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
