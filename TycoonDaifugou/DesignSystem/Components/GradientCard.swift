@@ -4,6 +4,7 @@ enum GradientCardStyle {
     case cream
     case blushCream
     case lavenderMint
+    case featurePlay
 
     var gradient: LinearGradient {
         switch self {
@@ -20,6 +21,11 @@ enum GradientCardStyle {
         case .lavenderMint:
             return LinearGradient(
                 colors: [.cardLavender, .cardMint],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        case .featurePlay:
+            return LinearGradient(
+                colors: [.cardCream, .cardBlush, .cardLavender],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
         }

@@ -3,6 +3,10 @@ import SwiftUI
 extension Font {
     static let displayXL = Font.custom("Fraunces-9ptBlackItalic", size: 96, relativeTo: .largeTitle)
     static let displayL = Font.custom("Fraunces-9ptBlackItalic", size: 64, relativeTo: .title)
+    static let displayWins = Font.custom("Fraunces-9ptBlackItalic", size: 104, relativeTo: .largeTitle)
+    static let brandTitle = Font.custom("Fraunces-9ptBlackItalic", size: 19, relativeTo: .headline)
+    static let cardTitle = Font.custom("Fraunces-9ptBlackItalic", size: 22, relativeTo: .title2)
+    static let statFigure = Font.custom("Fraunces-9ptBlackItalic", size: 17, relativeTo: .headline)
     static let tycoonTitle = Font.custom("InstrumentSans-Regular", size: 24, relativeTo: .title3).weight(.semibold)
     static let tycoonBody = Font.custom("InstrumentSans-Regular", size: 16, relativeTo: .body)
     static let tycoonCaption = Font.custom("InstrumentSans-Regular", size: 11, relativeTo: .caption).weight(.medium)
