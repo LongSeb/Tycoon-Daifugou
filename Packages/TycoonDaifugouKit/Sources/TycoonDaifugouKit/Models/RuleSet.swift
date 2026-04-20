@@ -31,6 +31,16 @@ public struct RuleSet: Sendable, Codable, Equatable {
 
     public static let baseOnly = RuleSet()
 
+    /// All house rules enabled, two Jokers. Used for stress-testing the engine.
+    public static let allRules = RuleSet(
+        revolution: true,
+        eightStop: true,
+        jokers: true,
+        threeSpadeReversal: true,
+        bankruptcy: true,
+        jokerCount: 2
+    )
+
     /// Throws if the rule configuration is internally inconsistent.
     public func validate() throws(RuleSetError) {
         if jokers && jokerCount == 0 {
