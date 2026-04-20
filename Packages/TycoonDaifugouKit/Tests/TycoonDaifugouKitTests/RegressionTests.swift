@@ -171,11 +171,63 @@ struct RegressionTests {
 
     // MARK: Scenario: Bankruptcy rule
 
-    @Test("Millionaire who can't keep title becomes Beggar (Bankruptcy)", .disabled("Not yet implemented"))
+    @Test("Millionaire who can't keep title becomes Beggar (Bankruptcy)")
     func millionaireBankruptcy() throws {
         // Per the rules doc: "When playing with 4+ players, if the Millionaire
         // is not able to keep their title, they will instantly become the
         // Beggar and are out of play for the remainder of the round."
+        //
+        // Scenario: hand-crafted 4-player round 2, seat order [winner, defender, p2, p3].
+        // winner leads with the only 2♥ — finishes 1st, gets Millionaire.
+        // defender (the previous Millionaire) didn't go out first → bankrupt.
+        // p2 and p3 pass (can't beat 2), trick resets to p2, p3 beats p2's lead,
+        // last-player check fires: p2=poor, defender=beggar, round over.
+
+        // p2 gets TWO cards so that leading 5♣ doesn't immediately end the round.
+        let defender = Player(displayName: "Defender", hand: [.regular(.three, .clubs)])
+        let winner = Player(displayName: "Winner", hand: [.regular(.two, .hearts)])
+        let p2 = Player(displayName: "P2", hand: [.regular(.five, .clubs), .regular(.four, .diamonds)])
+        let p3 = Player(displayName: "P3", hand: [.regular(.six, .clubs)])
+
+        let players = [winner, defender, p2, p3]
+        let scores = Dictionary(uniqueKeysWithValues: players.map { ($0.id, 0) })
+        let totalCards = players.flatMap { $0.hand }.count
+
+        var state = GameState(
+            players: players,
+            deck: [],
+            currentPlayerIndex: 0,
+            phase: .playing,
+            ruleSet: RuleSet(bankruptcy: true),
+            round: 2,
+            scoresByPlayer: scores,
+            defendingMillionaireID: defender.id
+        )
+
+        // winner plays 2♥ (last card) → Millionaire; defender goes bankrupt
+        state = try state.apply(.play(cards: [.regular(.two, .hearts)], by: winner.id))
+        #expect(state.players.first { $0.id == winner.id }?.currentTitle == .millionaire)
+        #expect(state.players.first { $0.id == defender.id }?.isBankrupt == true)
+        #expect(state.phase == .playing)
+
+        // p2 and p3 pass; defender is skipped; trick resets to p2
+        state = try state.apply(.pass(by: p2.id))
+        state = try state.apply(.pass(by: p3.id))
+        #expect(state.currentTrick.isEmpty)
+        #expect(state.players[state.currentPlayerIndex].id == p2.id)
+
+        // p2 leads 5♣ (keeps 4♦); p3 plays 6♣ (last card, beats 5♣)
+        // → p3 rich, p2 poor, defender beggar → round ends
+        state = try state.apply(.play(cards: [.regular(.five, .clubs)], by: p2.id))
+        #expect(state.phase == .playing, "Round must continue — p3 still needs to play")
+        state = try state.apply(.play(cards: [.regular(.six, .clubs)], by: p3.id))
+
+        #expect(state.phase == .roundEnded)
+        #expect(state.players.first { $0.id == winner.id }?.currentTitle == .millionaire)
+        #expect(state.players.first { $0.id == p3.id }?.currentTitle == .rich)
+        #expect(state.players.first { $0.id == p2.id }?.currentTitle == .poor)
+        #expect(state.players.first { $0.id == defender.id }?.currentTitle == .beggar)
+        #expect(state.allCards.count == totalCards, "Card count must be conserved")
     }
 
     // MARK: Scenario: 8-Stop House Rule

@@ -28,27 +28,37 @@ public struct Player: Sendable, Hashable {
     public let displayName: String
     public let hand: [Card]
     public let currentTitle: Title?
+    /// True when the Bankruptcy house rule has removed this player from active play.
+    /// A bankrupt player keeps their cards but skips all turns until the round ends.
+    public let isBankrupt: Bool
 
     public init(
         id: PlayerID = PlayerID(),
         displayName: String,
         hand: [Card] = [],
-        currentTitle: Title? = nil
+        currentTitle: Title? = nil,
+        isBankrupt: Bool = false
     ) {
         self.id = id
         self.displayName = displayName
         self.hand = hand
         self.currentTitle = currentTitle
+        self.isBankrupt = isBankrupt
     }
 
     /// Returns a new `Player` whose hand contains the given cards appended.
     public func adding(_ cards: [Card]) -> Player {
-        Player(id: id, displayName: displayName, hand: hand + cards, currentTitle: currentTitle)
+        Player(id: id, displayName: displayName, hand: hand + cards, currentTitle: currentTitle, isBankrupt: isBankrupt)
     }
 
     /// Returns a new `Player` with `title` set, preserving all other fields.
     public func withTitle(_ title: Title) -> Player {
-        Player(id: id, displayName: displayName, hand: hand, currentTitle: title)
+        Player(id: id, displayName: displayName, hand: hand, currentTitle: title, isBankrupt: isBankrupt)
+    }
+
+    /// Returns a new `Player` marked as bankrupt, preserving all other fields.
+    public func withBankruptcy() -> Player {
+        Player(id: id, displayName: displayName, hand: hand, currentTitle: currentTitle, isBankrupt: true)
     }
 
     /// Returns a new `Player` with the given cards removed from the hand.
@@ -69,6 +79,9 @@ public struct Player: Sendable, Hashable {
             throw PlayerError.missingCards(missing)
         }
 
-        return Player(id: id, displayName: displayName, hand: remaining, currentTitle: currentTitle)
+        return Player(
+            id: id, displayName: displayName, hand: remaining,
+            currentTitle: currentTitle, isBankrupt: isBankrupt
+        )
     }
 }
