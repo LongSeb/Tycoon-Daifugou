@@ -1,0 +1,28 @@
+import SwiftUI
+
+extension HomeViewState {
+    static let preview = HomeViewState(
+        totalGamesWon: 47,
+        lastGame: LastGameData(
+            rank: "Millionaire",
+            emoji: "👑",
+            xp: "+300",
+            rounds: 3,
+            roundsWon: 2,
+            cardsPlayed: 31,
+            duration: "8m 42s",
+            ago: "2h ago",
+            highlight: "Revolution in Round 2"
+        ),
+        recentGames: [
+            .init(rank: "Rich",        xp: "+200", ago: "Yesterday", medal: "🥈", avatarEmoji: "😎"),
+            .init(rank: "Millionaire", xp: "+300", ago: "2d ago",    medal: "🥇", avatarEmoji: "🦊"),
+            .init(rank: "Poor",        xp: "+50",  ago: "3d ago",    medal: nil,  avatarEmoji: "🐱"),
+            .init(rank: "Beggar",      xp: "+25",  ago: "4d ago",    medal: nil,  avatarEmoji: "🐼"),
+        ]
+    )
+}
+
+#Preview {
+    HomeView(state: .preview, onPlayTapped: {})
+}
