@@ -47,15 +47,13 @@ extension GameState {
 
         let nonJokers = player.hand.filter { !$0.isJoker }
         let byRank = Dictionary(grouping: nonJokers) { $0.rank! }
-
         let jokerCards = ruleSet.jokers ? player.hand.filter { $0.isJoker } : []
 
         if let lastHand = currentTrick.last {
             let size = lastHand.type.rawValue
             for (rank, cards) in byRank
                 where Revolution.isStronger(rank, than: lastHand.rank, revolutionActive: isRevolutionActive)
-                    && cards.count >= size
-            {
+                    && cards.count >= size {
                 for combo in combinations(of: cards, count: size) {
                     moves.append(.play(cards: combo, by: playerID))
                 }
@@ -94,19 +92,13 @@ extension GameState {
 extension GameState {
 
     private func applyPlay(cards: [Card], by: PlayerID) throws -> GameState {
-        guard players[currentPlayerIndex].id == by else {
-            throw GameError.notYourTurn
-        }
+        guard players[currentPlayerIndex].id == by else { throw GameError.notYourTurn }
 
         let playerIndex = currentPlayerIndex
         let player = players[playerIndex]
 
         let updatedPlayer: Player
-        do {
-            updatedPlayer = try player.removing(cards)
-        } catch {
-            throw GameError.cardsNotInHand
-        }
+        do { updatedPlayer = try player.removing(cards) } catch { throw GameError.cardsNotInHand }
 
         let newHand: Hand
         do {
@@ -117,71 +109,44 @@ extension GameState {
             throw GameError.invalidHand(.mixedRanks)
         }
 
-        if newHand.isSoloJoker && !ruleSet.jokers {
-            throw GameError.invalidHand(.allJokers)
-        }
+        if newHand.isSoloJoker && !ruleSet.jokers { throw GameError.invalidHand(.allJokers) }
 
         let newRevolutionActive = Revolution.newState(
             active: isRevolutionActive, after: newHand, ruleEnabled: ruleSet.revolution)
 
         let trickTop = currentTrick.last
-
         if let lastHand = trickTop {
-            guard newHand.type == lastHand.type else {
-                throw GameError.handTypeMismatch
-            }
+            guard newHand.type == lastHand.type else { throw GameError.handTypeMismatch }
             let isReversal = ThreeSpadeReversal.triggers(newHand: newHand, onto: lastHand, ruleSet: ruleSet)
             if !isReversal {
                 let isStronger = Joker.isSoloStronger(newHand: newHand, ruleEnabled: ruleSet.jokers)
                     || Revolution.isStronger(newHand, than: lastHand, revolutionActive: isRevolutionActive)
-                guard isStronger else {
-                    throw GameError.notStrongerThanCurrent
-                }
+                guard isStronger else { throw GameError.notStrongerThanCurrent }
             }
         }
 
         var newPlayers = players
         newPlayers[playerIndex] = updatedPlayer
-        var updatedScores = scoresByPlayer
+        let updatedScores = scoresByPlayer
 
         if updatedPlayer.hand.isEmpty {
-            let finishPosition = newPlayers.filter { $0.currentTitle != nil }.count
-            let titleForPlayer = Scoring.title(forFinishPosition: finishPosition, playerCount: newPlayers.count)
-            newPlayers[playerIndex] = updatedPlayer.withTitle(titleForPlayer)
-            updatedScores[updatedPlayer.id, default: 0] += Scoring.xp(for: titleForPlayer)
-
-            let remainingIndices = newPlayers.indices.filter { newPlayers[$0].currentTitle == nil }
-            if remainingIndices.count == 1 {
-                let lastIdx = remainingIndices[0]
-                let lastPlayerID = newPlayers[lastIdx].id
-                newPlayers[lastIdx] = newPlayers[lastIdx].withTitle(.beggar)
-                updatedScores[lastPlayerID, default: 0] += Scoring.xp(for: .beggar)
-                return GameState(
-                    players: newPlayers,
-                    deck: deck,
-                    currentTrick: [],
-                    currentPlayerIndex: currentPlayerIndex,
-                    phase: .roundEnded,
-                    ruleSet: ruleSet,
-                    isRevolutionActive: newRevolutionActive,
-                    round: round,
-                    scoresByPlayer: updatedScores,
-                    passCountSinceLastPlay: 0,
-                    lastPlayedByIndex: nil,
-                    playedPile: playedPile + currentTrick.flatMap { $0.cards } + newHand.cards
-                )
-            }
+            return applyFinish(
+                playerIndex: playerIndex,
+                newHand: newHand,
+                newRevolutionActive: newRevolutionActive,
+                newPlayers: newPlayers,
+                updatedScores: updatedScores
+            )
         }
 
         let nextIndex = nextActive(after: playerIndex, in: newPlayers)
 
-        if !updatedPlayer.hand.isEmpty, EightStop.triggers(hand: newHand, ruleEnabled: ruleSet.eightStop) {
+        if EightStop.triggers(hand: newHand, ruleEnabled: ruleSet.eightStop) {
             return trickCleared(newHand: newHand, leadIndex: playerIndex, players: newPlayers,
                 scores: updatedScores, revolutionActive: newRevolutionActive)
         }
 
-        if let trickTop, !updatedPlayer.hand.isEmpty,
-            ThreeSpadeReversal.triggers(newHand: newHand, onto: trickTop, ruleSet: ruleSet) {
+        if let trickTop, ThreeSpadeReversal.triggers(newHand: newHand, onto: trickTop, ruleSet: ruleSet) {
             return trickCleared(newHand: newHand, leadIndex: playerIndex, players: newPlayers,
                 scores: updatedScores, revolutionActive: newRevolutionActive)
         }
@@ -198,25 +163,109 @@ extension GameState {
             scoresByPlayer: updatedScores,
             passCountSinceLastPlay: 0,
             lastPlayedByIndex: playerIndex,
-            playedPile: playedPile
+            playedPile: playedPile,
+            defendingMillionaireID: defendingMillionaireID
+        )
+    }
+
+    /// Handles the case where the current player just played their last card.
+    /// Assigns titles, fires bankruptcy if applicable, and returns either a
+    /// `.roundEnded` state or a continuation state with the active players remaining.
+    private func applyFinish(
+        playerIndex: Int,
+        newHand: Hand,
+        newRevolutionActive: Bool,
+        newPlayers: [Player],
+        updatedScores: [PlayerID: Int]
+    ) -> GameState {
+        var newPlayers = newPlayers
+        var updatedScores = updatedScores
+
+        let finishPosition = newPlayers.filter { $0.currentTitle != nil }.count
+        let titleForPlayer = Scoring.title(forFinishPosition: finishPosition, playerCount: newPlayers.count)
+        newPlayers[playerIndex] = newPlayers[playerIndex].withTitle(titleForPlayer)
+        updatedScores[newPlayers[playerIndex].id, default: 0] += Scoring.xp(for: titleForPlayer)
+
+        if Bankruptcy.shouldTrigger(
+            finishPosition: finishPosition,
+            finishedPlayerID: newPlayers[playerIndex].id,
+            defendingMillionaireID: defendingMillionaireID,
+            ruleSet: ruleSet,
+            playerCount: newPlayers.count
+        ), let bankruptIdx = newPlayers.firstIndex(where: { $0.id == defendingMillionaireID }) {
+            newPlayers[bankruptIdx] = newPlayers[bankruptIdx].withBankruptcy()
+        }
+
+        let nonBankruptUntitled = newPlayers.indices.filter {
+            newPlayers[$0].currentTitle == nil && !newPlayers[$0].isBankrupt
+        }
+
+        if nonBankruptUntitled.count <= 1 {
+            if let lastIdx = nonBankruptUntitled.first {
+                let lastPos = newPlayers.filter { $0.currentTitle != nil }.count
+                let lastTitle = Scoring.title(forFinishPosition: lastPos, playerCount: newPlayers.count)
+                newPlayers[lastIdx] = newPlayers[lastIdx].withTitle(lastTitle)
+                updatedScores[newPlayers[lastIdx].id, default: 0] += Scoring.xp(for: lastTitle)
+            }
+            if let bkIdx = newPlayers.firstIndex(where: { $0.isBankrupt && $0.currentTitle == nil }) {
+                let bkID = newPlayers[bkIdx].id
+                newPlayers[bkIdx] = newPlayers[bkIdx].withTitle(.beggar)
+                updatedScores[bkID, default: 0] += Scoring.xp(for: .beggar)
+            }
+            return GameState(
+                players: newPlayers,
+                deck: deck,
+                currentTrick: [],
+                currentPlayerIndex: currentPlayerIndex,
+                phase: .roundEnded,
+                ruleSet: ruleSet,
+                isRevolutionActive: newRevolutionActive,
+                round: round,
+                scoresByPlayer: updatedScores,
+                passCountSinceLastPlay: 0,
+                lastPlayedByIndex: nil,
+                playedPile: playedPile + currentTrick.flatMap { $0.cards } + newHand.cards
+            )
+        }
+
+        let nextIdx = nextActive(after: playerIndex, in: newPlayers)
+        return GameState(
+            players: newPlayers,
+            deck: deck,
+            currentTrick: currentTrick + [newHand],
+            currentPlayerIndex: nextIdx,
+            phase: phase,
+            ruleSet: ruleSet,
+            isRevolutionActive: newRevolutionActive,
+            round: round,
+            scoresByPlayer: updatedScores,
+            passCountSinceLastPlay: 0,
+            lastPlayedByIndex: playerIndex,
+            playedPile: playedPile,
+            defendingMillionaireID: defendingMillionaireID
         )
     }
 
     private func applyPass(by: PlayerID) throws -> GameState {
-        guard players[currentPlayerIndex].id == by else {
-            throw GameError.notYourTurn
-        }
+        guard players[currentPlayerIndex].id == by else { throw GameError.notYourTurn }
 
         let newPassCount = passCountSinceLastPlay + 1
         let lastIdx = lastPlayedByIndex ?? currentPlayerIndex
+        // Exclude bankrupt players from the active-other count so the pass chain
+        // resets correctly even when a bankrupt player still holds cards.
         let activeOtherCount = players.indices.filter {
-            $0 != lastIdx && !players[$0].hand.isEmpty
+            $0 != lastIdx && !players[$0].hand.isEmpty && !players[$0].isBankrupt
         }.count
 
         if newPassCount >= activeOtherCount {
-            let winnerIdx = players[lastIdx].hand.isEmpty
-                ? nextActive(after: lastIdx, in: players)
-                : lastIdx
+            // Trick resets. If the last-to-play is out or bankrupt, pass the
+            // lead to the next eligible player.
+            let winnerIdx: Int
+            if players[lastIdx].hand.isEmpty || players[lastIdx].isBankrupt {
+                winnerIdx = nextActive(after: lastIdx, in: players)
+            } else {
+                winnerIdx = lastIdx
+            }
             return GameState(
                 players: players,
                 deck: deck,
@@ -229,7 +278,8 @@ extension GameState {
                 scoresByPlayer: scoresByPlayer,
                 passCountSinceLastPlay: 0,
                 lastPlayedByIndex: nil,
-                playedPile: playedPile + currentTrick.flatMap { $0.cards }
+                playedPile: playedPile + currentTrick.flatMap { $0.cards },
+                defendingMillionaireID: defendingMillionaireID
             )
         } else {
             let nextIdx = nextActive(after: currentPlayerIndex, in: players)
@@ -245,7 +295,8 @@ extension GameState {
                 scoresByPlayer: scoresByPlayer,
                 passCountSinceLastPlay: newPassCount,
                 lastPlayedByIndex: lastPlayedByIndex,
-                playedPile: playedPile
+                playedPile: playedPile,
+                defendingMillionaireID: defendingMillionaireID
             )
         }
     }
@@ -271,14 +322,17 @@ extension GameState {
             scoresByPlayer: updatedScores,
             passCountSinceLastPlay: 0,
             lastPlayedByIndex: nil,
-            playedPile: playedPile + currentTrick.flatMap { $0.cards } + newHand.cards
+            playedPile: playedPile + currentTrick.flatMap { $0.cards } + newHand.cards,
+            defendingMillionaireID: defendingMillionaireID
         )
     }
 
     private func nextActive(after index: Int, in playerList: [Player]) -> Int {
         for offset in 1...playerList.count {
             let candidate = (index + offset) % playerList.count
-            if !playerList[candidate].hand.isEmpty { return candidate }
+            if !playerList[candidate].hand.isEmpty && !playerList[candidate].isBankrupt {
+                return candidate
+            }
         }
         return index
     }

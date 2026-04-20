@@ -27,6 +27,9 @@ public struct GameState: Sendable, Equatable {
     /// Trades still awaiting resolution during the `.trading` phase.
     /// Empty outside of `.trading`.
     public let pendingTrades: [RequiredTrade]
+    /// The player who held `.millionaire` at the start of this round (set by `startNextRound`).
+    /// `nil` in round 1 or when the Bankruptcy house rule is disabled.
+    public let defendingMillionaireID: PlayerID?
 
     public init(
         players: [Player],
@@ -41,7 +44,8 @@ public struct GameState: Sendable, Equatable {
         passCountSinceLastPlay: Int = 0,
         lastPlayedByIndex: Int? = nil,
         playedPile: [Card] = [],
-        pendingTrades: [RequiredTrade] = []
+        pendingTrades: [RequiredTrade] = [],
+        defendingMillionaireID: PlayerID? = nil
     ) {
         self.players = players
         self.deck = deck
@@ -56,6 +60,7 @@ public struct GameState: Sendable, Equatable {
         self.lastPlayedByIndex = lastPlayedByIndex
         self.playedPile = playedPile
         self.pendingTrades = pendingTrades
+        self.defendingMillionaireID = defendingMillionaireID
     }
 
     /// Every card that exists in this state: player hands + current trick + discard pile.

@@ -67,6 +67,13 @@ extension GameState {
             startIndex = 0
         }
 
+        // Record the previous round's Millionaire so the Bankruptcy rule can track
+        // whether they defend their title in the new round.
+        let defending: PlayerID? = {
+            guard Bankruptcy.isApplicable(ruleSet: ruleSet, playerCount: players.count) else { return nil }
+            return players.first(where: { $0.currentTitle == .millionaire })?.id
+        }()
+
         return GameState(
             players: dealtPlayers,
             deck: shuffledDeck,
@@ -77,7 +84,8 @@ extension GameState {
             isRevolutionActive: false,
             round: round + 1,
             scoresByPlayer: scoresByPlayer,
-            pendingTrades: trades
+            pendingTrades: trades,
+            defendingMillionaireID: defending
         )
     }
 
@@ -181,7 +189,8 @@ extension GameState {
                 isRevolutionActive: false,
                 round: round,
                 scoresByPlayer: scoresByPlayer,
-                pendingTrades: []
+                pendingTrades: [],
+                defendingMillionaireID: defendingMillionaireID
             )
         } else {
             return GameState(
@@ -194,7 +203,8 @@ extension GameState {
                 isRevolutionActive: false,
                 round: round,
                 scoresByPlayer: scoresByPlayer,
-                pendingTrades: newPending
+                pendingTrades: newPending,
+                defendingMillionaireID: defendingMillionaireID
             )
         }
     }
