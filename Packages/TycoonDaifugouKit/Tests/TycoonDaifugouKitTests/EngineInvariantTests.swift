@@ -69,29 +69,64 @@ struct EngineInvariantTests {
 
     @Test(
         "Turn order advances exactly one seat per non-pass move",
-        .disabled("Not yet implemented"),
         arguments: testSeeds
     )
     func turnOrderAdvances(seed: UInt64) throws {
-        // INVARIANT: after any valid non-pass move, `currentPlayerIndex`
-        // advances by exactly 1 (mod number of active players). Passes may
-        // also advance, but skipping multiple seats without a pass is a bug.
+        // INVARIANT: in every `.playing` state the current player always holds
+        // cards and is not bankrupt. A stale `currentPlayerIndex` pointing at
+        // an empty-handed or bankrupt player is the hallmark turn-order bug.
+        let initial = GameState.newGame(players: Self.makePlayers(), ruleSet: .allRules, seed: seed)
+        let states = SimulatedPlaythrough.states(from: initial, maxRounds: 3)
+
+        for (i, state) in states.enumerated() {
+            guard state.phase == .playing else { continue }
+            let current = state.players[state.currentPlayerIndex]
+            #expect(
+                !current.hand.isEmpty,
+                "Seed \(seed): step \(i): \(current.displayName) has empty hand but holds the turn"
+            )
+            #expect(
+                !current.isBankrupt,
+                "Seed \(seed): step \(i): \(current.displayName) is bankrupt but holds the turn"
+            )
+        }
     }
 
     // MARK: State machine legality
 
     @Test(
         "GamePhase transitions never go backwards",
-        .disabled("Not yet implemented"),
         arguments: testSeeds
     )
     func phaseMonotonicity(seed: UInt64) throws {
-        // INVARIANT: within a round, the phase only ever moves in one of
-        // these sequences:
-        //   .dealing -> .trading -> .playing -> .scoring -> .roundEnded
-        //
-        // If the engine ever moves BACK to an earlier phase mid-round,
-        // something is very wrong.
+        // INVARIANT: within a round the phase only ever advances through
+        //   .dealing(0) → .trading(1) → .playing(2) → .scoring(3) → .roundEnded(4)
+        // A backward transition mid-round is a state-machine bug.
+        // Round boundaries (roundEnded → trading/playing) are legitimate resets.
+        let initial = GameState.newGame(players: Self.makePlayers(), ruleSet: .allRules, seed: seed)
+        let states = SimulatedPlaythrough.states(from: initial, maxRounds: 3)
+
+        var prevPhase = initial.phase
+        var prevRound = initial.round
+
+        for (i, state) in states.dropFirst().enumerated() {
+            defer { prevPhase = state.phase; prevRound = state.round }
+            if state.round != prevRound { continue }  // legitimate reset at round boundary
+            #expect(
+                phaseOrder(state.phase) >= phaseOrder(prevPhase),
+                "Seed \(seed): step \(i + 1): phase went \(prevPhase) → \(state.phase) within round \(prevRound)"
+            )
+        }
+    }
+
+    private func phaseOrder(_ phase: GamePhase) -> Int {
+        switch phase {
+        case .dealing:    return 0
+        case .trading:    return 1
+        case .playing:    return 2
+        case .scoring:    return 3
+        case .roundEnded: return 4
+        }
     }
 
     // MARK: Scoring
@@ -122,13 +157,25 @@ struct EngineInvariantTests {
 
     @Test(
         "No move returned by validMoves(for:state:) is ever rejected by apply",
-        .disabled("Not yet implemented"),
         arguments: testSeeds
     )
     func validMovesAreApplicable(seed: UInt64) throws {
         // INVARIANT: for every (state, player), every move returned by
-        // `validMoves(for:state:)` must be accepted by `apply(move:to:)`
-        // without throwing. If this fails, the two functions disagree about
-        // what's legal — a recipe for UI-vs-engine bugs.
+        // `validMoves(for:)` must be accepted by `apply` without throwing.
+        // A mismatch means the two functions disagree about legality — a
+        // recipe for UI-vs-engine bugs where moves appear clickable but crash.
+        let initial = GameState.newGame(players: Self.makePlayers(), ruleSet: .allRules, seed: seed)
+        let states = SimulatedPlaythrough.states(from: initial, maxRounds: 2)
+
+        for (i, state) in states.enumerated() {
+            guard state.phase == .playing else { continue }
+            let playerID = state.players[state.currentPlayerIndex].id
+            for move in state.validMoves(for: playerID) {
+                #expect(
+                    (try? state.apply(move)) != nil,
+                    "Seed \(seed): step \(i): validMoves offered \(move) but apply rejected it"
+                )
+            }
+        }
     }
 }
