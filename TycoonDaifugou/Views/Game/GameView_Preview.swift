@@ -26,5 +26,5 @@ extension GameController {
 }
 
 #Preview("Game — New Match") {
-    GameView(controller: .newMatch(seed: 42))
+    GameView(controller: .newMatch(seed: 42), onExitRequest: {}, onGameEnded: { _ in })
 }

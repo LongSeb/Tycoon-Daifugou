@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ResultsView: View {
     let result: GameResultData
+    var onPlayAgain: () -> Void = {}
+    var onMainMenu: () -> Void = {}
 
     var body: some View {
         ZStack {
@@ -209,7 +211,7 @@ struct ResultsView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 10) {
-            Button(action: { print("Play again tapped") }) {
+            Button(action: onPlayAgain) {
                 HStack(spacing: 8) {
                     ZStack {
                         Circle()
@@ -231,7 +233,7 @@ struct ResultsView: View {
             }
             .buttonStyle(.plain)
 
-            Button(action: { print("Main menu tapped") }) {
+            Button(action: onMainMenu) {
                 HStack(spacing: 8) {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 13, weight: .medium))
