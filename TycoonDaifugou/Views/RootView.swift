@@ -2,15 +2,38 @@ import SwiftUI
 import TycoonDaifugouKit
 
 struct RootView: View {
+    @State private var coordinator = NavigationCoordinator()
     @State private var selectedTab: AppTab = .home
-    @State private var activeGame: GameController?
 
     var body: some View {
+        @Bindable var coordinator = coordinator
+
+        NavigationStack(path: $coordinator.path) {
+            tabRoot
+                .navigationDestination(for: AppRoute.self) { route in
+                    destination(for: route)
+                }
+        }
+        .preferredColorScheme(.dark)
+        .alert(
+            "Quit game?",
+            isPresented: $coordinator.showingQuitConfirm
+        ) {
+            Button("Quit", role: .destructive) { coordinator.returnToHome() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Progress will be lost.")
+        }
+    }
+
+    private var tabRoot: some View {
         ZStack(alignment: .bottom) {
             Group {
                 switch selectedTab {
                 case .home:
-                    HomeView(state: .preview, onPlayTapped: startNewGame)
+                    HomeView(state: .preview, onPlayTapped: {
+                        coordinator.startNewGame(ruleSet: .baseOnly)
+                    })
                 case .profile:
                     ProfileView(profile: .preview)
                 }
@@ -18,19 +41,33 @@ struct RootView: View {
 
             AppTabBar(selectedTab: $selectedTab)
         }
-        .preferredColorScheme(.dark)
-        .fullScreenCover(isPresented: Binding(
-            get: { activeGame != nil },
-            set: { if !$0 { activeGame = nil } }
-        )) {
-            if let controller = activeGame {
-                GameView(controller: controller, onExit: { activeGame = nil })
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
     }
 
-    private func startNewGame() {
-        activeGame = .newMatch(seed: UInt64.random(in: .min ... .max))
+    @ViewBuilder
+    private func destination(for route: AppRoute) -> some View {
+        switch route {
+        case .game:
+            if let controller = coordinator.gameController {
+                GameView(
+                    controller: controller,
+                    onExitRequest: { coordinator.showingQuitConfirm = true },
+                    onGameEnded: { coordinator.showResults(for: $0) }
+                )
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationBarBackButtonHidden(true)
+            }
+        case .results:
+            if let result = coordinator.lastResult {
+                ResultsView(
+                    result: result,
+                    onPlayAgain: { coordinator.startNewGame(ruleSet: coordinator.currentRuleSet) },
+                    onMainMenu: { coordinator.returnToHome() }
+                )
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationBarBackButtonHidden(true)
+            }
+        }
     }
 }
 

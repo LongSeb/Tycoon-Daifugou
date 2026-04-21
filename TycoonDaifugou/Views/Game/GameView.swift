@@ -3,11 +3,13 @@ import TycoonDaifugouKit
 
 struct GameView: View {
     @Bindable var controller: GameController
-    var onExit: (() -> Void)? = nil
+    var onExitRequest: (() -> Void)? = nil
+    var onGameEnded: ((GameController) -> Void)? = nil
 
     @State private var showRules = false
     @State private var selected: Set<Card> = []
     @State private var invalidPlayShake: CGFloat = 0
+    @State private var didNotifyGameEnd = false
 
     private let totalRounds = 3
 
@@ -33,21 +35,15 @@ struct GameView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .zIndex(10)
             }
-
-            if controller.isGameOver {
-                GameOverOverlay(
-                    standings: controller.finalStandings,
-                    humanID: controller.humanPlayerID,
-                    onExit: { onExit?() }
-                )
-                .transition(.opacity)
-                .zIndex(20)
-            }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showRules)
-        .animation(.easeInOut(duration: 0.3), value: controller.isGameOver)
         .preferredColorScheme(.dark)
         .task { await controller.resolveAITurnsIfNeeded() }
+        .onChange(of: controller.isGameOver) { _, isOver in
+            guard isOver, !didNotifyGameEnd else { return }
+            didNotifyGameEnd = true
+            onGameEnded?(controller)
+        }
     }
 
     // MARK: Derived data
@@ -91,8 +87,8 @@ struct GameView: View {
 
     private var topBar: some View {
         HStack {
-            if let onExit {
-                Button(action: onExit) {
+            if let onExitRequest {
+                Button(action: onExitRequest) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Color.textTertiary)
