@@ -26,7 +26,7 @@ struct TycoonDaifugouApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView(state: .preview, onPlayTapped: { print("Play tapped") })
+            RootView()
         }
         .modelContainer(sharedModelContainer)
     }

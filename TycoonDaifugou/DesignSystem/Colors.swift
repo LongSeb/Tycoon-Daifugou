@@ -8,6 +8,8 @@ extension Color {
     static let cardLavender = Color(ds: 0xE5D4FF)
     static let cardMint = Color(ds: 0xD4FFE5)
     static let tycoonSheet = Color(ds: 0x141414)
+    static let tycoonCard = Color(ds: 0x1D1D1D)
+    static let tycoonBorder = Color.white.opacity(0.08)
     static let textPrimary = Color.white
     static let textSecondary = Color.white.opacity(0.6)
     static let textTertiary = Color.white.opacity(0.4)

@@ -2,16 +2,21 @@ import SwiftUI
 
 struct RuleBadgeView: View {
     let badge: RuleBadge
+    var size: CGFloat = 34
+
+    private var cornerRadius: CGFloat { size * 8 / 34 }
+    private var iconSize: CGFloat { size * 14 / 34 }
+    private var mediumIconSize: CGFloat { size * 13 / 34 }
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(backgroundColor)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .strokeBorder(borderColor, lineWidth: 1)
                 )
-                .frame(width: 34, height: 34)
+                .frame(width: size, height: size)
 
             badgeContent
         }
@@ -22,27 +27,27 @@ struct RuleBadgeView: View {
         switch badge {
         case .star:
             Image(systemName: "star.fill")
-                .font(.system(size: 14))
+                .font(.system(size: iconSize))
                 .foregroundStyle(Color.cardBlush)
         case .arrows:
             Image(systemName: "arrow.left.arrow.right")
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: mediumIconSize, weight: .medium))
                 .foregroundStyle(Color.cardLavender)
         case .joker:
             Text("J")
-                .font(.badgeLabel)
+                .font(.custom("Fraunces-9ptBlackItalic", size: size * 16 / 34))
                 .foregroundStyle(Color.cardLavender)
         case .threeSpade:
             Text("3♠")
-                .font(.badgeLabelSmall)
+                .font(.custom("Fraunces-9ptBlackItalic", size: size * 13 / 34))
                 .foregroundStyle(Color.cardCream)
         case .eight:
             Text("8")
-                .font(.badgeLabel)
+                .font(.custom("Fraunces-9ptBlackItalic", size: size * 16 / 34))
                 .foregroundStyle(.white.opacity(0.5))
         case .clock:
             Image(systemName: "clock")
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: mediumIconSize, weight: .medium))
                 .foregroundStyle(Color.cardBlush)
         }
     }
@@ -67,13 +72,23 @@ struct RuleBadgeView: View {
 }
 
 #Preview {
-    HStack(spacing: 12) {
-        RuleBadgeView(badge: .star)
-        RuleBadgeView(badge: .arrows)
-        RuleBadgeView(badge: .joker)
-        RuleBadgeView(badge: .threeSpade)
-        RuleBadgeView(badge: .eight)
-        RuleBadgeView(badge: .clock)
+    VStack(spacing: 16) {
+        HStack(spacing: 12) {
+            RuleBadgeView(badge: .star)
+            RuleBadgeView(badge: .arrows)
+            RuleBadgeView(badge: .joker)
+            RuleBadgeView(badge: .threeSpade)
+            RuleBadgeView(badge: .eight)
+            RuleBadgeView(badge: .clock)
+        }
+        HStack(spacing: 12) {
+            RuleBadgeView(badge: .star, size: 28)
+            RuleBadgeView(badge: .arrows, size: 28)
+            RuleBadgeView(badge: .joker, size: 28)
+            RuleBadgeView(badge: .threeSpade, size: 28)
+            RuleBadgeView(badge: .eight, size: 28)
+            RuleBadgeView(badge: .clock, size: 28)
+        }
     }
     .padding(24)
     .background(Color.tycoonBlack)
