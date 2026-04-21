@@ -194,4 +194,53 @@ struct JokerTests {
         let moves = state.validMoves(for: p1.id)
         #expect(!moves.contains(.play(cards: [.joker(index: 0)], by: p1.id)))
     }
+
+    // MARK: Joker as wild card in combinations
+
+    @Test("Leader can play two Kings plus Joker as a triple of Kings")
+    func wildJokerExtendsPairToTriple() throws {
+        let kingH = Card.regular(.king, .hearts)
+        let kingS = Card.regular(.king, .spades)
+        let joker = Card.joker(index: 0)
+        let p0 = Player(displayName: "P0", hand: [kingH, kingS, joker, .regular(.four, .clubs)])
+        let p1 = Player(displayName: "P1", hand: [.regular(.three, .diamonds)])
+        let state = makeJokerState(players: [p0, p1], currentPlayerIndex: 0)
+
+        let moves = state.validMoves(for: p0.id)
+        let wildTriple: Move = .play(cards: [kingH, kingS, joker], by: p0.id)
+        #expect(moves.contains(wildTriple))
+
+        let next = try state.apply(wildTriple)
+        let top = try #require(next.currentTrick.last)
+        #expect(top.type == .triple)
+        #expect(top.rank == .king)
+    }
+
+    @Test("Wild triple beats a pair-and-a-joker of lower rank")
+    func wildJokerPairBeatsLowerPair() throws {
+        let tenH = Card.regular(.ten, .hearts)
+        let tenS = Card.regular(.ten, .spades)
+        let joker = Card.joker(index: 0)
+        let queenH = Card.regular(.queen, .hearts)
+        let queenS = Card.regular(.queen, .spades)
+
+        let tenPairTrick = try Hand(cards: [tenH, tenS])
+        let p0 = Player(displayName: "P0", hand: [.regular(.three, .clubs)])
+        let p1 = Player(displayName: "P1", hand: [queenH, queenS, joker])
+        let state = makeJokerState(
+            players: [p0, p1],
+            currentPlayerIndex: 1,
+            currentTrick: [tenPairTrick],
+            lastPlayedByIndex: 0
+        )
+
+        let moves = state.validMoves(for: p1.id)
+        let wildPair: Move = .play(cards: [queenH, joker], by: p1.id)
+        #expect(moves.contains(wildPair))
+        #expect(!moves.contains(.play(cards: [queenH, queenS, joker], by: p1.id)))
+
+        let next = try state.apply(wildPair)
+        #expect(next.currentTrick.last?.rank == .queen)
+        #expect(next.currentTrick.last?.type == .pair)
+    }
 }

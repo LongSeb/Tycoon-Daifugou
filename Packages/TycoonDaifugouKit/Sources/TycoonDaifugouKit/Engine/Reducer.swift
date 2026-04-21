@@ -52,10 +52,16 @@ extension GameState {
         if let lastHand = currentTrick.last {
             let size = lastHand.type.rawValue
             for (rank, cards) in byRank
-                where Revolution.isStronger(rank, than: lastHand.rank, revolutionActive: isRevolutionActive)
-                    && cards.count >= size {
-                for combo in combinations(of: cards, count: size) {
-                    moves.append(.play(cards: combo, by: playerID))
+                where Revolution.isStronger(rank, than: lastHand.rank, revolutionActive: isRevolutionActive) {
+                let maxJokers = min(jokerCards.count, size - 1)
+                for jokerCount in 0...maxJokers {
+                    let realCount = size - jokerCount
+                    guard realCount <= cards.count else { continue }
+                    for realCombo in combinations(of: cards, count: realCount) {
+                        for jokerCombo in combinations(of: jokerCards, count: jokerCount) {
+                            moves.append(.play(cards: realCombo + jokerCombo, by: playerID))
+                        }
+                    }
                 }
             }
             if lastHand.type == .single {
@@ -72,9 +78,14 @@ extension GameState {
             }
         } else {
             for (_, cards) in byRank {
-                for size in 1...min(cards.count, 4) {
-                    for combo in combinations(of: cards, count: size) {
-                        moves.append(.play(cards: combo, by: playerID))
+                for realCount in 1...cards.count {
+                    let maxJokers = min(jokerCards.count, 4 - realCount)
+                    for jokerCount in 0...maxJokers {
+                        for realCombo in combinations(of: cards, count: realCount) {
+                            for jokerCombo in combinations(of: jokerCards, count: jokerCount) {
+                                moves.append(.play(cards: realCombo + jokerCombo, by: playerID))
+                            }
+                        }
                     }
                 }
             }
