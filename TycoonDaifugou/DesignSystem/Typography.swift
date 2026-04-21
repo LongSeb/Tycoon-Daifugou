@@ -19,6 +19,13 @@ extension Font {
     static let profileLevel = Font.custom("Fraunces-9ptBlackItalic", size: 32, relativeTo: .title)
     static let profileStatFigure = Font.custom("Fraunces-9ptBlackItalic", size: 20, relativeTo: .title3)
     static let sectionLabel = Font.custom("InstrumentSans-Regular", size: 8, relativeTo: .caption2).weight(.semibold)
+    static let resultHeroRank = Font.custom("Fraunces-9ptBlackItalic", size: 56, relativeTo: .largeTitle)
+    static let resultBrandSmall = Font.custom("Fraunces-9ptBlackItalic", size: 14, relativeTo: .footnote)
+    static let resultPosition = Font.custom("Fraunces-9ptBlackItalic", size: 18, relativeTo: .callout)
+    static let resultButton = Font.custom("InstrumentSans-Regular", size: 13, relativeTo: .callout).weight(.semibold)
+    static let resultEyebrow = Font.custom("InstrumentSans-Regular", size: 9, relativeTo: .caption2).weight(.semibold)
+    static let resultMeta = Font.custom("InstrumentSans-Regular", size: 10, relativeTo: .caption2).weight(.medium)
+    static let resultMetaStrong = Font.custom("InstrumentSans-Regular", size: 10, relativeTo: .caption2).weight(.semibold)
 }
 
 #Preview {
