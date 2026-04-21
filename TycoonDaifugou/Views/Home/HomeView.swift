@@ -40,8 +40,6 @@ struct HomeView: View {
                 }
                 .padding(.bottom, 100)
             }
-
-            bottomNav
         }
         .preferredColorScheme(.dark)
     }
@@ -226,38 +224,4 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Bottom Nav
-
-    private var bottomNav: some View {
-        HStack {
-            Spacer()
-            tabItem(icon: "house.fill", label: "Home", isActive: true)
-            Spacer()
-            Spacer()
-            tabItem(icon: "person", label: "Profile", isActive: false)
-            Spacer()
-        }
-        .padding(.top, 16)
-        .padding(.bottom, 8)
-        .background(
-            LinearGradient(
-                colors: [.tycoonBlack, .tycoonBlack, .tycoonBlack.opacity(0)],
-                startPoint: .bottom,
-                endPoint: .top
-            )
-            .ignoresSafeArea()
-        )
-    }
-
-    private func tabItem(icon: String, label: String, isActive: Bool) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: isActive ? .semibold : .regular))
-                .foregroundStyle(isActive ? Color.textPrimary : Color.textTertiary)
-
-            Text(label)
-                .font(isActive ? .tycoonCaption.weight(.semibold) : .tycoonCaption)
-                .foregroundStyle(isActive ? Color.textPrimary : Color.textTertiary)
-        }
-    }
 }
