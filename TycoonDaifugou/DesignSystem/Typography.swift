@@ -11,6 +11,11 @@ extension Font {
     static let tycoonBody = Font.custom("InstrumentSans-Regular", size: 16, relativeTo: .body)
     static let tycoonCaption = Font.custom("InstrumentSans-Regular", size: 11, relativeTo: .caption).weight(.medium)
     static let bodyMono = Font.system(size: 13, design: .monospaced)
+    static let drawerTitle = Font.custom("Fraunces-9ptBlackItalic", size: 20, relativeTo: .headline)
+    static let ruleTitle = Font.custom("InstrumentSans-Regular", size: 12, relativeTo: .caption).weight(.semibold)
+    static let ruleCaption = Font.custom("InstrumentSans-Regular", size: 10, relativeTo: .caption2)
+    static let badgeLabel = Font.custom("Fraunces-9ptBlackItalic", size: 16, relativeTo: .callout)
+    static let badgeLabelSmall = Font.custom("Fraunces-9ptBlackItalic", size: 13, relativeTo: .footnote)
 }
 
 #Preview {

@@ -7,6 +7,7 @@ extension Color {
     static let cardBlush = Color(ds: 0xFFD4E5)
     static let cardLavender = Color(ds: 0xE5D4FF)
     static let cardMint = Color(ds: 0xD4FFE5)
+    static let tycoonSheet = Color(ds: 0x141414)
     static let textPrimary = Color.white
     static let textSecondary = Color.white.opacity(0.6)
     static let textTertiary = Color.white.opacity(0.4)
