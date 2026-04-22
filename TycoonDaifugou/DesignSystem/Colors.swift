@@ -5,6 +5,7 @@ extension Color {
     static let tycoonSurface = Color(ds: 0x0E0E0E)
     static let cardCream = Color(ds: 0xFFF4E6)
     static let cardBlush = Color(ds: 0xFFD4E5)
+    static let tycoonPink = Color(ds: 0xFF6FA3)
     static let cardLavender = Color(ds: 0xE5D4FF)
     static let cardMint = Color(ds: 0xD4FFE5)
     static let tycoonSheet = Color(ds: 0x141414)

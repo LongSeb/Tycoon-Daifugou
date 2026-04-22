@@ -31,9 +31,11 @@ struct RootView: View {
             Group {
                 switch selectedTab {
                 case .home:
-                    HomeView(state: .preview, onPlayTapped: {
-                        coordinator.startNewGame(ruleSet: .baseOnly)
-                    })
+                    HomeView(
+                        state: .preview,
+                        onPlayTapped: { coordinator.startNewGame() },
+                        onSettingsTapped: { coordinator.showSettings() }
+                    )
                 case .profile:
                     ProfileView(profile: .preview)
                 }
@@ -67,6 +69,10 @@ struct RootView: View {
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationBarBackButtonHidden(true)
             }
+        case .settings:
+            SettingsView(onBack: { coordinator.popSettings() })
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationBarBackButtonHidden(true)
         }
     }
 }

@@ -11,8 +11,6 @@ struct GameView: View {
     @State private var invalidPlayShake: CGFloat = 0
     @State private var didNotifyGameEnd = false
 
-    private let totalRounds = 3
-
     var body: some View {
         ZStack(alignment: .bottom) {
             Color.tycoonBlack.ignoresSafeArea()
@@ -102,7 +100,7 @@ struct GameView: View {
                 .foregroundStyle(Color.white.opacity(0.55))
                 .tracking(-0.2)
             Spacer()
-            Text("ROUND \(controller.state.round) / \(totalRounds)")
+            Text("ROUND \(controller.state.round) / \(controller.maxRounds)")
                 .font(.custom("InstrumentSans-Regular", size: 9).weight(.semibold))
                 .foregroundStyle(Color.white.opacity(0.3))
                 .tracking(2)
