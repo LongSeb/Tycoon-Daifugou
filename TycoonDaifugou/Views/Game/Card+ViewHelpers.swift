@@ -32,11 +32,10 @@ extension Card {
     }
 
     var suitColor: Color {
-        guard let suit else { return .cardLavender }
+        guard let suit else { return .cardSuitRed }
         switch suit {
-        case .hearts:          return .cardBlush
-        case .diamonds:        return .cardLavender
-        case .clubs, .spades:  return Color.white.opacity(0.75)
+        case .hearts, .diamonds: return .cardSuitRed
+        case .clubs, .spades:    return .cardSuitBlack
         }
     }
 }

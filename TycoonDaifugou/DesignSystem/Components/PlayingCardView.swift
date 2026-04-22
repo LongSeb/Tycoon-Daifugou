@@ -23,7 +23,7 @@ struct PlayingCardView: View {
             if card.isJoker {
                 Text("JKR")
                     .font(.custom("InstrumentSans-Regular", size: jokerFontSize).weight(.semibold))
-                    .foregroundStyle(Color.cardLavender)
+                    .foregroundStyle(Color.cardSuitRed)
                     .tracking(1)
             } else {
                 cornerLabel
@@ -44,7 +44,7 @@ struct PlayingCardView: View {
 
             if isSelected {
                 Circle()
-                    .fill(Color.cardBlush)
+                    .fill(Color.cardSuitRed)
                     .frame(width: selectionDotSize, height: selectionDotSize)
                     .offset(y: selectionDotOffset)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -78,11 +78,9 @@ struct PlayingCardView: View {
     private var fillColor: Color {
         switch style {
         case .hand:
-            return isSelected
-                ? Color(red: 0.157, green: 0.118, blue: 0.133)
-                : .tycoonCard
+            return isSelected ? .cardBlush : .cardCream
         case .pile:
-            return Color(red: 0.133, green: 0.133, blue: 0.133)
+            return .cardCream
         }
     }
 
@@ -90,10 +88,10 @@ struct PlayingCardView: View {
         switch style {
         case .hand:
             return isSelected
-                ? Color.cardBlush.opacity(0.55)
-                : Color.white.opacity(0.11)
+                ? Color.cardSuitRed.opacity(0.55)
+                : Color.black.opacity(0.08)
         case .pile:
-            return Color.cardBlush.opacity(0.25)
+            return Color.black.opacity(0.08)
         }
     }
 }

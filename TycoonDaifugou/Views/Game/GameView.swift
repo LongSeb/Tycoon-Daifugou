@@ -15,17 +15,15 @@ struct GameView: View {
         ZStack(alignment: .bottom) {
             Color.tycoonBlack.ignoresSafeArea()
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    topBar
-                    opponentZone
-                    playPile
-                    playerStatusTag
-                    handHeader
-                    fanHand
-                    actionButtons
-                }
-                .padding(.bottom, 40)
+            VStack(alignment: .leading, spacing: 0) {
+                topBar
+                opponentZone
+                playPile
+                Spacer(minLength: 0)
+                playerStatusTag
+                handHeader
+                fanHand
+                actionButtons
             }
 
             if showRules {
@@ -133,7 +131,7 @@ struct GameView: View {
                 }
             }
         }
-        .frame(height: 200)
+        .frame(height: 170)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -145,7 +143,7 @@ struct GameView: View {
     // MARK: Play Pile
 
     private var playPile: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             Text("CURRENT PLAY")
                 .font(.custom("InstrumentSans-Regular", size: 10).weight(.semibold))
                 .foregroundStyle(Color.white.opacity(0.25))
@@ -168,12 +166,12 @@ struct GameView: View {
                     PlayingCardView(card: card, style: .pile)
                 } else {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color(red: 0.133, green: 0.133, blue: 0.133))
+                        .fill(Color.cardCream)
                         .frame(width: 96, height: 136)
                         .overlay(
                             Text("—")
                                 .font(.custom("Fraunces-9ptBlackItalic", size: 34))
-                                .foregroundStyle(Color.white.opacity(0.2))
+                                .foregroundStyle(Color.cardSuitBlack.opacity(0.3))
                         )
                 }
             }
@@ -183,7 +181,7 @@ struct GameView: View {
                 .foregroundStyle(Color.white.opacity(0.45))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
+        .padding(.vertical, 12)
     }
 
     // MARK: Player Status Tag

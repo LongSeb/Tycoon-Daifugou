@@ -15,6 +15,10 @@ extension Color {
     static let cardLavender = Color(ds: 0xE5D4FF)
     static let cardMint = Color(ds: 0xD4FFE5)
 
+    // Classic playing-card rank/suit colors — used on light card faces
+    static let cardSuitRed = Color(ds: 0xEB3D42)
+    static let cardSuitBlack = Color(ds: 0x1A1A1A)
+
     // Canonical aliases — map new names onto existing tokens with matching values
     static let tycoonPink = cardBlush
     static let tycoonLav = cardLavender
