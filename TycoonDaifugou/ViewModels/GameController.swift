@@ -8,17 +8,20 @@ final class GameController {
     private(set) var state: GameState
     let humanPlayerID: PlayerID
     private let opponents: [PlayerID: any Opponent]
+    let maxRounds: Int
 
     init(
         players: [Player],
         ruleSet: RuleSet,
         seed: UInt64,
         humanPlayerID: PlayerID,
-        opponents: [PlayerID: any Opponent]
+        opponents: [PlayerID: any Opponent],
+        maxRounds: Int = 3
     ) {
         self.state = GameState.newGame(players: players, ruleSet: ruleSet, seed: seed)
         self.humanPlayerID = humanPlayerID
         self.opponents = opponents
+        self.maxRounds = maxRounds
     }
 
     var humanHand: [Card] {
@@ -99,8 +102,6 @@ final class GameController {
             }
         }
     }
-
-    private let maxRounds = 3
 
     var isGameOver: Bool {
         state.phase == .roundEnded && state.round >= maxRounds

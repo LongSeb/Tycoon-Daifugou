@@ -5,6 +5,7 @@ import TycoonDaifugouKit
 enum AppRoute: Hashable {
     case game
     case results
+    case settings
 }
 
 @Observable
@@ -17,31 +18,55 @@ final class NavigationCoordinator {
 
     var showingQuitConfirm = false
 
-    private static let opponentEmojis = ["🎩", "😏", "😤", "🦊"]
+    private static let opponentEmojis = ["🎩", "😏", "😤", "🦊", "🐻", "🦁", "🐼"]
+    private static let opponentNames = ["Ryo", "Kai", "Hana", "Sora", "Yuki", "Rin", "Mei"]
 
-    func startNewGame(ruleSet: RuleSet = .baseOnly) {
-        currentRuleSet = ruleSet
+    /// Starts a new game using the provided rule set and player/round counts.
+    /// If `ruleSet` is nil, loads the persisted settings (see AppSettings).
+    func startNewGame(
+        ruleSet: RuleSet? = nil,
+        opponentCount: Int? = nil,
+        roundsPerGame: Int? = nil
+    ) {
+        let resolvedRuleSet = ruleSet ?? AppSettings.loadRuleSet()
+        let resolvedOpponentCount = max(
+            AppSettings.minOpponentCount,
+            min(AppSettings.maxOpponentCount, opponentCount ?? AppSettings.loadOpponentCount())
+        )
+        let resolvedRounds = max(1, min(5, roundsPerGame ?? AppSettings.loadRoundsPerGame()))
+
+        currentRuleSet = resolvedRuleSet
 
         let human = Player(displayName: "You")
-        let ryo = Player(displayName: "Ryo")
-        let kai = Player(displayName: "Kai")
-        let hana = Player(displayName: "Hana")
+        let aiPlayers = Self.opponentNames
+            .prefix(resolvedOpponentCount)
+            .map { Player(displayName: $0) }
 
-        let opponents: [PlayerID: any Opponent] = [
-            ryo.id: GreedyOpponent(),
-            kai.id: GreedyOpponent(),
-            hana.id: GreedyOpponent(),
-        ]
+        var opponents: [PlayerID: any Opponent] = [:]
+        for ai in aiPlayers {
+            opponents[ai.id] = GreedyOpponent()
+        }
 
         gameController = GameController(
-            players: [human, ryo, kai, hana],
-            ruleSet: ruleSet,
+            players: [human] + aiPlayers,
+            ruleSet: resolvedRuleSet,
             seed: UInt64.random(in: .min ... .max),
             humanPlayerID: human.id,
-            opponents: opponents
+            opponents: opponents,
+            maxRounds: resolvedRounds
         )
         lastResult = nil
         path = [.game]
+    }
+
+    func showSettings() {
+        path.append(.settings)
+    }
+
+    func popSettings() {
+        if path.last == .settings {
+            path.removeLast()
+        }
     }
 
     func showResults(for controller: GameController) {

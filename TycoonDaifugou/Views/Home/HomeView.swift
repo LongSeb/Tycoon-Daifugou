@@ -25,6 +25,7 @@ struct LastGameData {
 struct HomeView: View {
     let state: HomeViewState
     let onPlayTapped: () -> Void
+    var onSettingsTapped: () -> Void = {}
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -55,7 +56,7 @@ struct HomeView: View {
 
             Spacer()
 
-            Button(action: {}) {
+            Button(action: onSettingsTapped) {
                 Image(systemName: "gearshape")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(Color.textTertiary)
