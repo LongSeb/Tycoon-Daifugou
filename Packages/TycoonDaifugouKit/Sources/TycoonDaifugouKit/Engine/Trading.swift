@@ -50,7 +50,8 @@ extension GameState {
                     id: player.id,
                     displayName: player.displayName,
                     hand: newHand,
-                    currentTitle: player.currentTitle
+                    currentTitle: player.currentTitle,
+                    previousTitle: player.currentTitle
                 )
             )
             offset += handSize
@@ -175,7 +176,10 @@ extension GameState {
 
         if newPending.isEmpty {
             let cleared = newPlayers.map {
-                Player(id: $0.id, displayName: $0.displayName, hand: $0.hand, currentTitle: nil)
+                Player(
+                    id: $0.id, displayName: $0.displayName, hand: $0.hand,
+                    currentTitle: nil, previousTitle: $0.previousTitle
+                )
             }
             let threeDiamonds = Card.regular(.three, .diamonds)
             let startIndex = cleared.firstIndex { $0.hand.contains(threeDiamonds) } ?? 0

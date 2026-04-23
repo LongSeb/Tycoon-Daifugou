@@ -11,6 +11,8 @@ struct GameView: View {
     @State private var invalidPlayShake: CGFloat = 0
     @State private var didNotifyGameEnd = false
     @State private var showReversalBanner = false
+    @State private var showRevolutionBanner = false
+    @State private var showEightStopBanner = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -38,9 +40,23 @@ struct GameView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.92)))
                     .zIndex(20)
             }
+
+            if showRevolutionBanner {
+                revolutionBanner
+                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                    .zIndex(20)
+            }
+
+            if showEightStopBanner {
+                eightStopBanner
+                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                    .zIndex(20)
+            }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showRules)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showReversalBanner)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showRevolutionBanner)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showEightStopBanner)
         .preferredColorScheme(.dark)
         .task { await controller.resolveAITurnsIfNeeded() }
         .onChange(of: controller.isGameOver) { _, isOver in
@@ -53,6 +69,20 @@ struct GameView: View {
             Task {
                 try? await Task.sleep(nanoseconds: 1_400_000_000)
                 showReversalBanner = false
+            }
+        }
+        .onChange(of: controller.revolutionEventCounter) { _, _ in
+            showRevolutionBanner = true
+            Task {
+                try? await Task.sleep(nanoseconds: 1_400_000_000)
+                showRevolutionBanner = false
+            }
+        }
+        .onChange(of: controller.eightStopEventCounter) { _, _ in
+            showEightStopBanner = true
+            Task {
+                try? await Task.sleep(nanoseconds: 1_400_000_000)
+                showEightStopBanner = false
             }
         }
     }
@@ -74,6 +104,71 @@ struct GameView: View {
         .background(Color.cardBlush)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: Color.cardBlush.opacity(0.4), radius: 24, x: 0, y: 0)
+    }
+
+    // MARK: Revolution Banner
+
+    private var revolutionBanner: some View {
+        VStack(spacing: 6) {
+            Text("REVOLUTION")
+                .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
+                .foregroundStyle(Color.tycoonBlack)
+                .tracking(2.5)
+            Text(controller.state.isRevolutionActive ? "Strength flipped" : "Order restored")
+                .font(.custom("Fraunces-9ptBlackItalic", size: 28))
+                .foregroundStyle(Color.tycoonBlack)
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 16)
+        .background(Color.cardLavender)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.cardLavender.opacity(0.4), radius: 24, x: 0, y: 0)
+        .rotation3DEffect(
+            .degrees(showRevolutionBanner ? 0 : 180),
+            axis: (x: 1, y: 0, z: 0)
+        )
+        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: showRevolutionBanner)
+    }
+
+    // MARK: 8-Stop Banner
+
+    private var eightStopBanner: some View {
+        VStack(spacing: 6) {
+            Text("8-STOP")
+                .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
+                .foregroundStyle(Color.tycoonBlack)
+                .tracking(2.5)
+            Text("Trick reset")
+                .font(.custom("Fraunces-9ptBlackItalic", size: 28))
+                .foregroundStyle(Color.tycoonBlack)
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 16)
+        .background(Color.cardMint)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.cardMint.opacity(0.4), radius: 24, x: 0, y: 0)
+    }
+
+    // MARK: Revolution Active Pill
+
+    private var revolutionActivePill: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(Color.cardLavender)
+                .frame(width: 6, height: 6)
+            Text("REVOLUTION")
+                .font(.custom("InstrumentSans-Regular", size: 10).weight(.semibold))
+                .foregroundStyle(Color.cardLavender)
+                .tracking(1.5)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.tycoonSurface)
+        .overlay(
+            RoundedRectangle(cornerRadius: 999, style: .continuous)
+                .strokeBorder(Color.cardLavender.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 999, style: .continuous))
     }
 
     // MARK: Derived data
@@ -107,10 +202,17 @@ struct GameView: View {
     }
 
     private var pileHint: String {
-        if let top = pileTopHand {
-            return "\(top.type.displayName) · Beat with \(top.rank.rawValue > 14 ? "2" : "\(top.rank.rawValue)")+"
+        guard let top = pileTopHand else { return "Lead any hand" }
+        if top.isSoloJoker || top.isDoubleJoker {
+            return "\(top.type.displayName) · Unbeatable"
         }
-        return "Lead any hand"
+        let isRevolution = controller.state.isRevolutionActive
+        let delta = isRevolution ? -1 : 1
+        guard let nextRank = Rank(rawValue: top.rank.rawValue + delta) else {
+            return "\(top.type.displayName) · Unbeatable"
+        }
+        let suffix = isRevolution ? "-" : "+"
+        return "\(top.type.displayName) · Beat with \(nextRank.displayLabel)\(suffix)"
     }
 
     // MARK: Top Bar
@@ -222,12 +324,26 @@ struct GameView: View {
 
     private var playerStatusTag: some View {
         HStack(spacing: 12) {
+            statusBox
+            Spacer(minLength: 8)
+            if controller.state.isRevolutionActive {
+                revolutionActivePill
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 4)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: controller.state.isRevolutionActive)
+    }
+
+    private var statusBox: some View {
+        HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("RANK")
                     .font(.custom("InstrumentSans-Regular", size: 9).weight(.semibold))
                     .foregroundStyle(Color.cardBlush.opacity(0.6))
                     .tracking(1)
-                Text(controller.humanPlayer?.currentTitle?.displayName ?? "—")
+                Text(controller.humanPlayer?.displayTitle?.displayName ?? "—")
                     .font(.custom("InstrumentSans-Regular", size: 15).weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
             }
@@ -254,8 +370,6 @@ struct GameView: View {
                 .strokeBorder(Color.cardBlush.opacity(0.2), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .padding(.leading, 16)
-        .padding(.bottom, 4)
     }
 
     // MARK: Hand Header

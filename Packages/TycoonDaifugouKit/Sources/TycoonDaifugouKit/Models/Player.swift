@@ -28,6 +28,10 @@ public struct Player: Sendable, Hashable {
     public let displayName: String
     public let hand: [Card]
     public let currentTitle: Title?
+    /// The title this player carried into the current round (i.e. the title they
+    /// earned at the end of the previous round). Persists through trading and play
+    /// so the UI can show the player's rank even after `currentTitle` is cleared.
+    public let previousTitle: Title?
     /// True when the Bankruptcy house rule has removed this player from active play.
     /// A bankrupt player keeps their cards but skips all turns until the round ends.
     public let isBankrupt: Bool
@@ -37,28 +41,43 @@ public struct Player: Sendable, Hashable {
         displayName: String,
         hand: [Card] = [],
         currentTitle: Title? = nil,
+        previousTitle: Title? = nil,
         isBankrupt: Bool = false
     ) {
         self.id = id
         self.displayName = displayName
         self.hand = hand
         self.currentTitle = currentTitle
+        self.previousTitle = previousTitle
         self.isBankrupt = isBankrupt
     }
 
+    /// Title to surface in the UI: the title assigned this round if one exists,
+    /// otherwise the title carried over from the previous round.
+    public var displayTitle: Title? { currentTitle ?? previousTitle }
+
     /// Returns a new `Player` whose hand contains the given cards appended.
     public func adding(_ cards: [Card]) -> Player {
-        Player(id: id, displayName: displayName, hand: hand + cards, currentTitle: currentTitle, isBankrupt: isBankrupt)
+        Player(
+            id: id, displayName: displayName, hand: hand + cards,
+            currentTitle: currentTitle, previousTitle: previousTitle, isBankrupt: isBankrupt
+        )
     }
 
     /// Returns a new `Player` with `title` set, preserving all other fields.
     public func withTitle(_ title: Title) -> Player {
-        Player(id: id, displayName: displayName, hand: hand, currentTitle: title, isBankrupt: isBankrupt)
+        Player(
+            id: id, displayName: displayName, hand: hand,
+            currentTitle: title, previousTitle: previousTitle, isBankrupt: isBankrupt
+        )
     }
 
     /// Returns a new `Player` marked as bankrupt, preserving all other fields.
     public func withBankruptcy() -> Player {
-        Player(id: id, displayName: displayName, hand: hand, currentTitle: currentTitle, isBankrupt: true)
+        Player(
+            id: id, displayName: displayName, hand: hand,
+            currentTitle: currentTitle, previousTitle: previousTitle, isBankrupt: true
+        )
     }
 
     /// Returns a new `Player` with the given cards removed from the hand.
@@ -81,7 +100,7 @@ public struct Player: Sendable, Hashable {
 
         return Player(
             id: id, displayName: displayName, hand: remaining,
-            currentTitle: currentTitle, isBankrupt: isBankrupt
+            currentTitle: currentTitle, previousTitle: previousTitle, isBankrupt: isBankrupt
         )
     }
 }

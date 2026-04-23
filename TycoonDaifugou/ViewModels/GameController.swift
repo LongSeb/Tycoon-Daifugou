@@ -12,6 +12,10 @@ final class GameController {
     /// Bumped each time a play causes a 3-Spade Reversal. Views observe this to
     /// trigger a brief on-screen highlight.
     private(set) var reversalEventCounter: Int = 0
+    /// Bumped each time a play toggles the Revolution state (on or off).
+    private(set) var revolutionEventCounter: Int = 0
+    /// Bumped each time a play triggers an 8-Stop.
+    private(set) var eightStopEventCounter: Int = 0
 
     init(
         players: [Player],
@@ -110,12 +114,22 @@ final class GameController {
     /// the prior trick top was a solo Joker, and the trick is empty afterward.
     private func applyMove(_ move: Move) throws {
         let priorTop = state.currentTrick.last
+        let priorRevolution = state.isRevolutionActive
         state = try state.apply(move)
         if case .play(let cards, _) = move,
            cards == [.regular(.three, .spades)],
            priorTop?.isSoloJoker == true,
            state.currentTrick.isEmpty {
             reversalEventCounter &+= 1
+        }
+        if state.isRevolutionActive != priorRevolution {
+            revolutionEventCounter &+= 1
+        }
+        if case .play(let cards, _) = move,
+           state.ruleSet.eightStop,
+           let hand = try? Hand(cards: cards),
+           hand.rank == .eight {
+            eightStopEventCounter &+= 1
         }
     }
 
