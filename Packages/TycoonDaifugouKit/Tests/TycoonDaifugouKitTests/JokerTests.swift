@@ -10,6 +10,7 @@ private func makeJokerState(
     lastPlayedByIndex: Int? = nil,
     jokers: Bool = true,
     jokerCount: Int = 1,
+    threeSpadeReversal: Bool = false,
     revolution: Bool = false,
     revolutionActive: Bool = false
 ) -> GameState {
@@ -20,7 +21,12 @@ private func makeJokerState(
         currentTrick: currentTrick,
         currentPlayerIndex: currentPlayerIndex,
         phase: .playing,
-        ruleSet: RuleSet(revolution: revolution, jokers: jokers, jokerCount: jokerCount),
+        ruleSet: RuleSet(
+            revolution: revolution,
+            jokers: jokers,
+            threeSpadeReversal: threeSpadeReversal,
+            jokerCount: jokerCount
+        ),
         isRevolutionActive: revolutionActive,
         round: 1,
         scoresByPlayer: scores,
@@ -35,7 +41,7 @@ struct JokerTests {
 
     // MARK: Solo Joker strength
 
-    @Test("Single Joker beats a lone 2")
+    @Test("Single Joker beats a lone 2 — clears trick and gives joker player the lead")
     func singleJokerBeatsLoneTwo() throws {
         let twoTrick = try Hand(cards: [.regular(.two, .clubs)])
         let p0 = Player(displayName: "P0", hand: [.regular(.ace, .hearts)])
@@ -48,10 +54,11 @@ struct JokerTests {
         )
 
         let next = try state.apply(.play(cards: [.joker(index: 0)], by: p1.id))
-        #expect(next.currentTrick.last?.cards == [.joker(index: 0)])
+        #expect(next.currentTrick.isEmpty)
+        #expect(next.currentPlayerIndex == 1)
     }
 
-    @Test("Single Joker beats a lone 3 under Revolution")
+    @Test("Single Joker beats a lone 3 under Revolution — clears trick and gives lead")
     func singleJokerBeatsLoneThreeUnderRevolution() throws {
         let threeTrick = try Hand(cards: [.regular(.three, .clubs)])
         let p0 = Player(displayName: "P0", hand: [.regular(.ace, .hearts)])
@@ -66,7 +73,28 @@ struct JokerTests {
         )
 
         let next = try state.apply(.play(cards: [.joker(index: 0)], by: p1.id))
-        #expect(next.currentTrick.last?.cards == [.joker(index: 0)])
+        #expect(next.currentTrick.isEmpty)
+        #expect(next.currentPlayerIndex == 1)
+    }
+
+    @Test("Solo Joker with 3-Spade Reversal on does NOT clear immediately")
+    func soloJokerWithReversalRuleOnDoesNotClear() throws {
+        let twoTrick = try Hand(cards: [.regular(.two, .clubs)])
+        let p0 = Player(displayName: "P0", hand: [.regular(.ace, .hearts)])
+        let p1 = Player(displayName: "P1", hand: [.joker(index: 0), .regular(.four, .diamonds)])
+        let state = makeJokerState(
+            players: [p0, p1],
+            currentPlayerIndex: 1,
+            currentTrick: [twoTrick],
+            lastPlayedByIndex: 0,
+            threeSpadeReversal: true
+        )
+
+        let next = try state.apply(.play(cards: [.joker(index: 0)], by: p1.id))
+        // Trick still has the joker on top — opponents need a chance to play 3♠.
+        #expect(next.currentTrick.last?.isSoloJoker == true)
+        #expect(next.currentPlayerIndex == 0)
+        #expect(next.lastPlayedByIndex == 1)
     }
 
     // MARK: Joker as wildcard (Hand constructor already handles these)
@@ -214,6 +242,128 @@ struct JokerTests {
         let top = try #require(next.currentTrick.last)
         #expect(top.type == .triple)
         #expect(top.rank == .king)
+    }
+
+    // MARK: Double-Joker pair trump
+
+    @Test("Double Joker as a lead clears the trick and the joker player keeps the lead")
+    func doubleJokerAsLeadClearsTrick() throws {
+        let p0 = Player(displayName: "P0", hand: [.joker(index: 0), .joker(index: 1), .regular(.four, .clubs)])
+        let p1 = Player(displayName: "P1", hand: [.regular(.ace, .hearts), .regular(.ace, .diamonds)])
+        let state = makeJokerState(players: [p0, p1], currentPlayerIndex: 0, jokerCount: 2)
+
+        let move: Move = .play(cards: [.joker(index: 0), .joker(index: 1)], by: p0.id)
+        #expect(state.validMoves(for: p0.id).contains(move))
+
+        let next = try state.apply(move)
+        #expect(next.currentTrick.isEmpty)
+        #expect(next.currentPlayerIndex == 0)
+    }
+
+    @Test("Double Joker beats a regular pair, clears trick and awards lead")
+    func doubleJokerBeatsRegularPair() throws {
+        let kingsPair = try Hand(cards: [.regular(.king, .clubs), .regular(.king, .hearts)])
+        let p0 = Player(displayName: "P0", hand: [.regular(.three, .diamonds)])
+        let p1 = Player(displayName: "P1", hand: [.joker(index: 0), .joker(index: 1), .regular(.five, .spades)])
+        let state = makeJokerState(
+            players: [p0, p1],
+            currentPlayerIndex: 1,
+            currentTrick: [kingsPair],
+            lastPlayedByIndex: 0,
+            jokerCount: 2,
+            threeSpadeReversal: true  // proves no exception applies to a double joker
+        )
+
+        let move: Move = .play(cards: [.joker(index: 0), .joker(index: 1)], by: p1.id)
+        #expect(state.validMoves(for: p1.id).contains(move))
+
+        let next = try state.apply(move)
+        #expect(next.currentTrick.isEmpty)
+        #expect(next.currentPlayerIndex == 1)
+    }
+
+    @Test("Double Joker is rejected as a follow-up to a single")
+    func doubleJokerOntoSingleIsHandTypeMismatch() throws {
+        let kingSingle = try Hand(cards: [.regular(.king, .clubs)])
+        let p0 = Player(displayName: "P0", hand: [.regular(.three, .diamonds)])
+        let p1 = Player(displayName: "P1", hand: [.joker(index: 0), .joker(index: 1)])
+        let state = makeJokerState(
+            players: [p0, p1],
+            currentPlayerIndex: 1,
+            currentTrick: [kingSingle],
+            lastPlayedByIndex: 0,
+            jokerCount: 2
+        )
+
+        #expect(throws: GameError.handTypeMismatch) {
+            try state.apply(.play(cards: [.joker(index: 0), .joker(index: 1)], by: p1.id))
+        }
+        // validMoves must not surface it either.
+        let move: Move = .play(cards: [.joker(index: 0), .joker(index: 1)], by: p1.id)
+        #expect(!state.validMoves(for: p1.id).contains(move))
+    }
+
+    @Test("Double Joker is rejected as a follow-up to a triple")
+    func doubleJokerOntoTripleIsHandTypeMismatch() throws {
+        let kingsTriple = try Hand(cards: [
+            .regular(.king, .clubs), .regular(.king, .hearts), .regular(.king, .spades),
+        ])
+        let p0 = Player(displayName: "P0", hand: [.regular(.three, .diamonds)])
+        let p1 = Player(displayName: "P1", hand: [.joker(index: 0), .joker(index: 1)])
+        let state = makeJokerState(
+            players: [p0, p1],
+            currentPlayerIndex: 1,
+            currentTrick: [kingsTriple],
+            lastPlayedByIndex: 0,
+            jokerCount: 2
+        )
+
+        #expect(throws: GameError.handTypeMismatch) {
+            try state.apply(.play(cards: [.joker(index: 0), .joker(index: 1)], by: p1.id))
+        }
+    }
+
+    @Test("Double Joker is rejected when the jokers rule is disabled")
+    func doubleJokerRejectedWhenRuleDisabled() throws {
+        let kingsPair = try Hand(cards: [.regular(.king, .clubs), .regular(.king, .hearts)])
+        let p0 = Player(displayName: "P0", hand: [.regular(.three, .diamonds)])
+        let p1 = Player(displayName: "P1", hand: [.joker(index: 0), .joker(index: 1)])
+        let scores = Dictionary(uniqueKeysWithValues: [p0, p1].map { ($0.id, 0) })
+        let state = GameState(
+            players: [p0, p1],
+            deck: [],
+            currentTrick: [kingsPair],
+            currentPlayerIndex: 1,
+            phase: .playing,
+            ruleSet: RuleSet(jokers: false, jokerCount: 0),
+            round: 1,
+            scoresByPlayer: scores,
+            lastPlayedByIndex: 0
+        )
+
+        #expect(throws: GameError.invalidHand(.allJokers)) {
+            try state.apply(.play(cards: [.joker(index: 0), .joker(index: 1)], by: p1.id))
+        }
+    }
+
+    @Test("3 of Spades is not offered as a reversal of a double-Joker pair")
+    func threeSpadesCannotReverseDoubleJokerPair() throws {
+        let doubleJoker = try Hand(cards: [.joker(index: 0), .joker(index: 1)])
+        let p0 = Player(displayName: "P0", hand: [.joker(index: 0), .joker(index: 1), .regular(.four, .clubs)])
+        let p1 = Player(displayName: "P1", hand: [.regular(.three, .spades), .regular(.three, .hearts)])
+        let state = makeJokerState(
+            players: [p0, p1],
+            currentPlayerIndex: 1,
+            currentTrick: [doubleJoker],
+            lastPlayedByIndex: 0,
+            jokerCount: 2,
+            threeSpadeReversal: true
+        )
+
+        let threeSpadesMove: Move = .play(cards: [.regular(.three, .spades)], by: p1.id)
+        #expect(!state.validMoves(for: p1.id).contains(threeSpadesMove))
+        // Pass should be the only legal move.
+        #expect(state.validMoves(for: p1.id) == [.pass(by: p1.id)])
     }
 
     @Test("Wild triple beats a pair-and-a-joker of lower rank")

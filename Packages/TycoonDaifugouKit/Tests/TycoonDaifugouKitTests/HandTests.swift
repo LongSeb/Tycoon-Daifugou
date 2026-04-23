@@ -120,11 +120,19 @@ struct HandRejectionTests {
         #expect(hand.isSoloJoker)
     }
 
-    @Test("Two Jokers throw allJokers")
-    func twoJokers() {
+    @Test("Three Jokers throw allJokers")
+    func threeJokers() {
         #expect(throws: HandError.allJokers) {
-            try Hand(cards: [.joker(index: 0), .joker(index: 1)])
+            try Hand(cards: [.joker(index: 0), .joker(index: 1), .joker(index: 0)])
         }
+    }
+
+    @Test("Two Jokers produce a valid .pair hand with isDoubleJoker set")
+    func twoJokers() throws {
+        let hand = try Hand(cards: [.joker(index: 0), .joker(index: 1)])
+        #expect(hand.type == .pair)
+        #expect(hand.isDoubleJoker)
+        #expect(!hand.isSoloJoker)
     }
 }
 

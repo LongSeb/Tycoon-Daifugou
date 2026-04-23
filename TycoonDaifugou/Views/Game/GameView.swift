@@ -10,6 +10,7 @@ struct GameView: View {
     @State private var selected: Set<Card> = []
     @State private var invalidPlayShake: CGFloat = 0
     @State private var didNotifyGameEnd = false
+    @State private var showReversalBanner = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -31,8 +32,15 @@ struct GameView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .zIndex(10)
             }
+
+            if showReversalBanner {
+                reversalBanner
+                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                    .zIndex(20)
+            }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showRules)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showReversalBanner)
         .preferredColorScheme(.dark)
         .task { await controller.resolveAITurnsIfNeeded() }
         .onChange(of: controller.isGameOver) { _, isOver in
@@ -40,6 +48,32 @@ struct GameView: View {
             didNotifyGameEnd = true
             onGameEnded?(controller)
         }
+        .onChange(of: controller.reversalEventCounter) { _, _ in
+            showReversalBanner = true
+            Task {
+                try? await Task.sleep(nanoseconds: 1_400_000_000)
+                showReversalBanner = false
+            }
+        }
+    }
+
+    // MARK: 3-Spade Reversal Banner
+
+    private var reversalBanner: some View {
+        VStack(spacing: 6) {
+            Text("3♠ REVERSAL")
+                .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
+                .foregroundStyle(Color.tycoonBlack)
+                .tracking(2.5)
+            Text("Joker beaten")
+                .font(.custom("Fraunces-9ptBlackItalic", size: 28))
+                .foregroundStyle(Color.tycoonBlack)
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 16)
+        .background(Color.cardBlush)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.cardBlush.opacity(0.4), radius: 24, x: 0, y: 0)
     }
 
     // MARK: Derived data

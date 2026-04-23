@@ -50,13 +50,89 @@ extension GameState {
         let jokerCards = ruleSet.jokers ? player.hand.filter { $0.isJoker } : []
 
         if let lastHand = currentTrick.last {
-            let size = lastHand.type.rawValue
-            for (rank, cards) in byRank
-                where Revolution.isStronger(rank, than: lastHand.rank, revolutionActive: isRevolutionActive) {
-                let maxJokers = min(jokerCards.count, size - 1)
+            moves.append(contentsOf: followUpMoves(
+                playerID: playerID, player: player, lastHand: lastHand,
+                byRank: byRank, jokerCards: jokerCards
+            ))
+        } else {
+            moves.append(contentsOf: leadMoves(
+                playerID: playerID, byRank: byRank, jokerCards: jokerCards
+            ))
+        }
+
+        return moves
+    }
+
+    /// Legal `.play` moves when there's already a hand on the trick.
+    private func followUpMoves(
+        playerID: PlayerID, player: Player, lastHand: Hand,
+        byRank: [Rank: [Card]], jokerCards: [Card]
+    ) -> [Move] {
+        var moves: [Move] = []
+
+        // Regular wildcard combos can only beat regular hands. Joker trump hands
+        // (solo Joker, double Joker) can only be beaten by 3-Spade reversal —
+        // see the dedicated branches below.
+        if !lastHand.isSoloJoker && !lastHand.isDoubleJoker {
+            moves.append(contentsOf: wildcardBeaters(
+                playerID: playerID, lastHand: lastHand, byRank: byRank, jokerCards: jokerCards
+            ))
+        }
+        if lastHand.type == .single {
+            // Solo Joker beats any regular single, but cannot itself be
+            // beaten by another solo Joker — only by the 3-Spade reversal.
+            if !lastHand.isSoloJoker {
+                for joker in jokerCards {
+                    moves.append(.play(cards: [joker], by: playerID))
+                }
+            }
+            if lastHand.isSoloJoker && ruleSet.threeSpadeReversal && ruleSet.jokers
+                && !isRevolutionActive {
+                let threeSpades = Card.regular(.three, .spades)
+                if player.hand.contains(threeSpades) {
+                    moves.append(.play(cards: [threeSpades], by: playerID))
+                }
+            }
+        }
+        // Double-Joker trump beats any regular pair. Cannot be beaten by anything.
+        if lastHand.type == .pair && !lastHand.isDoubleJoker && jokerCards.count >= 2 {
+            moves.append(.play(cards: Array(jokerCards.prefix(2)), by: playerID))
+        }
+        return moves
+    }
+
+    /// Wildcard-combo `.play` moves that beat `lastHand` by raw rank strength.
+    private func wildcardBeaters(
+        playerID: PlayerID, lastHand: Hand,
+        byRank: [Rank: [Card]], jokerCards: [Card]
+    ) -> [Move] {
+        var moves: [Move] = []
+        let size = lastHand.type.rawValue
+        for (rank, cards) in byRank
+            where Revolution.isStronger(rank, than: lastHand.rank, revolutionActive: isRevolutionActive) {
+            let maxJokers = min(jokerCards.count, size - 1)
+            for jokerCount in 0...maxJokers {
+                let realCount = size - jokerCount
+                guard realCount <= cards.count else { continue }
+                for realCombo in combinations(of: cards, count: realCount) {
+                    for jokerCombo in combinations(of: jokerCards, count: jokerCount) {
+                        moves.append(.play(cards: realCombo + jokerCombo, by: playerID))
+                    }
+                }
+            }
+        }
+        return moves
+    }
+
+    /// Legal `.play` moves when leading a fresh trick.
+    private func leadMoves(
+        playerID: PlayerID, byRank: [Rank: [Card]], jokerCards: [Card]
+    ) -> [Move] {
+        var moves: [Move] = []
+        for (_, cards) in byRank {
+            for realCount in 1...cards.count {
+                let maxJokers = min(jokerCards.count, 4 - realCount)
                 for jokerCount in 0...maxJokers {
-                    let realCount = size - jokerCount
-                    guard realCount <= cards.count else { continue }
                     for realCombo in combinations(of: cards, count: realCount) {
                         for jokerCombo in combinations(of: jokerCards, count: jokerCount) {
                             moves.append(.play(cards: realCombo + jokerCombo, by: playerID))
@@ -64,36 +140,13 @@ extension GameState {
                     }
                 }
             }
-            if lastHand.type == .single {
-                for joker in jokerCards {
-                    moves.append(.play(cards: [joker], by: playerID))
-                }
-                if lastHand.isSoloJoker && ruleSet.threeSpadeReversal && ruleSet.jokers
-                    && !isRevolutionActive {
-                    let threeSpades = Card.regular(.three, .spades)
-                    if player.hand.contains(threeSpades) {
-                        moves.append(.play(cards: [threeSpades], by: playerID))
-                    }
-                }
-            }
-        } else {
-            for (_, cards) in byRank {
-                for realCount in 1...cards.count {
-                    let maxJokers = min(jokerCards.count, 4 - realCount)
-                    for jokerCount in 0...maxJokers {
-                        for realCombo in combinations(of: cards, count: realCount) {
-                            for jokerCombo in combinations(of: jokerCards, count: jokerCount) {
-                                moves.append(.play(cards: realCombo + jokerCombo, by: playerID))
-                            }
-                        }
-                    }
-                }
-            }
-            for joker in jokerCards {
-                moves.append(.play(cards: [joker], by: playerID))
-            }
         }
-
+        for joker in jokerCards {
+            moves.append(.play(cards: [joker], by: playerID))
+        }
+        if jokerCards.count >= 2 {
+            moves.append(.play(cards: Array(jokerCards.prefix(2)), by: playerID))
+        }
         return moves
     }
 }
@@ -120,7 +173,9 @@ extension GameState {
             throw GameError.invalidHand(.mixedRanks)
         }
 
-        if newHand.isSoloJoker && !ruleSet.jokers { throw GameError.invalidHand(.allJokers) }
+        if (newHand.isSoloJoker || newHand.isDoubleJoker) && !ruleSet.jokers {
+            throw GameError.invalidHand(.allJokers)
+        }
 
         let newRevolutionActive = Revolution.newState(
             active: isRevolutionActive, after: newHand, ruleEnabled: ruleSet.revolution)
@@ -130,7 +185,13 @@ extension GameState {
             guard newHand.type == lastHand.type else { throw GameError.handTypeMismatch }
             let isReversal = ThreeSpadeReversal.triggers(newHand: newHand, onto: lastHand, ruleSet: ruleSet)
             if !isReversal {
+                // A double-Joker pair cannot be beaten by anything; a solo Joker can
+                // only be beaten by a 3-Spade reversal (handled above).
+                if lastHand.isDoubleJoker || lastHand.isSoloJoker {
+                    throw GameError.notStrongerThanCurrent
+                }
                 let isStronger = Joker.isSoloStronger(newHand: newHand, ruleEnabled: ruleSet.jokers)
+                    || Joker.isDoublePairStronger(newHand: newHand, ruleEnabled: ruleSet.jokers)
                     || Revolution.isStronger(newHand, than: lastHand, revolutionActive: isRevolutionActive)
                 guard isStronger else { throw GameError.notStrongerThanCurrent }
             }
@@ -153,6 +214,14 @@ extension GameState {
         let nextIndex = nextActive(after: playerIndex, in: newPlayers)
 
         if EightStop.triggers(hand: newHand, ruleEnabled: ruleSet.eightStop) {
+            return trickCleared(newHand: newHand, leadIndex: playerIndex, players: newPlayers,
+                scores: updatedScores, revolutionActive: newRevolutionActive)
+        }
+
+        // Double Joker is an unbeatable trump — clear the trick immediately.
+        // Solo Joker also clears unless 3-Spade Reversal is on, in which case
+        // opponents need a chance to play the 3 of Spades through the normal pass cycle.
+        if newHand.isDoubleJoker || (newHand.isSoloJoker && !ruleSet.threeSpadeReversal) {
             return trickCleared(newHand: newHand, leadIndex: playerIndex, players: newPlayers,
                 scores: updatedScores, revolutionActive: newRevolutionActive)
         }
