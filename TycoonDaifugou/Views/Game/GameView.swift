@@ -15,17 +15,15 @@ struct GameView: View {
         ZStack(alignment: .bottom) {
             Color.tycoonBlack.ignoresSafeArea()
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    topBar
-                    opponentZone
-                    playPile
-                    playerStatusTag
-                    handHeader
-                    fanHand
-                    actionButtons
-                }
-                .padding(.bottom, 40)
+            VStack(alignment: .leading, spacing: 0) {
+                topBar
+                opponentZone
+                playPile
+                Spacer(minLength: 0)
+                playerStatusTag
+                handHeader
+                fanHand
+                actionButtons
             }
 
             if showRules {
@@ -88,21 +86,21 @@ struct GameView: View {
             if let onExitRequest {
                 Button(action: onExitRequest) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Color.textTertiary)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 32, height: 32)
                         .background(Color.white.opacity(0.06))
                         .clipShape(Circle())
                 }
             }
             Text("Tycoon Daifugō")
-                .font(.custom("Fraunces-9ptBlackItalic", size: 14))
-                .foregroundStyle(Color.white.opacity(0.55))
+                .font(.custom("Fraunces-9ptBlackItalic", size: 17))
+                .foregroundStyle(Color.white.opacity(0.6))
                 .tracking(-0.2)
             Spacer()
             Text("ROUND \(controller.state.round) / \(controller.maxRounds)")
-                .font(.custom("InstrumentSans-Regular", size: 9).weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.3))
+                .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
+                .foregroundStyle(Color.white.opacity(0.35))
                 .tracking(2)
         }
         .padding(.horizontal, 18)
@@ -133,7 +131,7 @@ struct GameView: View {
                 }
             }
         }
-        .frame(height: 200)
+        .frame(height: 170)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -147,75 +145,75 @@ struct GameView: View {
     private var playPile: some View {
         VStack(spacing: 8) {
             Text("CURRENT PLAY")
-                .font(.custom("InstrumentSans-Regular", size: 8).weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.2))
+                .font(.custom("InstrumentSans-Regular", size: 10).weight(.semibold))
+                .foregroundStyle(Color.white.opacity(0.25))
                 .tracking(2.5)
 
             ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color(red: 0.094, green: 0.094, blue: 0.094))
-                    .frame(width: 68, height: 96)
+                    .frame(width: 96, height: 136)
                     .rotationEffect(.degrees(-6))
-                    .offset(x: -3, y: 3)
+                    .offset(x: -4, y: 4)
 
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color(red: 0.102, green: 0.102, blue: 0.102))
-                    .frame(width: 68, height: 96)
+                    .frame(width: 96, height: 136)
                     .rotationEffect(.degrees(-2))
-                    .offset(x: 1, y: 1)
+                    .offset(x: 2, y: 1)
 
                 if let top = pileTopHand, let card = top.cards.first {
                     PlayingCardView(card: card, style: .pile)
                 } else {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color(red: 0.133, green: 0.133, blue: 0.133))
-                        .frame(width: 68, height: 96)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.cardCream)
+                        .frame(width: 96, height: 136)
                         .overlay(
                             Text("—")
-                                .font(.custom("Fraunces-9ptBlackItalic", size: 22))
-                                .foregroundStyle(Color.white.opacity(0.2))
+                                .font(.custom("Fraunces-9ptBlackItalic", size: 34))
+                                .foregroundStyle(Color.cardSuitBlack.opacity(0.3))
                         )
                 }
             }
 
             Text(pileHint)
-                .font(.custom("InstrumentSans-Regular", size: 11).weight(.medium))
-                .foregroundStyle(Color.white.opacity(0.4))
+                .font(.custom("InstrumentSans-Regular", size: 15).weight(.medium))
+                .foregroundStyle(Color.white.opacity(0.45))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
+        .padding(.vertical, 12)
     }
 
     // MARK: Player Status Tag
 
     private var playerStatusTag: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 1) {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("RANK")
-                    .font(.custom("InstrumentSans-Regular", size: 7).weight(.semibold))
-                    .foregroundStyle(Color.cardBlush.opacity(0.5))
+                    .font(.custom("InstrumentSans-Regular", size: 9).weight(.semibold))
+                    .foregroundStyle(Color.cardBlush.opacity(0.6))
                     .tracking(1)
                 Text(controller.humanPlayer?.currentTitle?.displayName ?? "—")
-                    .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
+                    .font(.custom("InstrumentSans-Regular", size: 15).weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
             }
 
             Rectangle()
                 .fill(Color.white.opacity(0.08))
-                .frame(width: 1, height: 28)
+                .frame(width: 1, height: 36)
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("CARDS LEFT")
-                    .font(.custom("InstrumentSans-Regular", size: 7).weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.3))
+                    .font(.custom("InstrumentSans-Regular", size: 9).weight(.semibold))
+                    .foregroundStyle(Color.white.opacity(0.35))
                     .tracking(1)
                 Text("\(controller.humanHand.count)")
-                    .font(.custom("Fraunces-9ptBlackItalic", size: 15))
+                    .font(.custom("Fraunces-9ptBlackItalic", size: 19))
                     .foregroundStyle(Color.textPrimary)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
         .background(Color.tycoonSurface)
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -230,31 +228,31 @@ struct GameView: View {
 
     private var handHeader: some View {
         HStack {
-            HStack(spacing: 5) {
+            HStack(spacing: 6) {
                 Circle()
                     .fill(controller.isHumansTurn ? Color.cardBlush : Color.white.opacity(0.2))
-                    .frame(width: 6, height: 6)
+                    .frame(width: 8, height: 8)
                 Text(controller.isHumansTurn ? "YOUR TURN" : "WAITING…")
-                    .font(.custom("InstrumentSans-Regular", size: 10).weight(.semibold))
-                    .foregroundStyle(controller.isHumansTurn ? Color.cardBlush : Color.white.opacity(0.3))
+                    .font(.custom("InstrumentSans-Regular", size: 13).weight(.semibold))
+                    .foregroundStyle(controller.isHumansTurn ? Color.cardBlush : Color.white.opacity(0.35))
                     .tracking(1.5)
             }
             Spacer()
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Button(action: { showRules = true }) {
                     ZStack {
                         Circle()
                             .fill(Color.white.opacity(0.06))
                             .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-                            .frame(width: 22, height: 22)
+                            .frame(width: 26, height: 26)
                         Text("?")
-                            .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
+                            .font(.custom("InstrumentSans-Regular", size: 14).weight(.semibold))
                             .foregroundStyle(Color.textTertiary)
                     }
                 }
                 Text("\(controller.humanHand.count) cards")
-                    .font(.custom("InstrumentSans-Regular", size: 10).weight(.medium))
-                    .foregroundStyle(Color.white.opacity(0.28))
+                    .font(.custom("InstrumentSans-Regular", size: 13).weight(.medium))
+                    .foregroundStyle(Color.white.opacity(0.35))
             }
         }
         .padding(.horizontal, 16)
@@ -268,35 +266,55 @@ struct GameView: View {
         let n = hand.count
 
         return GeometryReader { geo in
-            let cardW: CGFloat = 52
-            let cardH: CGFloat = 76
-            let maxAngle: CGFloat = n <= 7 ? 22 : 30
-            let pivotDistance: CGFloat = n <= 7 ? 200 : 130
+            // Size must match PlayingCardView .hand intrinsic size (68×100).
+            let cardW: CGFloat = 68
+            let cardH: CGFloat = 100
+            // Lift fully clears the hand so neighbors stay visible when a card is
+            // selected — one card height plus a small air gap.
+            let lift: CGFloat = 115
+            let marginH: CGFloat = 12
+            // Fan opens to ±5° at a full 14-card hand — angular step is shared
+            // across hand sizes so a 14-card fan spans full width, and smaller
+            // hands cluster proportionally tighter.
+            let maxHand: CGFloat = 14
+            let fullFanAngleDeg: CGFloat = 5
+            let angleStepDeg: CGFloat = fullFanAngleDeg * 2 / (maxHand - 1)
+            let maxAngleDeg: CGFloat = n > 1 ? angleStepDeg * CGFloat(n - 1) / 2 : 0
+            let angleStepRad = angleStepDeg * .pi / 180
+
+            // Pivot distance derived from available width so the full 14-card
+            // hand fills the screen edge-to-edge minus marginH.
+            let availableWidth = max(geo.size.width - 2 * marginH - cardW, 0)
+            let spacing = availableWidth / (maxHand - 1)
+            let pivotDistance = angleStepRad > 0 ? spacing / sin(angleStepRad) : 0
+
             let centerX = geo.size.width / 2
-            let pivotY = cardH + pivotDistance
+            // Anchor center card top at y = lift so selection has room to rise.
+            let pivotY = cardH + pivotDistance + lift
 
             ZStack {
                 ForEach(Array(hand.enumerated()), id: \.element) { i, card in
                     let pct = n > 1 ? Double(i) / Double(n - 1) : 0.5
-                    let angle = -maxAngle + CGFloat(pct) * maxAngle * 2
+                    let angle = -maxAngleDeg + CGFloat(pct) * maxAngleDeg * 2
                     let rad = angle * .pi / 180
                     let x = centerX + pivotDistance * sin(rad) - cardW / 2
                     let y = pivotY - pivotDistance * cos(rad) - cardH
                     let isSelected = selected.contains(card)
-                    let liftY: CGFloat = isSelected ? -20 : 0
+                    let liftOffset: CGFloat = isSelected ? -lift : 0
 
                     PlayingCardView(card: card, style: .hand, isSelected: isSelected)
-                        .position(x: x + cardW / 2, y: y - liftY + cardH / 2)
+                        .position(x: x + cardW / 2, y: y + liftOffset + cardH / 2)
                         .rotationEffect(.degrees(Double(angle)))
                         .zIndex(isSelected ? 20 : Double(i))
                         .onTapGesture { toggle(card) }
                 }
             }
-            .frame(width: geo.size.width, height: cardH + pivotDistance * 0.35)
+            .frame(width: geo.size.width, height: cardH + lift + 16)
             .offset(x: invalidPlayShake)
         }
-        .frame(height: 130)
-        .padding(.horizontal, 8)
+        .frame(height: 235)
+        .padding(.top, 8)
+        .padding(.horizontal, 4)
     }
 
     // MARK: Action Buttons
@@ -304,11 +322,11 @@ struct GameView: View {
     private var actionButtons: some View {
         HStack {
             Button("PASS") { pass() }
-                .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
+                .font(.custom("InstrumentSans-Regular", size: 13).weight(.semibold))
                 .foregroundStyle(controller.canPass ? Color.textPrimary : Color.textTertiary)
                 .tracking(1)
-                .frame(height: 40)
-                .padding(.horizontal, 18)
+                .frame(height: 46)
+                .padding(.horizontal, 22)
                 .background(Color.white.opacity(0.05))
                 .overlay(Capsule().strokeBorder(Color.white.opacity(0.09), lineWidth: 1))
                 .clipShape(Capsule())
@@ -318,10 +336,10 @@ struct GameView: View {
 
             Button(action: play) {
                 Image(systemName: "play.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(Color.tycoonBlack)
             }
-            .frame(width: 48, height: 48)
+            .frame(width: 54, height: 54)
             .background(playButtonEnabled ? Color.cardBlush : Color.cardBlush.opacity(0.25))
             .clipShape(Circle())
             .disabled(!playButtonEnabled)
