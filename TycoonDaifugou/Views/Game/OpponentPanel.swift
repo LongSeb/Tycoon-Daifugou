@@ -8,7 +8,7 @@ struct OpponentPanel: View {
     let isActive: Bool
 
     private var cardsLeft: Int { player.hand.count }
-    private var rankLabel: String { player.currentTitle?.displayName.uppercased() ?? "—" }
+    private var rankLabel: String { player.displayTitle?.displayName.uppercased() ?? "—" }
 
     var body: some View {
         ZStack(alignment: .top) {

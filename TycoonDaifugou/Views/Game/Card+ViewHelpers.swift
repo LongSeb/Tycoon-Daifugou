@@ -40,6 +40,27 @@ extension Card {
     }
 }
 
+extension Rank {
+    /// Symbolic label for UI. Number ranks stay numeric; face cards use their letter.
+    var displayLabel: String {
+        switch self {
+        case .three: return "3"
+        case .four:  return "4"
+        case .five:  return "5"
+        case .six:   return "6"
+        case .seven: return "7"
+        case .eight: return "8"
+        case .nine:  return "9"
+        case .ten:   return "10"
+        case .jack:  return "J"
+        case .queen: return "Q"
+        case .king:  return "K"
+        case .ace:   return "A"
+        case .two:   return "2"
+        }
+    }
+}
+
 extension Title {
     var displayName: String {
         switch self {

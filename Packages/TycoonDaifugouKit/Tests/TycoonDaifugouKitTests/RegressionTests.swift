@@ -100,6 +100,50 @@ struct RegressionTests {
         #expect(leader.hand.contains(.regular(.three, .diamonds)))
     }
 
+    // MARK: Regression: previous-round titles carry over visually
+
+    @Test("Each player's prior-round title survives trading so UI can display it during the new round")
+    func regression_previousTitleCarriesIntoNextRound() throws {
+        let players = Self.makePlayers()
+        let initial = GameState.newGame(players: players, ruleSet: .baseOnly, seed: 42)
+
+        let round1States = SimulatedPlaythrough.states(from: initial)
+        guard let roundEnded = round1States.last, roundEnded.phase == .roundEnded else {
+            Issue.record("Round 1 did not reach .roundEnded")
+            return
+        }
+
+        // Capture every player's round-1 title.
+        let round1Titles = Dictionary(
+            uniqueKeysWithValues: roundEnded.players.map { ($0.id, $0.currentTitle) }
+        )
+
+        // Start round 2 and play through the required trades.
+        var state = roundEnded.startNextRound(seed: 99)
+        for trade in requiredTrades(for: state) {
+            let player = state.players.first { $0.id == trade.from }!
+            let cards: [Card]
+            if trade.mustGiveStrongest {
+                cards = Self.strongest(trade.cardCount, from: player)
+            } else {
+                cards = Array(player.hand.prefix(trade.cardCount))
+            }
+            state = try state.apply(.trade(cards: cards, from: trade.from, to: trade.to))
+        }
+
+        // Round 2 is now in .playing and currentTitle has been cleared…
+        #expect(state.phase == .playing)
+        #expect(state.players.allSatisfy { $0.currentTitle == nil })
+
+        // …but every player's previousTitle still reflects their round-1 title,
+        // so `displayTitle` surfaces the correct rank in the UI.
+        for player in state.players {
+            let expected = round1Titles[player.id] ?? nil
+            #expect(player.previousTitle == expected)
+            #expect(player.displayTitle == expected)
+        }
+    }
+
     // MARK: Scenario: Revolution House Rule
 
     @Test("Revolution flips card strength mid-game")
