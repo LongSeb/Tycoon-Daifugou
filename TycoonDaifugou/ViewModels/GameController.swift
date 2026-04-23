@@ -9,6 +9,9 @@ final class GameController {
     let humanPlayerID: PlayerID
     private let opponents: [PlayerID: any Opponent]
     let maxRounds: Int
+    /// Bumped each time a play causes a 3-Spade Reversal. Views observe this to
+    /// trigger a brief on-screen highlight.
+    private(set) var reversalEventCounter: Int = 0
 
     init(
         players: [Player],
@@ -68,11 +71,11 @@ final class GameController {
     }
 
     func play(_ cards: [Card]) throws {
-        state = try state.apply(.play(cards: cards, by: humanPlayerID))
+        try applyMove(.play(cards: cards, by: humanPlayerID))
     }
 
     func pass() throws {
-        state = try state.apply(.pass(by: humanPlayerID))
+        try applyMove(.pass(by: humanPlayerID))
     }
 
     /// Drives the game forward until the human has something to do (or the final round ends).
@@ -85,9 +88,8 @@ final class GameController {
                 if activePlayer.id == humanPlayerID { return }
                 guard let opponent = opponents[activePlayer.id] else { return }
                 let move = opponent.move(for: activePlayer.id, in: state)
-                guard let next = try? state.apply(move) else { return }
-                state = next
-                try? await Task.sleep(nanoseconds: 400_000_000)
+                do { try applyMove(move) } catch { return }
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
 
             case .roundEnded:
                 guard state.round < maxRounds else { return }
@@ -100,6 +102,20 @@ final class GameController {
             case .dealing, .scoring:
                 return
             }
+        }
+    }
+
+    /// Applies a move and detects gameplay events worth surfacing to the UI.
+    /// A 3-Spade Reversal is detected as: the move was the 3♠ played as a single,
+    /// the prior trick top was a solo Joker, and the trick is empty afterward.
+    private func applyMove(_ move: Move) throws {
+        let priorTop = state.currentTrick.last
+        state = try state.apply(move)
+        if case .play(let cards, _) = move,
+           cards == [.regular(.three, .spades)],
+           priorTop?.isSoloJoker == true,
+           state.currentTrick.isEmpty {
+            reversalEventCounter &+= 1
         }
     }
 

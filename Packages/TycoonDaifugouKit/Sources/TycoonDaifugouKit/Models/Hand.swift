@@ -12,6 +12,8 @@ public struct Hand: Sendable, Hashable {
     public let rank: Rank
     /// True when this hand is exactly one Joker card played solo as a single.
     public let isSoloJoker: Bool
+    /// True when this hand is exactly two Jokers played together as a pair trump.
+    public let isDoubleJoker: Bool
 
     public init(cards: [Card]) throws {
         guard let handType = HandType(rawValue: cards.count) else {
@@ -19,13 +21,25 @@ public struct Hand: Sendable, Hashable {
         }
         let nonJokers = cards.filter { !$0.isJoker }
         if nonJokers.isEmpty {
-            // Only a lone single Joker is valid; two Jokers together are not.
-            guard cards.count == 1 else { throw HandError.allJokers }
-            self.cards = cards
-            self.type = handType
-            self.rank = .two  // Placeholder; solo Joker comparisons bypass rank.
-            self.isSoloJoker = true
-            return
+            // Solo Joker (single) and double Joker (pair) are both legal trump plays.
+            switch cards.count {
+            case 1:
+                self.cards = cards
+                self.type = handType
+                self.rank = .two  // Placeholder; solo Joker comparisons bypass rank.
+                self.isSoloJoker = true
+                self.isDoubleJoker = false
+                return
+            case 2:
+                self.cards = cards
+                self.type = handType
+                self.rank = .two  // Placeholder; double Joker comparisons bypass rank.
+                self.isSoloJoker = false
+                self.isDoubleJoker = true
+                return
+            default:
+                throw HandError.allJokers
+            }
         }
         let ranks = Set(nonJokers.compactMap { $0.rank })
         guard ranks.count == 1, let anchorRank = ranks.first else {
@@ -35,11 +49,14 @@ public struct Hand: Sendable, Hashable {
         self.type = handType
         self.rank = anchorRank
         self.isSoloJoker = false
+        self.isDoubleJoker = false
     }
 }
 
 extension Hand: Comparable {
     public static func < (lhs: Hand, rhs: Hand) -> Bool {
+        if rhs.isDoubleJoker { return !lhs.isDoubleJoker }
+        if lhs.isDoubleJoker { return false }
         if rhs.isSoloJoker { return !lhs.isSoloJoker }
         if lhs.isSoloJoker { return false }
         return lhs.rank < rhs.rank

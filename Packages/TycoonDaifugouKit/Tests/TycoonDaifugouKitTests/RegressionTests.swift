@@ -386,6 +386,116 @@ struct RegressionTests {
 
     // MARK: Past bugs
 
+    @Test("regression_jokerTrumpReturnsLeadAllRules: 4-player .allRules — joker player keeps lead when no opponent has 3♠")
+    func regression_jokerTrumpReturnsLeadAllRules() throws {
+        // 4 players, full RuleSet.allRules (jokers + 3♠ + revolution + 8-stop + bankruptcy).
+        // The 3 of Spades is intentionally placed in the human's own hand so no opponent
+        // can reverse — closely modelling what the user reported in live play.
+
+        let p0 = Player(displayName: "P0", hand: [.regular(.four, .clubs), .regular(.king, .hearts)])
+        let human = Player(displayName: "Human", hand: [
+            .joker(index: 0), .regular(.three, .spades), .regular(.six, .diamonds),
+        ])
+        let p2 = Player(displayName: "P2", hand: [.regular(.queen, .hearts), .regular(.five, .spades)])
+        let p3 = Player(displayName: "P3", hand: [.regular(.ten, .clubs), .regular(.seven, .hearts)])
+        let players = [p0, human, p2, p3]
+        let scores = Dictionary(uniqueKeysWithValues: players.map { ($0.id, 0) })
+
+        var state = GameState(
+            players: players,
+            deck: [],
+            currentPlayerIndex: 0,
+            phase: .playing,
+            ruleSet: .allRules,
+            round: 1,
+            scoresByPlayer: scores
+        )
+
+        // P0 leads 4♣
+        state = try state.apply(.play(cards: [.regular(.four, .clubs)], by: p0.id))
+        // Human follows with solo Joker
+        state = try state.apply(.play(cards: [.joker(index: 0)], by: human.id))
+        #expect(state.currentTrick.last?.isSoloJoker == true)
+        #expect(state.players[state.currentPlayerIndex].id == p2.id)
+
+        // All opponents pass — P2, P3, P0 (none have 3♠).
+        state = try state.apply(.pass(by: p2.id))
+        state = try state.apply(.pass(by: p3.id))
+        state = try state.apply(.pass(by: p0.id))
+
+        #expect(state.currentTrick.isEmpty, "Trick must reset after all opponents pass")
+        #expect(
+            state.players[state.currentPlayerIndex].id == human.id,
+            "Joker player must hold the lead — not the trick starter"
+        )
+    }
+
+    @Test("regression_jokerTrumpReturnsLead: solo Joker follow-up gives lead back to joker player")
+    func regression_jokerTrumpReturnsLead() throws {
+        // Reported behavior: human played a solo Joker as a follow-up; opponents
+        // all passed; the lead went back to the original trick starter instead
+        // of the joker player. This test covers both rule configurations: with
+        // 3♠ Reversal off (immediate trick clear) and with it on (pass cycle).
+
+        // Case A: 3♠ Reversal OFF — solo joker should immediately clear the trick.
+        do {
+            let p0 = Player(displayName: "P0", hand: [.regular(.king, .clubs), .regular(.four, .hearts)])
+            let p1 = Player(displayName: "P1", hand: [.joker(index: 0), .regular(.six, .spades)])
+            let p2 = Player(displayName: "P2", hand: [.regular(.queen, .diamonds), .regular(.five, .hearts)])
+            let p3 = Player(displayName: "P3", hand: [.regular(.ten, .clubs), .regular(.seven, .clubs)])
+            let players = [p0, p1, p2, p3]
+            let scores = Dictionary(uniqueKeysWithValues: players.map { ($0.id, 0) })
+
+            var state = GameState(
+                players: players,
+                deck: [],
+                currentPlayerIndex: 0,
+                phase: .playing,
+                ruleSet: RuleSet(jokers: true, jokerCount: 1),
+                round: 1,
+                scoresByPlayer: scores
+            )
+
+            // P0 leads K♣; P1 follows with solo Joker.
+            state = try state.apply(.play(cards: [.regular(.king, .clubs)], by: p0.id))
+            state = try state.apply(.play(cards: [.joker(index: 0)], by: p1.id))
+
+            #expect(state.currentTrick.isEmpty, "Solo Joker must clear the trick when 3♠ rule is off")
+            #expect(state.currentPlayerIndex == 1, "Joker player (P1) must hold the lead — not P0")
+        }
+
+        // Case B: 3♠ Reversal ON, no opponent has 3♠ — opponents pass; lead returns to joker player.
+        do {
+            let p0 = Player(displayName: "P0", hand: [.regular(.king, .clubs), .regular(.four, .hearts)])
+            let p1 = Player(displayName: "P1", hand: [.joker(index: 0), .regular(.six, .spades)])
+            let p2 = Player(displayName: "P2", hand: [.regular(.queen, .diamonds), .regular(.five, .hearts)])
+            let p3 = Player(displayName: "P3", hand: [.regular(.ten, .clubs), .regular(.seven, .clubs)])
+            let players = [p0, p1, p2, p3]
+            let scores = Dictionary(uniqueKeysWithValues: players.map { ($0.id, 0) })
+
+            var state = GameState(
+                players: players,
+                deck: [],
+                currentPlayerIndex: 0,
+                phase: .playing,
+                ruleSet: RuleSet(jokers: true, threeSpadeReversal: true, jokerCount: 1),
+                round: 1,
+                scoresByPlayer: scores
+            )
+
+            state = try state.apply(.play(cards: [.regular(.king, .clubs)], by: p0.id))
+            state = try state.apply(.play(cards: [.joker(index: 0)], by: p1.id))
+
+            // Trick still active — P2, P3, P0 must each pass.
+            state = try state.apply(.pass(by: p2.id))
+            state = try state.apply(.pass(by: p3.id))
+            state = try state.apply(.pass(by: p0.id))
+
+            #expect(state.currentTrick.isEmpty, "Trick must reset after all opponents pass")
+            #expect(state.currentPlayerIndex == 1, "Joker player (P1) must hold the lead — not P0")
+        }
+    }
+
     // Template for future regression tests. When you fix a bug, add a test
     // here titled `regression_<issueNumber>_<short_description>`. The test
     // body should reproduce the exact scenario that triggered the bug.
