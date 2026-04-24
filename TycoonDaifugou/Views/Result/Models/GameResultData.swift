@@ -6,6 +6,7 @@ struct ResultPlayer: Identifiable {
     let emoji: String
     let rank: String
     let xpGained: Int
+    let totalScore: Int
     let isPlayer: Bool
 }
 

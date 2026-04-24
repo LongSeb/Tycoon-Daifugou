@@ -46,7 +46,7 @@ final class GameController {
     private(set) var pendingRoundResult: RoundResult? = nil
 
     private var roundHistory: [RoundResult] = []
-    private var cumulativePoints: [PlayerID: Int] = [:]
+    private(set) var cumulativePoints: [PlayerID: Int] = [:]
     private let playerEmojis: [PlayerID: String]
 
     var gameDuration: TimeInterval { Date().timeIntervalSince(startTime) }
@@ -179,13 +179,10 @@ final class GameController {
                     if humanTitle == .millionaire || humanTitle == .rich {
                         roundsWon += 1
                     }
-<<<<<<< feat/leveling-system
 
                     // The title earned this round becomes the start title for the next.
                     roundStartTitle = humanTitle
-=======
                     recordRoundResult()
->>>>>>> main
                 }
                 return  // Always pause; user advances via inter-round CTA
 
@@ -199,7 +196,6 @@ final class GameController {
         }
     }
 
-<<<<<<< feat/leveling-system
     var isGameOver: Bool {
         state.phase == .roundEnded && state.round >= maxRounds
     }
@@ -221,7 +217,8 @@ final class GameController {
         case .poor, .commoner: return 10
         case .beggar, nil: return 0
         }
-=======
+    }
+
     /// True when the round that just ended is the final round of the game.
     var isLastRound: Bool {
         state.phase == .roundEnded && state.round >= maxRounds
@@ -252,7 +249,6 @@ final class GameController {
         pendingRoundResult = nil
         state = state.startNextRound(seed: UInt64.random(in: .min ... .max))
         Task { await resolveAITurnsIfNeeded() }
->>>>>>> main
     }
 
     /// Applies a move and detects gameplay events worth surfacing to the UI.

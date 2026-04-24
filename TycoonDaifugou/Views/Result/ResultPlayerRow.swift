@@ -36,10 +36,10 @@ struct ResultPlayerRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 1) {
-                Text("+\(player.xpGained)")
+                Text("\(player.totalScore)")
                     .font(.badgeLabel)
                     .foregroundStyle(player.isPlayer ? Color.cardBlush : Color.white.opacity(0.55))
-                Text("XP")
+                Text("PTS")
                     .font(.sectionLabel)
                     .foregroundStyle(player.isPlayer ? Color.cardBlush.opacity(0.4) : Color.white.opacity(0.2))
                     .tracking(1)

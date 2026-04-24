@@ -106,6 +106,7 @@ final class NavigationCoordinator {
                 emoji: emoji,
                 rank: entry.player.currentTitle?.displayName ?? "—",
                 xpGained: entry.xp,
+                totalScore: controller.cumulativePoints[entry.player.id] ?? 0,
                 isPlayer: isHuman
             )
         }
@@ -141,9 +142,9 @@ final class NavigationCoordinator {
             highlight = "\(state.round)-round match complete"
         }
 
-        let breakdown = xpResult.bonuses.map { bonus in
-            XPBreakdownItem(label: bonus.label, amount: bonus.amount)
-        }
+        let baseLabel = "\(controller.humanCumulativePoints) pts"
+        var breakdown: [XPBreakdownItem] = [XPBreakdownItem(label: baseLabel, amount: xpResult.baseXP)]
+        breakdown.append(contentsOf: xpResult.bonuses.map { XPBreakdownItem(label: $0.label, amount: $0.amount) })
 
         return GameResultData(
             roundsPlayed: state.round,
