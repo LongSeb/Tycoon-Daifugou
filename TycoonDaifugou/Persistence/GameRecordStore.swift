@@ -40,7 +40,9 @@ final class GameRecordStore {
             eightStopCount: controller.eightStopCount,
             jokerPlayCount: controller.jokerPlayCount,
             threeSpadeCount: controller.threeSpadeCount,
-            opponents: opponentRecords
+            opponents: opponentRecords,
+            roundPointsTotal: controller.humanRoundPointsTotal,
+            opponentBestPoints: controller.opponentBestPoints
         )
 
         context.insert(record)
@@ -131,7 +133,13 @@ final class GameRecordStore {
     // MARK: - Private Helpers
 
     private func isWin(_ record: GameRecord) -> Bool {
-        record.finishRank == "Millionaire" || record.finishRank == "Rich"
+        // For records that have points data: human must have strictly more points than
+        // the best opponent to count as a win.
+        if record.roundPointsTotal > 0 {
+            return record.roundPointsTotal > record.opponentBestPoints
+        }
+        // Legacy records (no points data): fall back to title — only Millionaire counts.
+        return record.finishRank == "Millionaire"
     }
 
     private var currentWinStreak: Int {

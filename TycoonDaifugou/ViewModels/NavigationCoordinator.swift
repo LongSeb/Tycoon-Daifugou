@@ -156,7 +156,8 @@ final class NavigationCoordinator {
             levelStartXP: levelStart,
             xpForNextLevel: xpForNext,
             currentLevel: level,
-            xpBreakdown: breakdown
+            xpBreakdown: breakdown,
+            roundPointsTotal: controller.humanRoundPointsTotal
         )
     }
 }
