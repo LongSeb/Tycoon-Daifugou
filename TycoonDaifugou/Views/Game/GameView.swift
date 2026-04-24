@@ -9,73 +9,68 @@ struct GameView: View {
     @State private var showRules = false
     @State private var selected: Set<Card> = []
     @State private var invalidPlayShake: CGFloat = 0
-    @State private var showInterRoundResults = false
     @State private var showReversalBanner = false
     @State private var showRevolutionBanner = false
     @State private var showEightStopBanner = false
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.tycoonBlack.ignoresSafeArea()
+        ZStack {
+            ZStack(alignment: .bottom) {
+                Color.tycoonBlack.ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 0) {
-                topBar
-                opponentZone
-                playPile
-                Spacer(minLength: 0)
-                playerStatusTag
-                handHeader
-                fanHand
-                actionButtons
-            }
+                VStack(alignment: .leading, spacing: 0) {
+                    topBar
+                    opponentZone
+                    playPile
+                    Spacer(minLength: 0)
+                    playerStatusTag
+                    handHeader
+                    fanHand
+                    actionButtons
+                }
 
-            if showRules {
-                RulesDrawer(isPresented: $showRules)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(10)
-            }
+                if showRules {
+                    RulesDrawer(isPresented: $showRules)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .zIndex(10)
+                }
 
-            if showReversalBanner {
-                reversalBanner
-                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
-                    .zIndex(20)
-            }
+                if showReversalBanner {
+                    reversalBanner
+                        .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                        .zIndex(20)
+                }
 
-            if showRevolutionBanner {
-                revolutionBanner
-                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
-                    .zIndex(20)
-            }
+                if showRevolutionBanner {
+                    revolutionBanner
+                        .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                        .zIndex(20)
+                }
 
-            if showEightStopBanner {
-                eightStopBanner
-                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
-                    .zIndex(20)
+                if showEightStopBanner {
+                    eightStopBanner
+                        .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                        .zIndex(20)
+                }
             }
-        }
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showRules)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showReversalBanner)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showRevolutionBanner)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showEightStopBanner)
-        .preferredColorScheme(.dark)
-        .task { await controller.resolveAITurnsIfNeeded() }
-        .onChange(of: controller.roundResultSignal) { _, _ in
-            showInterRoundResults = true
-        }
-        .fullScreenCover(isPresented: $showInterRoundResults) {
-            if let roundResult = controller.currentRoundResult {
-                InterRoundResultsView(
-                    result: roundResult,
-                    isLastRound: controller.isLastRound,
-                    onContinue: {
-                        showInterRoundResults = false
-                        controller.continueToNextRound()
-                    },
-                    onShowFinalResults: {
-                        showInterRoundResults = false
+            .allowsHitTesting(controller.pendingRoundResult == nil)
+            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showRules)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showReversalBanner)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showRevolutionBanner)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showEightStopBanner)
+            .preferredColorScheme(.dark)
+            .task { await controller.resolveAITurnsIfNeeded() }
+
+            if let result = controller.pendingRoundResult {
+                InterRoundResultsView(result: result, isLastRound: controller.isLastRound) {
+                    if controller.isLastRound {
                         onGameEnded?(controller)
+                    } else {
+                        controller.continueToNextRound()
                     }
-                )
+                }
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.25), value: controller.pendingRoundResult != nil)
             }
         }
         .onChange(of: controller.reversalEventCounter) { _, _ in

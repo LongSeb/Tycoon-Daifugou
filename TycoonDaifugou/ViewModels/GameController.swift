@@ -32,11 +32,8 @@ final class GameController {
 
     // MARK: - Inter-round Results
 
-    /// Set when a round ends; clears when the user advances past the inter-round screen.
-    private(set) var currentRoundResult: RoundResult? = nil
-    /// Bumped each time a new RoundResult is recorded. Views observe this to present
-    /// the inter-round screen (avoids needing RoundResult to be Equatable).
-    private(set) var roundResultSignal: Int = 0
+    /// Set when a round ends; nil'd when the user advances past the inter-round overlay.
+    private(set) var pendingRoundResult: RoundResult? = nil
 
     private var roundHistory: [RoundResult] = []
     private var cumulativePoints: [PlayerID: Int] = [:]
@@ -191,11 +188,16 @@ final class GameController {
             .max() ?? 0
     }
 
-    /// Clears the inter-round screen, starts the next round, and resumes AI resolution.
+    /// Clears the inter-round overlay. Call before navigating to final results or starting the next round.
+    func clearRoundResult() {
+        pendingRoundResult = nil
+    }
+
+    /// Starts the next round and resumes AI resolution.
     /// No-op if this is the last round (the CTA routes to final results instead).
     func continueToNextRound() {
         guard !isLastRound else { return }
-        currentRoundResult = nil
+        pendingRoundResult = nil
         state = state.startNextRound(seed: UInt64.random(in: .min ... .max))
         Task { await resolveAITurnsIfNeeded() }
     }
@@ -290,7 +292,6 @@ final class GameController {
         playerResults.sort { $0.cumulativePoints > $1.cumulativePoints }
         let result = RoundResult(roundNumber: state.round, playerResults: playerResults)
         roundHistory.append(result)
-        currentRoundResult = result
-        roundResultSignal &+= 1
+        pendingRoundResult = result
     }
 }

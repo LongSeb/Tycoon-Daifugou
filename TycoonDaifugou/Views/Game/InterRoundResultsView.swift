@@ -5,7 +5,6 @@ struct InterRoundResultsView: View {
     let result: RoundResult
     let isLastRound: Bool
     let onContinue: () -> Void
-    let onShowFinalResults: () -> Void
 
     @State private var headerVisible = false
     @State private var animateRows = false
@@ -13,25 +12,23 @@ struct InterRoundResultsView: View {
 
     var body: some View {
         ZStack {
-            Color.tycoonBlack.ignoresSafeArea()
+            Color.black.opacity(0.75).ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
+                Spacer()
+
                 header
-                    .padding(.top, 56)
                     .padding(.bottom, 28)
 
                 standingsCard
-
-                Spacer()
+                    .padding(.bottom, 24)
 
                 ctaButton
-                    .padding(.bottom, 40)
+
+                Spacer()
             }
             .padding(.horizontal, 20)
         }
-        .preferredColorScheme(.dark)
-        .toolbar(.hidden, for: .tabBar)
-        .interactiveDismissDisabled()
         .onAppear {
             withAnimation(.easeOut(duration: 0.4)) {
                 headerVisible = true
@@ -139,7 +136,7 @@ struct InterRoundResultsView: View {
     private var ctaButton: some View {
         let delay = 0.25 + Double(result.playerResults.count) * 0.08 + 0.1
 
-        return Button(action: { isLastRound ? onShowFinalResults() : onContinue() }) {
+        return Button(action: onContinue) {
             HStack(spacing: 8) {
                 Image(systemName: isLastRound ? "flag.checkered" : "arrow.right")
                     .font(.system(size: 13, weight: .semibold))

@@ -54,19 +54,9 @@ private extension RoundResult {
 // MARK: - Previews
 
 #Preview("Mid-game — Round 2 of 3") {
-    InterRoundResultsView(
-        result: .round2of3,
-        isLastRound: false,
-        onContinue: {},
-        onShowFinalResults: {}
-    )
+    InterRoundResultsView(result: .round2of3, isLastRound: false, onContinue: {})
 }
 
 #Preview("Final round — Round 3 of 3") {
-    InterRoundResultsView(
-        result: .round3of3,
-        isLastRound: true,
-        onContinue: {},
-        onShowFinalResults: {}
-    )
+    InterRoundResultsView(result: .round3of3, isLastRound: true, onContinue: {})
 }
