@@ -9,7 +9,7 @@ struct GameView: View {
     @State private var showRules = false
     @State private var selected: Set<Card> = []
     @State private var invalidPlayShake: CGFloat = 0
-    @State private var didNotifyGameEnd = false
+    @State private var showInterRoundResults = false
     @State private var showReversalBanner = false
     @State private var showRevolutionBanner = false
     @State private var showEightStopBanner = false
@@ -59,10 +59,24 @@ struct GameView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showEightStopBanner)
         .preferredColorScheme(.dark)
         .task { await controller.resolveAITurnsIfNeeded() }
-        .onChange(of: controller.isGameOver) { _, isOver in
-            guard isOver, !didNotifyGameEnd else { return }
-            didNotifyGameEnd = true
-            onGameEnded?(controller)
+        .onChange(of: controller.roundResultSignal) { _, _ in
+            showInterRoundResults = true
+        }
+        .fullScreenCover(isPresented: $showInterRoundResults) {
+            if let roundResult = controller.currentRoundResult {
+                InterRoundResultsView(
+                    result: roundResult,
+                    isLastRound: controller.isLastRound,
+                    onContinue: {
+                        showInterRoundResults = false
+                        controller.continueToNextRound()
+                    },
+                    onShowFinalResults: {
+                        showInterRoundResults = false
+                        onGameEnded?(controller)
+                    }
+                )
+            }
         }
         .onChange(of: controller.reversalEventCounter) { _, _ in
             showReversalBanner = true

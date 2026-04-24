@@ -17,6 +17,8 @@ final class GameRecord {
     var eightStopCount: Int
     var jokerPlayCount: Int
     var threeSpadeCount: Int
+    var roundPointsTotal: Int = 0
+    var opponentBestPoints: Int = 0
     @Relationship(deleteRule: .cascade) var opponents: [OpponentRecord]
 
     init(
@@ -34,7 +36,9 @@ final class GameRecord {
         eightStopCount: Int,
         jokerPlayCount: Int,
         threeSpadeCount: Int,
-        opponents: [OpponentRecord]
+        opponents: [OpponentRecord],
+        roundPointsTotal: Int = 0,
+        opponentBestPoints: Int = 0
     ) {
         self.id = id
         self.date = date
@@ -51,5 +55,7 @@ final class GameRecord {
         self.jokerPlayCount = jokerPlayCount
         self.threeSpadeCount = threeSpadeCount
         self.opponents = opponents
+        self.roundPointsTotal = roundPointsTotal
+        self.opponentBestPoints = opponentBestPoints
     }
 }

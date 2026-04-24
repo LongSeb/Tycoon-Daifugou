@@ -61,6 +61,17 @@ struct ResultsView: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .center)
 
+            HStack(spacing: 4) {
+                Text("Game Score:")
+                    .font(.tycoonCaption)
+                    .foregroundStyle(Color.white.opacity(0.35))
+                Text("\(result.roundPointsTotal) pts")
+                    .font(.tycoonCaption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.cardBlush.opacity(0.7))
+            }
+            .padding(.top, 6)
+
             Rectangle()
                 .fill(Color.cardBlush.opacity(0.25))
                 .frame(width: 40, height: 1)
