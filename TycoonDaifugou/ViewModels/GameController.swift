@@ -19,16 +19,26 @@ final class GameController {
     /// Bumped each time a play triggers an 8-Stop.
     private(set) var eightStopEventCounter: Int = 0
 
-    // MARK: - Game Tracking
+    // MARK: - Game Tracking (stats & XP inputs)
 
     private let startTime = Date()
     private(set) var cardsPlayed: Int = 0
     private(set) var roundsWon: Int = 0
     private(set) var revolutionCount: Int = 0
+    private(set) var counterRevolutionCount: Int = 0
     private(set) var eightStopCount: Int = 0
     private(set) var jokerPlayCount: Int = 0
     private(set) var threeSpadeCount: Int = 0
+
+    // XP event tracking
+    private(set) var humanCumulativePoints: Int = 0
+    private(set) var humanMillionaireRounds: Int = 0
+    private(set) var wasShutOut: Bool = false
+    private(set) var comebackRoundsCount: Int = 0
+
     private var countedRounds: Set<Int> = []
+    // Title the human carried INTO the current round (nil = first round, no prior title).
+    private var roundStartTitle: Title? = nil
 
     // MARK: - Inter-round Results
 
@@ -153,10 +163,29 @@ final class GameController {
                 if !countedRounds.contains(state.round) {
                     countedRounds.insert(state.round)
                     let humanTitle = state.players.first(where: { $0.id == humanPlayerID })?.currentTitle
+
+                    // Accumulate round points for XP bracket calculation.
+                    humanCumulativePoints += roundPoints(for: humanTitle)
+
+                    if humanTitle == .millionaire {
+                        humanMillionaireRounds += 1
+                    }
+
+                    // Comeback: started the round as Beggar, finished Millionaire or Rich.
+                    if roundStartTitle == .beggar && (humanTitle == .millionaire || humanTitle == .rich) {
+                        comebackRoundsCount += 1
+                    }
+
                     if humanTitle == .millionaire || humanTitle == .rich {
                         roundsWon += 1
                     }
+<<<<<<< feat/leveling-system
+
+                    // The title earned this round becomes the start title for the next.
+                    roundStartTitle = humanTitle
+=======
                     recordRoundResult()
+>>>>>>> main
                 }
                 return  // Always pause; user advances via inter-round CTA
 
@@ -170,6 +199,29 @@ final class GameController {
         }
     }
 
+<<<<<<< feat/leveling-system
+    var isGameOver: Bool {
+        state.phase == .roundEnded && state.round >= maxRounds
+    }
+
+    /// Players sorted by total engine score earned across the match, descending.
+    var finalStandings: [(player: Player, xp: Int)] {
+        state.players
+            .map { ($0, state.scoresByPlayer[$0.id] ?? 0) }
+            .sorted { $0.1 > $1.1 }
+    }
+
+    // MARK: - Private helpers
+
+    /// Maps a round-end title to the inter-round point value used for XP bracket lookup.
+    private func roundPoints(for title: Title?) -> Int {
+        switch title {
+        case .millionaire: return 30
+        case .rich:        return 20
+        case .poor, .commoner: return 10
+        case .beggar, nil: return 0
+        }
+=======
     /// True when the round that just ended is the final round of the game.
     var isLastRound: Bool {
         state.phase == .roundEnded && state.round >= maxRounds
@@ -200,12 +252,14 @@ final class GameController {
         pendingRoundResult = nil
         state = state.startNextRound(seed: UInt64.random(in: .min ... .max))
         Task { await resolveAITurnsIfNeeded() }
+>>>>>>> main
     }
 
     /// Applies a move and detects gameplay events worth surfacing to the UI.
     /// UI event counters fire for any player (so banners appear regardless of who acted).
     /// Stat counters (for persistence) only increment for the human player.
     private func applyMove(_ move: Move) throws {
+        let priorHumanHandCount = humanHand.count
         let priorTop = state.currentTrick.last
         let priorRevolution = state.isRevolutionActive
         state = try state.apply(move)
@@ -224,35 +278,35 @@ final class GameController {
             if isReversal { reversalEventCounter &+= 1 }
             if isEightStop { eightStopEventCounter &+= 1 }
 
-            // Stats only track the human
             if isHumanMove {
                 cardsPlayed += cards.count
                 jokerPlayCount += cards.filter { $0.isJoker }.count
                 if isReversal { threeSpadeCount += 1 }
                 if isEightStop { eightStopCount += 1 }
+
+                // Shutout: human just emptied their hand while others have 3+ cards remaining.
+                if priorHumanHandCount > 0 && humanHand.isEmpty && !wasShutOut {
+                    let otherMin = state.players
+                        .filter { $0.id != humanPlayerID && $0.currentTitle == nil }
+                        .map { $0.hand.count }
+                        .min() ?? 0
+                    if otherMin >= 3 {
+                        wasShutOut = true
+                    }
+                }
             }
         }
 
         if state.isRevolutionActive != priorRevolution {
             revolutionEventCounter &+= 1
-            // Only credit the revolution to the human if they triggered it
-            if state.isRevolutionActive,
-               case .play(_, let byPlayerID) = move,
-               byPlayerID == humanPlayerID {
-                revolutionCount += 1
+            if case .play(_, let byPlayerID) = move, byPlayerID == humanPlayerID {
+                if state.isRevolutionActive {
+                    revolutionCount += 1
+                } else {
+                    counterRevolutionCount += 1
+                }
             }
         }
-    }
-
-    var isGameOver: Bool {
-        state.phase == .roundEnded && state.round >= maxRounds
-    }
-
-    /// Players sorted by total XP earned across the match, descending.
-    var finalStandings: [(player: Player, xp: Int)] {
-        state.players
-            .map { ($0, state.scoresByPlayer[$0.id] ?? 0) }
-            .sorted { $0.1 > $1.1 }
     }
 
     private func applyNextAutoTrade(_ state: GameState) -> GameState? {
