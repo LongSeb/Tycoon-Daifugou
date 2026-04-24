@@ -4,8 +4,10 @@ import SwiftUI
 
 struct HomeViewState {
     let totalGamesWon: Int
-    let lastGame: LastGameData
+    let lastGame: LastGameData?
     let recentGames: [RecentGameRowData]
+
+    static let empty = HomeViewState(totalGamesWon: 0, lastGame: nil, recentGames: [])
 }
 
 struct LastGameData {
@@ -36,8 +38,10 @@ struct HomeView: View {
                     topBar
                     winsDisplay
                     playCard
-                    lastGameCard
-                    recentGamesSection
+                    lastGameSection
+                    if !state.recentGames.isEmpty {
+                        recentGamesSection
+                    }
                 }
                 .padding(.bottom, 100)
             }
@@ -129,12 +133,47 @@ struct HomeView: View {
         .padding(.bottom, 20)
     }
 
-    // MARK: - Last Game Card
+    // MARK: - Last Game Section
 
-    private var lastGameCard: some View {
-        let game = state.lastGame
+    @ViewBuilder
+    private var lastGameSection: some View {
+        if let game = state.lastGame {
+            lastGameCard(game: game)
+        } else {
+            emptyGamesCard
+        }
+    }
 
-        return VStack(alignment: .leading, spacing: 0) {
+    private var emptyGamesCard: some View {
+        VStack(spacing: 12) {
+            Text("🎴")
+                .font(.system(size: 32))
+
+            Text("No games yet")
+                .font(.cardTitle)
+                .foregroundStyle(Color.textPrimary)
+                .tracking(-0.4)
+
+            Text("Tap Classic above to play your first!")
+                .font(.tycoonCaption)
+                .foregroundStyle(Color.textTertiary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+        .padding(.horizontal, 24)
+        .background(Color.white.opacity(0.03))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(.horizontal, 24)
+        .padding(.bottom, 24)
+    }
+
+    private func lastGameCard(game: LastGameData) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("LAST GAME")
                     .font(.tycoonCaption)

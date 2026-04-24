@@ -4,6 +4,7 @@ import TycoonDaifugouKit
 struct RootView: View {
     @State private var coordinator = NavigationCoordinator()
     @State private var selectedTab: AppTab = .home
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         @Bindable var coordinator = coordinator
@@ -24,6 +25,11 @@ struct RootView: View {
         } message: {
             Text("Progress will be lost.")
         }
+        .onAppear {
+            if coordinator.store == nil {
+                coordinator.store = GameRecordStore(context: modelContext)
+            }
+        }
     }
 
     private var tabRoot: some View {
@@ -32,12 +38,16 @@ struct RootView: View {
                 switch selectedTab {
                 case .home:
                     HomeView(
-                        state: .preview,
+                        state: coordinator.store?.homeViewState ?? .empty,
                         onPlayTapped: { coordinator.startNewGame() },
                         onSettingsTapped: { coordinator.showSettings() }
                     )
                 case .profile:
-                    ProfileView(profile: .preview)
+                    if let profileData = coordinator.store?.profileData {
+                        ProfileView(profile: profileData)
+                    } else {
+                        ProfileView(profile: .preview)
+                    }
                 }
             }
 

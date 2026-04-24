@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 import TycoonDaifugouKit
 
@@ -9,6 +10,7 @@ final class GameController {
     let humanPlayerID: PlayerID
     private let opponents: [PlayerID: any Opponent]
     let maxRounds: Int
+
     /// Bumped each time a play causes a 3-Spade Reversal. Views observe this to
     /// trigger a brief on-screen highlight.
     private(set) var reversalEventCounter: Int = 0
@@ -16,6 +18,35 @@ final class GameController {
     private(set) var revolutionEventCounter: Int = 0
     /// Bumped each time a play triggers an 8-Stop.
     private(set) var eightStopEventCounter: Int = 0
+
+    // MARK: - Game Tracking
+
+    private let startTime = Date()
+    private(set) var cardsPlayed: Int = 0
+    private(set) var roundsWon: Int = 0
+    private(set) var revolutionCount: Int = 0
+    private(set) var eightStopCount: Int = 0
+    private(set) var jokerPlayCount: Int = 0
+    private(set) var threeSpadeCount: Int = 0
+    private var countedRounds: Set<Int> = []
+
+    var gameDuration: TimeInterval { Date().timeIntervalSince(startTime) }
+
+    var gameHighlight: String {
+        if threeSpadeCount > 0 {
+            return threeSpadeCount == 1 ? "3♠ Reversal" : "\(threeSpadeCount)× 3♠ Reversals"
+        }
+        if revolutionCount > 0 {
+            return revolutionCount == 1 ? "Revolution!" : "\(revolutionCount) Revolutions"
+        }
+        if eightStopCount > 0 {
+            return eightStopCount == 1 ? "8-Stop" : "\(eightStopCount) 8-Stops"
+        }
+        if jokerPlayCount > 0 {
+            return jokerPlayCount == 1 ? "Joker played" : "\(jokerPlayCount) Jokers played"
+        }
+        return ""
+    }
 
     init(
         players: [Player],
@@ -96,6 +127,13 @@ final class GameController {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
 
             case .roundEnded:
+                if !countedRounds.contains(state.round) {
+                    countedRounds.insert(state.round)
+                    let humanTitle = state.players.first(where: { $0.id == humanPlayerID })?.currentTitle
+                    if humanTitle == .millionaire || humanTitle == .rich {
+                        roundsWon += 1
+                    }
+                }
                 guard state.round < maxRounds else { return }
                 state = state.startNextRound(seed: UInt64.random(in: .min ... .max))
 
@@ -110,26 +148,44 @@ final class GameController {
     }
 
     /// Applies a move and detects gameplay events worth surfacing to the UI.
-    /// A 3-Spade Reversal is detected as: the move was the 3♠ played as a single,
-    /// the prior trick top was a solo Joker, and the trick is empty afterward.
+    /// UI event counters fire for any player (so banners appear regardless of who acted).
+    /// Stat counters (for persistence) only increment for the human player.
     private func applyMove(_ move: Move) throws {
         let priorTop = state.currentTrick.last
         let priorRevolution = state.isRevolutionActive
         state = try state.apply(move)
-        if case .play(let cards, _) = move,
-           cards == [.regular(.three, .spades)],
-           priorTop?.isSoloJoker == true,
-           state.currentTrick.isEmpty {
-            reversalEventCounter &+= 1
+
+        if case .play(let cards, let byPlayerID) = move {
+            let isHumanMove = byPlayerID == humanPlayerID
+
+            let isReversal = cards == [.regular(.three, .spades)]
+                && priorTop?.isSoloJoker == true
+                && state.currentTrick.isEmpty
+
+            let isEightStop = state.ruleSet.eightStop
+                && (try? Hand(cards: cards))?.rank == .eight
+
+            // UI banners fire for all players
+            if isReversal { reversalEventCounter &+= 1 }
+            if isEightStop { eightStopEventCounter &+= 1 }
+
+            // Stats only track the human
+            if isHumanMove {
+                cardsPlayed += cards.count
+                jokerPlayCount += cards.filter { $0.isJoker }.count
+                if isReversal { threeSpadeCount += 1 }
+                if isEightStop { eightStopCount += 1 }
+            }
         }
+
         if state.isRevolutionActive != priorRevolution {
             revolutionEventCounter &+= 1
-        }
-        if case .play(let cards, _) = move,
-           state.ruleSet.eightStop,
-           let hand = try? Hand(cards: cards),
-           hand.rank == .eight {
-            eightStopEventCounter &+= 1
+            // Only credit the revolution to the human if they triggered it
+            if state.isRevolutionActive,
+               case .play(_, let byPlayerID) = move,
+               byPlayerID == humanPlayerID {
+                revolutionCount += 1
+            }
         }
     }
 

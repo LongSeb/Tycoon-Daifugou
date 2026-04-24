@@ -1,10 +1,3 @@
-//
-//  TycoonDaifugouApp.swift
-//  TycoonDaifugou
-//
-//  Created by Sebi Torres on 4/18/26.
-//
-
 import SwiftUI
 import SwiftData
 import TycoonDaifugouKit
@@ -13,7 +6,9 @@ import TycoonDaifugouKit
 struct TycoonDaifugouApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            GameRecord.self,
+            OpponentRecord.self,
+            PlayerProfile.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
