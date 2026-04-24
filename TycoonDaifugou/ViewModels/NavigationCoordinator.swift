@@ -15,6 +15,7 @@ final class NavigationCoordinator {
     private(set) var gameController: GameController?
     private(set) var lastResult: GameResultData?
     private(set) var currentRuleSet: RuleSet = .baseOnly
+    var store: GameRecordStore?
 
     var showingQuitConfirm = false
 
@@ -70,7 +71,9 @@ final class NavigationCoordinator {
     }
 
     func showResults(for controller: GameController) {
-        lastResult = Self.buildResult(from: controller)
+        let result = Self.buildResult(from: controller, profile: store?.profile)
+        lastResult = result
+        store?.save(controller: controller, result: result, ruleSet: currentRuleSet)
         path.append(.results)
     }
 
@@ -82,7 +85,7 @@ final class NavigationCoordinator {
 
     // MARK: - Result mapping
 
-    private static func buildResult(from controller: GameController) -> GameResultData {
+    private static func buildResult(from controller: GameController, profile: PlayerProfile?) -> GameResultData {
         let state = controller.state
         let humanID = controller.humanPlayerID
         let standings = controller.finalStandings
@@ -93,7 +96,7 @@ final class NavigationCoordinator {
             let isHuman = entry.player.id == humanID
             let emoji: String
             if isHuman {
-                emoji = "😎"
+                emoji = profile?.emoji ?? "😎"
             } else {
                 emoji = opponentEmojis[oppIndex % opponentEmojis.count]
                 oppIndex += 1
@@ -108,8 +111,16 @@ final class NavigationCoordinator {
         }
 
         let humanXP = state.scoresByPlayer[humanID] ?? 0
+        let xpBefore = profile?.totalXP ?? 0
+        let xpAfter = xpBefore + humanXP
+        let level = LevelCalculator.level(for: xpAfter)
+        let levelStart = LevelCalculator.levelStartXP(for: level)
+        let xpForNext = LevelCalculator.xpForNextLevel(for: level)
+
         let highlight: String
-        if let title = humanTitle {
+        if !controller.gameHighlight.isEmpty {
+            highlight = controller.gameHighlight
+        } else if let title = humanTitle {
             highlight = "\(state.round)-round match · \(title.displayName) finish"
         } else {
             highlight = "\(state.round)-round match complete"
@@ -126,11 +137,11 @@ final class NavigationCoordinator {
             highlight: highlight,
             players: players,
             xpGained: humanXP,
-            xpBefore: 0,
-            xpAfter: humanXP,
-            levelStartXP: 0,
-            xpForNextLevel: max(humanXP + 1, 10),
-            currentLevel: 1,
+            xpBefore: xpBefore,
+            xpAfter: xpAfter,
+            levelStartXP: levelStart,
+            xpForNextLevel: xpForNext,
+            currentLevel: level,
             xpBreakdown: breakdown
         )
     }
