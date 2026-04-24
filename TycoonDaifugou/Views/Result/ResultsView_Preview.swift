@@ -25,6 +25,7 @@ extension GameResultData {
             XPBreakdownItem(label: "Millionaire finish", amount: 200),
             XPBreakdownItem(label: "Revolution",         amount: 60),
             XPBreakdownItem(label: "3-round sweep",      amount: 40),
-        ]
+        ],
+        roundPointsTotal: 80
     )
 }

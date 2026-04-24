@@ -30,6 +30,15 @@ final class GameController {
     private(set) var threeSpadeCount: Int = 0
     private var countedRounds: Set<Int> = []
 
+    // MARK: - Inter-round Results
+
+    /// Set when a round ends; nil'd when the user advances past the inter-round overlay.
+    private(set) var pendingRoundResult: RoundResult? = nil
+
+    private var roundHistory: [RoundResult] = []
+    private var cumulativePoints: [PlayerID: Int] = [:]
+    private let playerEmojis: [PlayerID: String]
+
     var gameDuration: TimeInterval { Date().timeIntervalSince(startTime) }
 
     var gameHighlight: String {
@@ -60,6 +69,19 @@ final class GameController {
         self.humanPlayerID = humanPlayerID
         self.opponents = opponents
         self.maxRounds = maxRounds
+
+        let aiEmojis = ["🎩", "😏", "😤", "🦊", "🐻", "🦁", "🐼"]
+        var emojiIdx = 0
+        var emojiMap: [PlayerID: String] = [:]
+        for player in players {
+            if player.id == humanPlayerID {
+                emojiMap[player.id] = "😎"
+            } else {
+                emojiMap[player.id] = aiEmojis[emojiIdx % aiEmojis.count]
+                emojiIdx += 1
+            }
+        }
+        self.playerEmojis = emojiMap
     }
 
     var humanHand: [Card] {
@@ -113,9 +135,10 @@ final class GameController {
         try applyMove(.pass(by: humanPlayerID))
     }
 
-    /// Drives the game forward until the human has something to do (or the final round ends).
-    /// Runs AI plays, auto-advances `.roundEnded` into the next round, and auto-resolves
-    /// the trading phase by giving strongest/weakest cards per the engine's required direction.
+    /// Drives the game forward until the human has something to do (or a round ends).
+    /// Runs AI plays, auto-resolves the trading phase, and records inter-round results
+    /// when a round ends. The loop always pauses at `.roundEnded` — the user must
+    /// advance via the inter-round screen CTA.
     func resolveAITurnsIfNeeded() async {
         while true {
             switch state.phase {
@@ -133,9 +156,9 @@ final class GameController {
                     if humanTitle == .millionaire || humanTitle == .rich {
                         roundsWon += 1
                     }
+                    recordRoundResult()
                 }
-                guard state.round < maxRounds else { return }
-                state = state.startNextRound(seed: UInt64.random(in: .min ... .max))
+                return  // Always pause; user advances via inter-round CTA
 
             case .trading:
                 guard let next = applyNextAutoTrade(state) else { return }
@@ -145,6 +168,38 @@ final class GameController {
                 return
             }
         }
+    }
+
+    /// True when the round that just ended is the final round of the game.
+    var isLastRound: Bool {
+        state.phase == .roundEnded && state.round >= maxRounds
+    }
+
+    /// Running total of round-scoring points earned by the human player.
+    var humanRoundPointsTotal: Int {
+        cumulativePoints[humanPlayerID] ?? 0
+    }
+
+    /// Highest round-scoring points earned by any single opponent across all rounds played.
+    var opponentBestPoints: Int {
+        state.players
+            .filter { $0.id != humanPlayerID }
+            .compactMap { cumulativePoints[$0.id] }
+            .max() ?? 0
+    }
+
+    /// Clears the inter-round overlay. Call before navigating to final results or starting the next round.
+    func clearRoundResult() {
+        pendingRoundResult = nil
+    }
+
+    /// Starts the next round and resumes AI resolution.
+    /// No-op if this is the last round (the CTA routes to final results instead).
+    func continueToNextRound() {
+        guard !isLastRound else { return }
+        pendingRoundResult = nil
+        state = state.startNextRound(seed: UInt64.random(in: .min ... .max))
+        Task { await resolveAITurnsIfNeeded() }
     }
 
     /// Applies a move and detects gameplay events worth surfacing to the UI.
@@ -216,5 +271,27 @@ final class GameController {
         case .joker:             return .max
         case .regular(let r, _): return r.rawValue
         }
+    }
+
+    private func recordRoundResult() {
+        var playerResults: [PlayerRoundResult] = []
+        for player in state.players {
+            guard let title = player.currentTitle else { continue }
+            let points = roundPoints(for: title)
+            cumulativePoints[player.id, default: 0] += points
+            playerResults.append(PlayerRoundResult(
+                playerID: player.id,
+                name: player.id == humanPlayerID ? "You" : player.displayName,
+                emoji: playerEmojis[player.id] ?? "🃏",
+                isHuman: player.id == humanPlayerID,
+                title: title,
+                pointsEarned: points,
+                cumulativePoints: cumulativePoints[player.id] ?? 0
+            ))
+        }
+        playerResults.sort { $0.cumulativePoints > $1.cumulativePoints }
+        let result = RoundResult(roundNumber: state.round, playerResults: playerResults)
+        roundHistory.append(result)
+        pendingRoundResult = result
     }
 }

@@ -27,4 +27,5 @@ struct GameResultData {
     let xpForNextLevel: Int
     let currentLevel: Int
     let xpBreakdown: [XPBreakdownItem]
+    let roundPointsTotal: Int
 }
