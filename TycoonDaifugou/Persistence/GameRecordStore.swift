@@ -45,7 +45,7 @@ final class GameRecordStore {
 
         context.insert(record)
         profile.totalXP += result.xpGained
-        profile.currentLevel = LevelCalculator.level(for: profile.totalXP)
+        profile.currentLevel = LevelCalculator.level(forTotalXP: profile.totalXP)
 
         try? context.save()
         records = Self.fetchAllRecords(context: context)
@@ -69,8 +69,10 @@ final class GameRecordStore {
 
         let totalRevolutions = records.reduce(0) { $0 + $1.revolutionCount }
         let currentLevel = profile.currentLevel
-        let levelStart = LevelCalculator.levelStartXP(for: currentLevel)
-        let xpForNext = LevelCalculator.xpForNextLevel(for: currentLevel)
+        let levelStart = LevelCalculator.cumulativeXP(forLevel: currentLevel)
+        let xpForNext = currentLevel < LevelCalculator.maxLevel
+            ? LevelCalculator.cumulativeXP(forLevel: currentLevel + 1)
+            : profile.totalXP
 
         let rankColors: [String: Color] = [
             "Millionaire": .cardBlush,

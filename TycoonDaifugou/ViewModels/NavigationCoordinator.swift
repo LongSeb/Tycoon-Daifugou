@@ -110,12 +110,27 @@ final class NavigationCoordinator {
             )
         }
 
-        let humanXP = state.scoresByPlayer[humanID] ?? 0
+        // XP is now determined by cumulative round-points bracket + bonus events.
+        let isSweep = controller.humanMillionaireRounds >= controller.maxRounds
+            && controller.maxRounds == 3
+        let xpResult = XPRewardCalculator.compute(
+            cumulativePoints: controller.humanCumulativePoints,
+            revolutionsTriggered: controller.revolutionCount,
+            counterRevolutionsTriggered: controller.counterRevolutionCount,
+            jokersPlayed: controller.jokerPlayCount,
+            wasThreeRoundSweep: isSweep,
+            wasShutOut: controller.wasShutOut,
+            comebackRounds: controller.comebackRoundsCount
+        )
+        let humanXP = xpResult.totalXP
+
         let xpBefore = profile?.totalXP ?? 0
         let xpAfter = xpBefore + humanXP
-        let level = LevelCalculator.level(for: xpAfter)
-        let levelStart = LevelCalculator.levelStartXP(for: level)
-        let xpForNext = LevelCalculator.xpForNextLevel(for: level)
+        let level = LevelCalculator.level(forTotalXP: xpAfter)
+        let levelStart = LevelCalculator.cumulativeXP(forLevel: level)
+        let xpForNext = level < LevelCalculator.maxLevel
+            ? LevelCalculator.cumulativeXP(forLevel: level + 1)
+            : xpAfter  // at cap: "to go" = 0
 
         let highlight: String
         if !controller.gameHighlight.isEmpty {
@@ -126,9 +141,8 @@ final class NavigationCoordinator {
             highlight = "\(state.round)-round match complete"
         }
 
-        var breakdown: [XPBreakdownItem] = []
-        if let title = humanTitle, humanXP > 0 {
-            breakdown.append(XPBreakdownItem(label: "\(title.displayName) finish", amount: humanXP))
+        let breakdown = xpResult.bonuses.map { bonus in
+            XPBreakdownItem(label: bonus.label, amount: bonus.amount)
         }
 
         return GameResultData(
