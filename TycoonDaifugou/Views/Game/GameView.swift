@@ -107,10 +107,10 @@ struct GameView: View {
     private func onRevolutionEvent() {
         pendingEventOverlay = true
         controller.extendOverlayBlock(for: 3.0)
-        HapticManager.revolution()
-        SoundManager.shared.playRevolution()
         Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
+            HapticManager.revolution()
+            SoundManager.shared.playRevolution()
             showRevolutionBanner = true
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             showRevolutionBanner = false
@@ -123,6 +123,8 @@ struct GameView: View {
         controller.extendOverlayBlock(for: 3.0)
         Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
+            HapticManager.revolution()
+            SoundManager.shared.playRevolution()
             showCounterRevolutionBanner = true
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             showCounterRevolutionBanner = false
