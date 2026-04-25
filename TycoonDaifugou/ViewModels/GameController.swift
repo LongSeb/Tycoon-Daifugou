@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 import TycoonDaifugouKit
 
 /// Wraps GameState for SwiftUI consumption. Exactly one human player is supported per instance.
@@ -14,10 +15,34 @@ final class GameController {
     /// Bumped each time a play causes a 3-Spade Reversal. Views observe this to
     /// trigger a brief on-screen highlight.
     private(set) var reversalEventCounter: Int = 0
-    /// Bumped each time a play toggles the Revolution state (on or off).
+    /// Bumped each time a play triggers a Revolution (rank order inverts).
     private(set) var revolutionEventCounter: Int = 0
+    /// Bumped each time a Counter-Revolution fires (Revolution ends).
+    private(set) var counterRevolutionEventCounter: Int = 0
     /// Bumped each time a play triggers an 8-Stop.
     private(set) var eightStopEventCounter: Int = 0
+    /// Per-opponent play counter for the panel flash animation. Key is opponent PlayerID.
+    private(set) var aiPlayCountByID: [PlayerID: Int] = [:]
+    /// Bumped each time all players pass (or 8-stop/reversal fires) and the pile resets.
+    private(set) var trickResetCounter: Int = 0
+    /// The card that was on top when the pile last reset; used for the fade-out animation.
+    private(set) var trickResetLastTopCard: Card? = nil
+    /// The player who gets to lead after the last trick reset (the last unbeaten player).
+    private(set) var trickWinnerID: PlayerID? = nil
+    /// Bumped each time bankruptcy fires; views observe this to show the overlay.
+    private(set) var bankruptcyEventCounter: Int = 0
+    /// The player who just went bankrupt; set at the same time as bankruptcyEventCounter.
+    private(set) var bankruptedPlayerID: PlayerID? = nil
+    /// Set 0.4 s before the AI applies its play move so the opponent panel can reveal the card.
+    private(set) var pendingAIPlay: (playerID: PlayerID, card: Card)? = nil
+    /// Date until which the AI loop should wait before acting — extended by overlay durations.
+    private var overlayBlockUntil: Date = .distantPast
+
+    /// Extends the overlay block window. Views call this whenever a full-screen overlay appears.
+    func extendOverlayBlock(for duration: TimeInterval) {
+        let candidate = Date().addingTimeInterval(duration)
+        if candidate > overlayBlockUntil { overlayBlockUntil = candidate }
+    }
 
     // MARK: - Game Tracking (stats & XP inputs)
 
@@ -154,10 +179,30 @@ final class GameController {
             switch state.phase {
             case .playing:
                 if activePlayer.id == humanPlayerID { return }
+                // Pause while any full-screen overlay is visible (+ its buffer).
+                let waitNs = overlayBlockUntil.timeIntervalSinceNow
+                if waitNs > 0 {
+                    try? await Task.sleep(nanoseconds: UInt64(waitNs * 1_000_000_000))
+                }
                 guard let opponent = opponents[activePlayer.id] else { return }
                 let move = opponent.move(for: activePlayer.id, in: state)
-                do { try applyMove(move) } catch { return }
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                // Pre-announce play so the opponent panel can reveal the card before state updates.
+                if case .play(let cards, let byID) = move, let first = cards.first {
+                    pendingAIPlay = (playerID: byID, card: first)
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                }
+                // Wrap in withAnimation so pendingAIPlay → nil triggers the matchedGeometryEffect
+                // that flies the card from the opponent panel to the pile.
+                var moveSucceeded = false
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    do {
+                        try applyMove(move)
+                        moveSucceeded = true
+                    } catch {}
+                    pendingAIPlay = nil
+                }
+                guard moveSucceeded else { return }
+                try? await Task.sleep(nanoseconds: 600_000_000)
 
             case .roundEnded:
                 if !countedRounds.contains(state.round) {
@@ -258,6 +303,7 @@ final class GameController {
         let priorHumanHandCount = humanHand.count
         let priorTop = state.currentTrick.last
         let priorRevolution = state.isRevolutionActive
+        let priorBankruptIDs = Set(state.players.filter { $0.isBankrupt }.map { $0.id })
         state = try state.apply(move)
 
         if case .play(let cards, let byPlayerID) = move {
@@ -294,14 +340,45 @@ final class GameController {
         }
 
         if state.isRevolutionActive != priorRevolution {
-            revolutionEventCounter &+= 1
-            if case .play(_, let byPlayerID) = move, byPlayerID == humanPlayerID {
-                if state.isRevolutionActive {
+            if state.isRevolutionActive {
+                revolutionEventCounter &+= 1
+                if case .play(_, let byPlayerID) = move, byPlayerID == humanPlayerID {
                     revolutionCount += 1
-                } else {
+                }
+            } else {
+                counterRevolutionEventCounter &+= 1
+                if case .play(_, let byPlayerID) = move, byPlayerID == humanPlayerID {
                     counterRevolutionCount += 1
                 }
             }
+        }
+
+        if let topCard = priorTop?.cards.first, state.currentTrick.isEmpty {
+            trickResetCounter &+= 1
+            // For 8-stop and reversal the trick resets immediately after the trigger card
+            // is played, so the engine never holds the trigger card in currentTrick.
+            // Store the played card so the pile can display it before the event banner fires.
+            if case .play(let cards, _) = move,
+               let playedCard = cards.first,
+               let playedHand = try? Hand(cards: cards) {
+                let isEventTrigger = (state.ruleSet.eightStop && playedHand.rank == .eight)
+                    || (cards == [.regular(.three, .spades)] && priorTop?.isSoloJoker == true)
+                trickResetLastTopCard = isEventTrigger ? playedCard : topCard
+            } else {
+                trickResetLastTopCard = topCard
+            }
+            let idx = state.currentPlayerIndex
+            trickWinnerID = idx < state.players.count ? state.players[idx].id : nil
+        }
+
+        if case .play(_, let byPlayerID) = move, byPlayerID != humanPlayerID {
+            aiPlayCountByID[byPlayerID, default: 0] &+= 1
+        }
+
+        let nowBankruptIDs = Set(state.players.filter { $0.isBankrupt }.map { $0.id })
+        if let newlyBankruptID = nowBankruptIDs.subtracting(priorBankruptIDs).first {
+            bankruptcyEventCounter &+= 1
+            bankruptedPlayerID = newlyBankruptID
         }
     }
 

@@ -5,6 +5,9 @@ struct ResultsView: View {
     var onPlayAgain: () -> Void = {}
     var onMainMenu: () -> Void = {}
 
+    @State private var heroVisible = false
+    @State private var rowsVisible = false
+
     var body: some View {
         ZStack {
             Color.tycoonBlack.ignoresSafeArea()
@@ -21,6 +24,14 @@ struct ResultsView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.65)) {
+                heroVisible = true
+            }
+            withAnimation {
+                rowsVisible = true
+            }
+        }
     }
 
     // MARK: Top Bar
@@ -60,6 +71,9 @@ struct ResultsView: View {
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .center)
+                .scaleEffect(heroVisible ? 1.0 : 0.5)
+                .opacity(heroVisible ? 1.0 : 0)
+                .animation(.spring(response: 0.5, dampingFraction: 0.65), value: heroVisible)
 
             HStack(spacing: 4) {
                 Text("Game Score:")
@@ -115,6 +129,9 @@ struct ResultsView: View {
 
             ForEach(Array(result.players.enumerated()), id: \.element.id) { index, player in
                 ResultPlayerRow(position: index + 1, player: player)
+                    .opacity(rowsVisible ? 1 : 0)
+                    .offset(y: rowsVisible ? 0 : 12)
+                    .animation(.easeOut(duration: 0.35).delay(Double(index) * 0.1), value: rowsVisible)
                 if index < result.players.count - 1 {
                     Rectangle()
                         .fill(Color.white.opacity(0.04))
