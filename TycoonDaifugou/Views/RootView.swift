@@ -41,7 +41,7 @@ struct RootView: View {
                         state: coordinator.store?.homeViewState ?? .empty,
                         onPlayTapped: {
                             coordinator.startNewGame(
-                                ruleSet: .baseOnly,
+                                ruleSet: .allRules,
                                 opponentCount: 3,
                                 roundsPerGame: 3
                             )
