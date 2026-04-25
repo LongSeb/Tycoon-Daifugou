@@ -44,7 +44,7 @@ struct PlayingCardView: View {
 
             if isSelected {
                 Circle()
-                    .fill(Color.cardSuitRed)
+                    .fill(Color.cardSelectAccent)
                     .frame(width: selectionDotSize, height: selectionDotSize)
                     .offset(y: selectionDotOffset)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -78,7 +78,7 @@ struct PlayingCardView: View {
     private var fillColor: Color {
         switch style {
         case .hand:
-            return isSelected ? .cardBlush : .cardCream
+            return isSelected ? .cardSelectFill : .cardCream
         case .pile:
             return .cardCream
         }
@@ -88,7 +88,7 @@ struct PlayingCardView: View {
         switch style {
         case .hand:
             return isSelected
-                ? Color.cardSuitRed.opacity(0.55)
+                ? Color.cardSelectAccent.opacity(0.7)
                 : Color.black.opacity(0.08)
         case .pile:
             return Color.black.opacity(0.08)

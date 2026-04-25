@@ -11,7 +11,7 @@ extension Color {
 
     // Pastel accents
     static let cardCream = Color(ds: 0xFFF4E6)
-    static let cardBlush = Color(ds: 0xFFD4E5)
+    static let cardBlush = Color(ds: 0xCFFFF7)
     static let cardLavender = Color(ds: 0xE5D4FF)
     static let cardMint = Color(ds: 0xD4FFE5)
 
@@ -19,8 +19,13 @@ extension Color {
     static let cardSuitRed = Color(ds: 0xEB3D42)
     static let cardSuitBlack = Color(ds: 0x1A1A1A)
 
+    // Selection accent — card outline and indicator dot when a card is selected
+    static let cardSelectAccent = Color(ds: 0x85CCC0)
+    // Selection fill — background of a card when selected in hand
+    static let cardSelectFill = Color(ds: 0xD6FFF8)
+
     // Canonical aliases — map new names onto existing tokens with matching values
-    static let tycoonPink = cardBlush
+    static let tycoonMint = cardBlush
     static let tycoonLav = cardLavender
     static let tycoonCream = cardCream
 

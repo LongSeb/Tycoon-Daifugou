@@ -7,10 +7,10 @@ import SwiftUI
 extension GameResultData {
     static let sample = GameResultData(
         roundsPlayed: 3,
-        playerFinishRank: "Millionaire",
+        playerFinishRank: "Tycoon",
         highlight: "Revolution in Round 2 · 3-round sweep",
         players: [
-            ResultPlayer(name: "You",  emoji: "😎", rank: "Millionaire", xpGained: 300, totalScore: 90, isPlayer: true),
+            ResultPlayer(name: "You",  emoji: "😎", rank: "Tycoon", xpGained: 300, totalScore: 90, isPlayer: true),
             ResultPlayer(name: "Kai",  emoji: "😏", rank: "Rich",        xpGained: 200, totalScore: 60, isPlayer: false),
             ResultPlayer(name: "Ryo",  emoji: "🎩", rank: "Poor",        xpGained: 75,  totalScore: 30, isPlayer: false),
             ResultPlayer(name: "Hana", emoji: "😤", rank: "Beggar",      xpGained: 25,  totalScore: 0,  isPlayer: false),

@@ -14,7 +14,7 @@ struct OpponentPanel: View {
 
     private var cardsLeft: Int { player.isBankrupt ? 0 : player.hand.count }
     private var rankLabel: String {
-        player.isBankrupt ? "BANKRUPT" : (player.displayTitle?.displayName.uppercased() ?? "—")
+        player.isBankrupt ? "BANKRUPT" : (player.displayTitle?.displayName.uppercased() ?? "COMMONER")
     }
 
     var body: some View {
@@ -74,7 +74,7 @@ struct OpponentPanel: View {
         .overlay(
             Rectangle()
                 .strokeBorder(
-                    Color.tycoonPink.opacity(isFlashing ? 0.7 : 0),
+                    Color.tycoonMint.opacity(isFlashing ? 0.7 : 0),
                     lineWidth: 1.5
                 )
                 .animation(.easeOut(duration: 0.35), value: isFlashing)

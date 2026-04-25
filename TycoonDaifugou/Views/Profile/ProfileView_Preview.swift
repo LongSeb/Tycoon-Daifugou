@@ -27,7 +27,7 @@ extension ProfileData {
             UnlockItem(name: "Prestige badge",  description: "Cream star · profile display",      level: 16, icon: .badge),
         ],
         rankStats: [
-            RankStat(rank: "Millionaire", count: 47, fraction: 0.37, color: .cardBlush),
+            RankStat(rank: "Tycoon", count: 47, fraction: 0.37, color: .cardBlush),
             RankStat(rank: "Rich",        count: 31, fraction: 0.24, color: .cardLavender),
             RankStat(rank: "Poor",        count: 29, fraction: 0.23, color: .white.opacity(0.25)),
             RankStat(rank: "Beggar",      count: 21, fraction: 0.16, color: .white.opacity(0.15)),

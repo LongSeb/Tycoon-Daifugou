@@ -52,7 +52,11 @@ struct GameView: View {
                 counterRevolutionOverlay
                 eventPills
             }
-            .allowsHitTesting(controller.pendingRoundResult == nil && !isAnyOverlayShowing)
+            .allowsHitTesting(
+                controller.pendingRoundResult == nil
+                    && controller.pendingExchange == nil
+                    && !isAnyOverlayShowing
+            )
             .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showRules)
             .preferredColorScheme(.dark)
             .task { await controller.resolveAITurnsIfNeeded() }
@@ -67,6 +71,17 @@ struct GameView: View {
                 }
                 .transition(.opacity)
                 .animation(.easeInOut(duration: 0.25), value: controller.pendingRoundResult != nil)
+            }
+
+            if let exchange = controller.pendingExchange {
+                CardExchangeView(
+                    exchange: exchange,
+                    humanHand: controller.humanHand
+                ) { cards in
+                    controller.confirmExchange(selectedCards: cards)
+                }
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.25), value: controller.pendingExchange != nil)
             }
         }
         .onChange(of: controller.reversalEventCounter) { _, _ in onReversalEvent() }
@@ -137,7 +152,7 @@ struct GameView: View {
            let player = controller.state.players.first(where: { $0.id == id }) {
             name = id == controller.humanPlayerID ? "You" : player.displayName
         } else {
-            name = "Millionaire"
+            name = "Tycoon"
         }
         bankruptcyNameText = "\(name) bankrupt"
         controller.extendOverlayBlock(for: 1.8)
@@ -195,14 +210,14 @@ struct GameView: View {
                 .opacity(showRevolutionBanner ? 0.88 : 0)
                 .ignoresSafeArea()
                 .animation(.easeOut(duration: 0.25), value: showRevolutionBanner)
-            Color.tycoonPink
+            Color.tycoonMint
                 .opacity(showRevolutionBanner ? 0.10 : 0)
                 .ignoresSafeArea()
                 .animation(.easeOut(duration: 0.25), value: showRevolutionBanner)
             VStack(spacing: 0) {
                 Spacer()
                 Rectangle()
-                    .fill(Color.tycoonPink)
+                    .fill(Color.tycoonMint)
                     .frame(height: 1.5)
                     .scaleEffect(x: showRevolutionBanner ? 1 : 0, anchor: .center)
                     .animation(.easeOut(duration: 0.4), value: showRevolutionBanner)
@@ -210,12 +225,12 @@ struct GameView: View {
                     Text("REVOLUTION")
                         .font(.custom("Fraunces-9ptBlackItalic", size: 68))
                         .foregroundStyle(Color.white)
-                        .shadow(color: Color.tycoonPink, radius: 40, x: 0, y: 0)
+                        .shadow(color: Color.tycoonMint, radius: 40, x: 0, y: 0)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                     Text("RANK ORDER INVERTED")
                         .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
-                        .foregroundStyle(Color.tycoonPink.opacity(0.85))
+                        .foregroundStyle(Color.tycoonMint.opacity(0.85))
                         .tracking(4)
                 }
                 .padding(.vertical, 22)
@@ -223,7 +238,7 @@ struct GameView: View {
                 .opacity(showRevolutionBanner ? 1 : 0)
                 .animation(.spring(response: 0.45, dampingFraction: 0.7), value: showRevolutionBanner)
                 Rectangle()
-                    .fill(Color.tycoonPink)
+                    .fill(Color.tycoonMint)
                     .frame(height: 1.5)
                     .scaleEffect(x: showRevolutionBanner ? 1 : 0, anchor: .center)
                     .animation(.easeOut(duration: 0.4), value: showRevolutionBanner)
@@ -591,7 +606,7 @@ struct GameView: View {
                     .font(.custom("InstrumentSans-Regular", size: 9).weight(.semibold))
                     .foregroundStyle(Color.cardBlush.opacity(0.6))
                     .tracking(1)
-                Text(isBankrupt ? "Bankrupt" : (controller.humanPlayer?.displayTitle?.displayName ?? "—"))
+                Text(isBankrupt ? "Bankrupt" : (controller.humanPlayer?.displayTitle?.displayName ?? "Commoner"))
                     .font(.custom("InstrumentSans-Regular", size: 15).weight(.semibold))
                     .foregroundStyle(isBankrupt ? Color.cardCream.opacity(0.8) : Color.textPrimary)
             }
