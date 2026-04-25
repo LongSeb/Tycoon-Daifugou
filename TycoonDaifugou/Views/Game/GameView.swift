@@ -42,11 +42,8 @@ struct GameView: View {
                     actionButtons
                 }
 
-                if showRules {
-                    RulesDrawer(isPresented: $showRules)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .zIndex(10)
-                }
+                RulesDrawer(isPresented: $showRules)
+                    .zIndex(10)
 
                 revolutionOverlay
                 counterRevolutionOverlay

@@ -3,6 +3,7 @@ import SwiftUI
 struct ProfileView: View {
     let profile: ProfileData
     var store: GameRecordStore?
+    var onSettingsTapped: () -> Void = {}
 
     @State private var showingEditor = false
 
@@ -45,8 +46,8 @@ struct ProfileView: View {
 
             Spacer()
 
-            Button(action: {}) {
-                Image(systemName: "slider.horizontal.3")
+            Button(action: onSettingsTapped) {
+                Image(systemName: "gearshape")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Color.textTertiary)
                     .frame(width: 32, height: 32)

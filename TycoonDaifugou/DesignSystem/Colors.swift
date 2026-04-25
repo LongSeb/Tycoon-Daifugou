@@ -28,6 +28,7 @@ extension Color {
     static let tycoonMint = cardBlush
     static let tycoonLav = cardLavender
     static let tycoonCream = cardCream
+    static let tycoonPink = Color(ds: 0xFFB3C8)
 
     // Text
     static let textPrimary = Color.white

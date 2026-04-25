@@ -4,15 +4,10 @@ import TycoonDaifugouKit
 struct SettingsView: View {
     let onBack: () -> Void
 
-    @AppStorage(AppSettings.Key.ruleSetJSON) private var ruleSetJSON: String = AppSettings.encode(AppSettings.defaultRuleSet)
-    @AppStorage(AppSettings.Key.opponentCount) private var opponentCount: Int = AppSettings.defaultOpponentCount
-    @AppStorage(AppSettings.Key.roundsPerGame) private var roundsPerGame: Int = AppSettings.defaultRoundsPerGame
     @AppStorage(AppSettings.Key.soundEffectsEnabled) private var soundEffectsEnabled: Bool = true
     @AppStorage(AppSettings.Key.hapticsEnabled) private var hapticsEnabled: Bool = true
 
-    @State private var ruleSet: RuleSet = AppSettings.defaultRuleSet
     @State private var showRules = false
-    @State private var showResetConfirm = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -21,43 +16,16 @@ struct SettingsView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     topBar
-                    houseRulesCard
-                    gameCard
-                    experienceCard
-                    aboutCard
-                    resetButton
+                    settingsCard
                 }
                 .padding(.bottom, 40)
             }
 
-            if showRules {
-                RulesDrawer(isPresented: $showRules)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(10)
-            }
+            RulesDrawer(isPresented: $showRules)
+                .zIndex(10)
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showRules)
         .preferredColorScheme(.dark)
-        .onAppear {
-            ruleSet = decodedRuleSet()
-            opponentCount = max(
-                AppSettings.minOpponentCount,
-                min(AppSettings.maxOpponentCount, opponentCount)
-            )
-            roundsPerGame = max(
-                AppSettings.minRoundsPerGame,
-                min(AppSettings.maxRoundsPerGame, roundsPerGame)
-            )
-        }
-        .onChange(of: ruleSet) { _, newValue in
-            ruleSetJSON = AppSettings.encode(newValue)
-        }
-        .alert("Reset settings?", isPresented: $showResetConfirm) {
-            Button("Reset", role: .destructive) { resetToDefaults() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("House rules, opponent count, and rounds per game will return to defaults.")
-        }
     }
 
     // MARK: - Top Bar
@@ -90,249 +58,105 @@ struct SettingsView: View {
         .padding(.bottom, 20)
     }
 
-    // MARK: - House Rules
+    // MARK: - Settings Card
 
-    private var houseRulesCard: some View {
+    private var settingsCard: some View {
         VStack(spacing: 0) {
-            cardHeader(title: "HOUSE RULES", badge: nil)
-
-            VStack(spacing: 0) {
-                toggleRow(
-                    title: "Revolution",
-                    subtitle: "Four-of-a-kind inverts card strength.",
-                    isOn: binding(\.revolution)
-                )
-                divider
-                toggleRow(
-                    title: "8-Stop",
-                    subtitle: "Playing an 8 ends the current round.",
-                    isOn: binding(\.eightStop)
-                )
-                divider
-                toggleRow(
-                    title: "Jokers",
-                    subtitle: "Wild cards that beat almost anything.",
-                    isOn: jokersBinding
-                )
-
-                if ruleSet.jokers {
-                    divider
-                    jokerCountRow
-                }
-
-                divider
-                toggleRow(
-                    title: "3-Spade Reversal",
-                    subtitle: ruleSet.jokers
-                        ? "The only card that beats a Joker."
-                        : "Requires Jokers.",
-                    isOn: binding(\.threeSpadeReversal),
-                    disabled: !ruleSet.jokers
-                )
-                divider
-                toggleRow(
-                    title: "Bankruptcy",
-                    subtitle: "Lose a round as Tycoon → demoted to Beggar.",
-                    isOn: binding(\.bankruptcy)
-                )
-            }
-        }
-        .background(Color.tycoonSurface)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.tycoonBorder, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .padding(.horizontal, 16)
-        .padding(.bottom, 12)
-    }
-
-    private var jokerCountRow: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Joker count")
-                    .font(.ruleTitle)
-                    .foregroundStyle(Color.textPrimary)
-
-                Text("\(ruleSet.jokerCount) in deck")
-                    .font(.ruleCaption)
-                    .foregroundStyle(Color.textTertiary)
-            }
-
-            Spacer()
-
-            Stepper(
-                "",
-                value: Binding(
-                    get: { ruleSet.jokerCount },
-                    set: { ruleSet.jokerCount = max(1, min(2, $0)) }
-                ),
-                in: 1...2
+            toggleRow(
+                title: "Sound effects",
+                subtitle: "Card plays, revolutions, and round chimes.",
+                isOn: $soundEffectsEnabled
             )
-            .labelsHidden()
-            .tint(Color.tycoonMint)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
-    }
-
-    // MARK: - Game
-
-    private var gameCard: some View {
-        VStack(spacing: 0) {
-            cardHeader(title: "GAME", badge: nil)
-
-            VStack(spacing: 0) {
-                opponentsRow
-                divider
-                roundsRow
-            }
-        }
-        .background(Color.tycoonSurface)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.tycoonBorder, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .padding(.horizontal, 16)
-        .padding(.bottom, 12)
-    }
-
-    private var opponentsRow: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Number of opponents")
-                    .font(.ruleTitle)
-                    .foregroundStyle(Color.textPrimary)
-
-                Text("\(opponentCount + 1) players total")
-                    .font(.ruleCaption)
-                    .foregroundStyle(Color.textTertiary)
-            }
-
-            Spacer()
-
-            Text("\(opponentCount)")
-                .font(.statFigure)
-                .foregroundStyle(Color.textPrimary)
-                .frame(minWidth: 18, alignment: .trailing)
-                .padding(.trailing, 4)
-
-            Stepper(
-                "",
-                value: $opponentCount,
-                in: AppSettings.minOpponentCount...AppSettings.maxOpponentCount
+            divider
+            toggleRow(
+                title: "Haptics",
+                subtitle: "Tactile feedback on taps and game events.",
+                isOn: $hapticsEnabled
             )
-            .labelsHidden()
-            .tint(Color.tycoonMint)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
-    }
-
-    private var roundsRow: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Rounds per game")
-                    .font(.ruleTitle)
-                    .foregroundStyle(Color.textPrimary)
-
-                Text("\(roundsPerGame) round\(roundsPerGame == 1 ? "" : "s")")
-                    .font(.ruleCaption)
-                    .foregroundStyle(Color.textTertiary)
-            }
-
-            Spacer()
-
-            Text("\(roundsPerGame)")
-                .font(.statFigure)
-                .foregroundStyle(Color.textPrimary)
-                .frame(minWidth: 18, alignment: .trailing)
-                .padding(.trailing, 4)
-
-            Stepper(
-                "",
-                value: $roundsPerGame,
-                in: AppSettings.minRoundsPerGame...AppSettings.maxRoundsPerGame
-            )
-            .labelsHidden()
-            .tint(Color.tycoonMint)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
-    }
-
-    // MARK: - Experience
-
-    private var experienceCard: some View {
-        VStack(spacing: 0) {
-            cardHeader(title: "EXPERIENCE", badge: nil)
-
-            VStack(spacing: 0) {
-                toggleRow(
-                    title: "Sound effects",
-                    subtitle: "Card plays, revolutions, and round chimes.",
-                    isOn: $soundEffectsEnabled
-                )
-                divider
-                toggleRow(
-                    title: "Haptics",
-                    subtitle: "Tactile feedback on taps and game events.",
-                    isOn: $hapticsEnabled
-                )
-            }
-        }
-        .background(Color.tycoonSurface)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.tycoonBorder, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .padding(.horizontal, 16)
-        .padding(.bottom, 12)
-    }
-
-    // MARK: - About
-
-    private var aboutCard: some View {
-        VStack(spacing: 0) {
-            cardHeader(title: "ABOUT", badge: nil)
-
-            VStack(spacing: 0) {
+            divider
+            Link(destination: URL(string: "mailto:tycoon@tothecosmos.com")!) {
                 HStack {
-                    Text("Version")
-                        .font(.ruleTitle)
+                    Text("Send feedback")
+                        .font(.settingsRowTitle)
                         .foregroundStyle(Color.textPrimary)
 
                     Spacer()
 
-                    Text(appVersion)
-                        .font(.ruleCaption)
+                    Image(systemName: "envelope")
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.textTertiary)
                 }
                 .padding(.horizontal, 14)
-                .padding(.vertical, 13)
-
-                divider
-
-                Button(action: { showRules = true }) {
-                    HStack {
-                        Text("Rules reference")
-                            .font(.ruleTitle)
-                            .foregroundStyle(Color.textPrimary)
-
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color.textTertiary)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 13)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                .padding(.vertical, 16)
+                .contentShape(Rectangle())
             }
+            divider
+            Button(action: {}) {
+                HStack {
+                    Text("Share the app")
+                        .font(.settingsRowTitle)
+                        .foregroundStyle(Color.textPrimary)
+
+                    Spacer()
+
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.textTertiary)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 16)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            divider
+            Button(action: { showRules = true }) {
+                HStack {
+                    Text("Rules reference")
+                        .font(.settingsRowTitle)
+                        .foregroundStyle(Color.textPrimary)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.textTertiary)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 16)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            divider
+            Link(destination: URL(string: "https://joshzullo.com/privacy")!) {
+                HStack {
+                    Text("Privacy policy")
+                        .font(.settingsRowTitle)
+                        .foregroundStyle(Color.textPrimary)
+
+                    Spacer()
+
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.textTertiary)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 16)
+                .contentShape(Rectangle())
+            }
+            divider
+            HStack {
+                Text("Version")
+                    .font(.ruleTitle)
+                    .foregroundStyle(Color.textPrimary)
+
+                Spacer()
+
+                Text(appVersion)
+                    .font(.ruleCaption)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
         }
         .background(Color.tycoonSurface)
         .overlay(
@@ -341,33 +165,6 @@ struct SettingsView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(.horizontal, 16)
-    }
-
-    // MARK: - Reset
-
-    private var resetButton: some View {
-        Button(action: { showResetConfirm = true }) {
-            Text("Reset to defaults")
-                .font(.ruleTitle)
-                .foregroundStyle(Color.tycoonMint)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Color.tycoonSurface)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.tycoonBorder, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-    }
-
-    private func resetToDefaults() {
-        ruleSet = AppSettings.defaultRuleSet
-        opponentCount = AppSettings.defaultOpponentCount
-        roundsPerGame = AppSettings.defaultRoundsPerGame
     }
 
     // MARK: - Row components
@@ -379,13 +176,13 @@ struct SettingsView: View {
         disabled: Bool = false
     ) -> some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.ruleTitle)
+                    .font(.settingsRowTitle)
                     .foregroundStyle(disabled ? Color.textTertiary : Color.textPrimary)
 
                 Text(subtitle)
-                    .font(.ruleCaption)
+                    .font(.settingsRowSubtitle)
                     .foregroundStyle(Color.textTertiary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -399,7 +196,7 @@ struct SettingsView: View {
                 .disabled(disabled)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .padding(.vertical, 16)
         .opacity(disabled ? 0.55 : 1)
     }
 
@@ -434,39 +231,7 @@ struct SettingsView: View {
         )
     }
 
-    // MARK: - Bindings
-
-    private func binding(_ keyPath: WritableKeyPath<RuleSet, Bool>) -> Binding<Bool> {
-        Binding(
-            get: { ruleSet[keyPath: keyPath] },
-            set: { ruleSet[keyPath: keyPath] = $0 }
-        )
-    }
-
-    private var jokersBinding: Binding<Bool> {
-        Binding(
-            get: { ruleSet.jokers },
-            set: { newValue in
-                ruleSet.jokers = newValue
-                if newValue {
-                    if ruleSet.jokerCount == 0 { ruleSet.jokerCount = 1 }
-                } else {
-                    ruleSet.jokerCount = 0
-                    ruleSet.threeSpadeReversal = false
-                }
-            }
-        )
-    }
-
     // MARK: - Helpers
-
-    private func decodedRuleSet() -> RuleSet {
-        guard let data = ruleSetJSON.data(using: .utf8),
-              let decoded = try? JSONDecoder().decode(RuleSet.self, from: data) else {
-            return AppSettings.defaultRuleSet
-        }
-        return decoded
-    }
 
     private var appVersion: String {
         let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"

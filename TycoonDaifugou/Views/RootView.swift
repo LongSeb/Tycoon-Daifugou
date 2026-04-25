@@ -39,14 +39,28 @@ struct RootView: View {
                 case .home:
                     HomeView(
                         state: coordinator.store?.homeViewState ?? .empty,
-                        onPlayTapped: { coordinator.startNewGame() },
+                        onPlayTapped: {
+                            coordinator.startNewGame(
+                                ruleSet: .baseOnly,
+                                opponentCount: 3,
+                                roundsPerGame: 3
+                            )
+                        },
+                        onCustomPlayTapped: { coordinator.startNewGame() },
                         onSettingsTapped: { coordinator.showSettings() }
                     )
                 case .profile:
                     if let store = coordinator.store {
-                        ProfileView(profile: store.profileData, store: store)
+                        ProfileView(
+                            profile: store.profileData,
+                            store: store,
+                            onSettingsTapped: { coordinator.showSettings() }
+                        )
                     } else {
-                        ProfileView(profile: .preview)
+                        ProfileView(
+                            profile: .preview,
+                            onSettingsTapped: { coordinator.showSettings() }
+                        )
                     }
                 }
             }
