@@ -27,7 +27,11 @@ struct LastGameData {
 struct HomeView: View {
     let state: HomeViewState
     let onPlayTapped: () -> Void
+    var onCustomPlayTapped: () -> Void = {}
     var onSettingsTapped: () -> Void = {}
+
+    @State private var showCustomSettings = false
+    @State private var scrolledMode: GameMode? = .classic
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -37,7 +41,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     topBar
                     winsDisplay
-                    playCard
+                    gameModeSelector
                     lastGameSection
                     if !state.recentGames.isEmpty {
                         recentGamesSection
@@ -59,15 +63,6 @@ struct HomeView: View {
                 .tracking(-0.4)
 
             Spacer()
-
-            Button(action: onSettingsTapped) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.textTertiary)
-                    .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.08))
-                    .clipShape(Circle())
-            }
         }
         .padding(.horizontal, 24)
         .padding(.top, 16)
@@ -92,45 +87,52 @@ struct HomeView: View {
         .padding(.bottom, 32)
     }
 
-    // MARK: - Play Card
+    // MARK: - Game Mode Selector
 
-    private var playCard: some View {
-        Button(action: onPlayTapped) {
-            GradientCard(style: .featurePlay) {
-                ZStack(alignment: .topTrailing) {
-                    HStack(spacing: 14) {
-                        Text("👑")
-                            .font(.system(size: 26))
-                            .frame(width: 48, height: 48)
-                            .background(.white.opacity(0.65))
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+    private var gameModeSelector: some View {
+        VStack(spacing: 8) {
+            GeometryReader { geo in
+                let cardWidth = geo.size.width - 48
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        GameModeCard(
+                            mode: .classic,
+                            width: cardWidth,
+                            onTap: onPlayTapped
+                        )
+                        .id(GameMode.classic)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Classic")
-                                .font(.cardTitle)
-                                .foregroundStyle(Color.tycoonBlack)
-                                .tracking(-0.4)
-
-                            Text("3 AI opponents · 3 rounds")
-                                .font(.tycoonCaption)
-                                .foregroundStyle(Color.tycoonBlack.opacity(0.5))
-                        }
-
-                        Spacer()
+                        GameModeCard(
+                            mode: .custom,
+                            width: cardWidth,
+                            onTap: onCustomPlayTapped,
+                            onEditTapped: { showCustomSettings = true }
+                        )
+                        .id(GameMode.custom)
                     }
-                    .padding(20)
-
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(Color.tycoonBlack.opacity(0.3))
-                        .padding(20)
+                    .scrollTargetLayout()
+                    .padding(.horizontal, 24)
                 }
-                .frame(maxWidth: .infinity, minHeight: 120, alignment: .leading)
+                .scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $scrolledMode)
             }
+            .frame(height: 120)
+
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(scrolledMode == .custom ? Color.white.opacity(0.25) : Color.tycoonPink)
+                    .frame(width: 6, height: 6)
+                Circle()
+                    .fill(scrolledMode == .custom ? Color.tycoonPink : Color.white.opacity(0.25))
+                    .frame(width: 6, height: 6)
+            }
+            .animation(.easeInOut(duration: 0.2), value: scrolledMode)
         }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 24)
         .padding(.bottom, 20)
+        .sheet(isPresented: $showCustomSettings) {
+            CustomGameSettingsView()
+                .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: - Last Game Section

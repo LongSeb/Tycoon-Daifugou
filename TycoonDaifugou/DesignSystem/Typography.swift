@@ -14,6 +14,8 @@ extension Font {
     static let drawerTitle = Font.custom("Fraunces-9ptBlackItalic", size: 20, relativeTo: .headline)
     static let ruleTitle = Font.custom("InstrumentSans-Regular", size: 12, relativeTo: .caption).weight(.semibold)
     static let ruleCaption = Font.custom("InstrumentSans-Regular", size: 10, relativeTo: .caption2)
+    static let settingsRowTitle = Font.custom("InstrumentSans-Regular", size: 15, relativeTo: .body).weight(.semibold)
+    static let settingsRowSubtitle = Font.custom("InstrumentSans-Regular", size: 12, relativeTo: .caption)
     static let badgeLabel = Font.custom("Fraunces-9ptBlackItalic", size: 16, relativeTo: .callout)
     static let badgeLabelSmall = Font.custom("Fraunces-9ptBlackItalic", size: 13, relativeTo: .footnote)
     static let profileLevel = Font.custom("Fraunces-9ptBlackItalic", size: 32, relativeTo: .title)

@@ -12,7 +12,7 @@ enum AppSettings {
         static let hapticsEnabled = "settings.hapticsEnabled"
     }
 
-    static let minOpponentCount = 2
+    static let minOpponentCount = 1
     static let maxOpponentCount = 7
     static let defaultOpponentCount = 3
     static let minRoundsPerGame = 1
