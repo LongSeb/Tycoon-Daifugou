@@ -1,12 +1,12 @@
 import Foundation
 import TycoonDaifugouKit
 
-struct RoundResult {
+struct RoundResult: Equatable {
     let roundNumber: Int
     let playerResults: [PlayerRoundResult]
 }
 
-struct PlayerRoundResult {
+struct PlayerRoundResult: Equatable {
     let playerID: PlayerID
     let name: String
     let emoji: String

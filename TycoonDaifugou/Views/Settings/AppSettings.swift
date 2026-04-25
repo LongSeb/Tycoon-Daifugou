@@ -8,6 +8,8 @@ enum AppSettings {
         static let ruleSetJSON = "settings.ruleSetJSON"
         static let opponentCount = "settings.opponentCount"
         static let roundsPerGame = "settings.roundsPerGame"
+        static let soundEffectsEnabled = "settings.soundEffectsEnabled"
+        static let hapticsEnabled = "settings.hapticsEnabled"
     }
 
     static let minOpponentCount = 2

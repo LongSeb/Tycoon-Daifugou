@@ -48,206 +48,9 @@ struct GameView: View {
                         .zIndex(10)
                 }
 
-                // Revolution full-screen overlay
-                ZStack {
-                    Color.black
-                        .opacity(showRevolutionBanner ? 0.88 : 0)
-                        .ignoresSafeArea()
-                        .animation(.easeOut(duration: 0.25), value: showRevolutionBanner)
-                    Color.tycoonPink
-                        .opacity(showRevolutionBanner ? 0.10 : 0)
-                        .ignoresSafeArea()
-                        .animation(.easeOut(duration: 0.25), value: showRevolutionBanner)
-                    VStack(spacing: 0) {
-                        Spacer()
-                        Rectangle()
-                            .fill(Color.tycoonPink)
-                            .frame(height: 1.5)
-                            .scaleEffect(x: showRevolutionBanner ? 1 : 0, anchor: .center)
-                            .animation(.easeOut(duration: 0.4), value: showRevolutionBanner)
-                        VStack(spacing: 10) {
-                            Text("REVOLUTION")
-                                .font(.custom("Fraunces-9ptBlackItalic", size: 68))
-                                .foregroundStyle(Color.white)
-                                .shadow(color: Color.tycoonPink, radius: 40, x: 0, y: 0)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                            Text("RANK ORDER INVERTED")
-                                .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
-                                .foregroundStyle(Color.tycoonPink.opacity(0.85))
-                                .tracking(4)
-                        }
-                        .padding(.vertical, 22)
-                        .scaleEffect(showRevolutionBanner ? 1 : 0.75)
-                        .opacity(showRevolutionBanner ? 1 : 0)
-                        .animation(.spring(response: 0.45, dampingFraction: 0.7), value: showRevolutionBanner)
-                        Rectangle()
-                            .fill(Color.tycoonPink)
-                            .frame(height: 1.5)
-                            .scaleEffect(x: showRevolutionBanner ? 1 : 0, anchor: .center)
-                            .animation(.easeOut(duration: 0.4), value: showRevolutionBanner)
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 24)
-                }
-                .allowsHitTesting(false)
-                .zIndex(22)
-
-                // Counter-Revolution full-screen overlay
-                ZStack {
-                    Color.black
-                        .opacity(showCounterRevolutionBanner ? 0.88 : 0)
-                        .ignoresSafeArea()
-                        .animation(.easeOut(duration: 0.25), value: showCounterRevolutionBanner)
-                    Color.cardLavender
-                        .opacity(showCounterRevolutionBanner ? 0.10 : 0)
-                        .ignoresSafeArea()
-                        .animation(.easeOut(duration: 0.25), value: showCounterRevolutionBanner)
-                    VStack(spacing: 0) {
-                        Spacer()
-                        Rectangle()
-                            .fill(Color.cardLavender)
-                            .frame(height: 1.5)
-                            .scaleEffect(x: showCounterRevolutionBanner ? 1 : 0, anchor: .center)
-                            .animation(.easeOut(duration: 0.4), value: showCounterRevolutionBanner)
-                        VStack(spacing: 10) {
-                            Text("Counter\nRevolution")
-                                .font(.custom("Fraunces-9ptBlackItalic", size: 58))
-                                .foregroundStyle(Color.white)
-                                .multilineTextAlignment(.center)
-                                .shadow(color: Color.cardLavender, radius: 40, x: 0, y: 0)
-                            Text("ORDER RESTORED")
-                                .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
-                                .foregroundStyle(Color.cardLavender.opacity(0.85))
-                                .tracking(4)
-                        }
-                        .padding(.vertical, 22)
-                        .scaleEffect(showCounterRevolutionBanner ? 1 : 0.75)
-                        .opacity(showCounterRevolutionBanner ? 1 : 0)
-                        .animation(.spring(response: 0.45, dampingFraction: 0.7), value: showCounterRevolutionBanner)
-                        Rectangle()
-                            .fill(Color.cardLavender)
-                            .frame(height: 1.5)
-                            .scaleEffect(x: showCounterRevolutionBanner ? 1 : 0, anchor: .center)
-                            .animation(.easeOut(duration: 0.4), value: showCounterRevolutionBanner)
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 24)
-                }
-                .allowsHitTesting(false)
-                .zIndex(22)
-
-                // 3♠ Reversal compact pill
-                ZStack {
-                    VStack(spacing: 5) {
-                        Text("Joker beaten")
-                            .font(.custom("Fraunces-9ptBlackItalic", size: 38))
-                            .foregroundStyle(Color.white)
-                        Text("3♠ REVERSAL")
-                            .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
-                            .foregroundStyle(Color.cardBlush.opacity(0.6))
-                            .tracking(2.5)
-                    }
-                    .padding(.horizontal, 34)
-                    .padding(.vertical, 17)
-                    .background(Color.tycoonSurface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .strokeBorder(Color.cardBlush.opacity(0.25), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .opacity(showReversalBanner ? 1 : 0)
-                    .scaleEffect(showReversalBanner ? 1 : 0.88)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showReversalBanner)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(false)
-                .zIndex(20)
-
-                // 8-Stop compact pill
-                ZStack {
-                    VStack(spacing: 5) {
-                        Text("8-Stop")
-                            .font(.custom("Fraunces-9ptBlackItalic", size: 38))
-                            .foregroundStyle(Color.white)
-                        Text("TURN OVER")
-                            .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
-                            .foregroundStyle(Color.cardMint.opacity(0.7))
-                            .tracking(2.5)
-                    }
-                    .padding(.horizontal, 34)
-                    .padding(.vertical, 17)
-                    .background(Color.tycoonSurface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .strokeBorder(Color.cardMint.opacity(0.25), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .opacity(showEightStopBanner ? 1 : 0)
-                    .scaleEffect(showEightStopBanner ? 1 : 0.88)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showEightStopBanner)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(false)
-                .zIndex(20)
-
-                // Bankruptcy compact pill
-                ZStack {
-                    VStack(spacing: 5) {
-                        Text(bankruptcyNameText)
-                            .font(.custom("Fraunces-9ptBlackItalic", size: 34))
-                            .foregroundStyle(Color.white)
-                            .minimumScaleFactor(0.6)
-                            .lineLimit(1)
-                        Text("BANKRUPTCY")
-                            .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
-                            .foregroundStyle(Color.cardCream.opacity(0.6))
-                            .tracking(2.5)
-                    }
-                    .padding(.horizontal, 34)
-                    .padding(.vertical, 17)
-                    .background(Color.tycoonSurface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .strokeBorder(Color.cardCream.opacity(0.25), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .opacity(showBankruptcyOverlay ? 1 : 0)
-                    .scaleEffect(showBankruptcyOverlay ? 1 : 0.88)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showBankruptcyOverlay)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(false)
-                .zIndex(20)
-
-                // Trick-winner compact pill
-                ZStack {
-                    VStack(spacing: 5) {
-                        Text("TRICK COMPLETE")
-                            .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
-                            .foregroundStyle(Color.white.opacity(0.4))
-                            .tracking(2.5)
-                        Text(trickWinnerText)
-                            .font(.custom("Fraunces-9ptBlackItalic", size: 38))
-                            .foregroundStyle(Color.white)
-                    }
-                    .padding(.horizontal, 34)
-                    .padding(.vertical, 17)
-                    .background(Color.tycoonSurface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .opacity(showTrickWinnerOverlay ? 1 : 0)
-                    .scaleEffect(showTrickWinnerOverlay ? 1 : 0.88)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showTrickWinnerOverlay)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(false)
-                .zIndex(19)
+                revolutionOverlay
+                counterRevolutionOverlay
+                eventPills
             }
             .allowsHitTesting(controller.pendingRoundResult == nil && !isAnyOverlayShowing)
             .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showRules)
@@ -266,110 +69,320 @@ struct GameView: View {
                 .animation(.easeInOut(duration: 0.25), value: controller.pendingRoundResult != nil)
             }
         }
-        .onChange(of: controller.reversalEventCounter) { _, _ in
-            // Block AI immediately; delay the banner so the 3♠ can land on the pile first.
-            pendingEventOverlay = true
-            controller.extendOverlayBlock(for: 2.2)
-            Task {
-                try? await Task.sleep(nanoseconds: 650_000_000)
-                showReversalBanner = true
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                showReversalBanner = false
-                pendingEventOverlay = false
-            }
+        .onChange(of: controller.reversalEventCounter) { _, _ in onReversalEvent() }
+        .onChange(of: controller.revolutionEventCounter) { _, _ in onRevolutionEvent() }
+        .onChange(of: controller.counterRevolutionEventCounter) { _, _ in onCounterRevolutionEvent() }
+        .onChange(of: controller.eightStopEventCounter) { _, _ in onEightStopEvent() }
+        .onChange(of: controller.bankruptcyEventCounter) { _, _ in onBankruptcyEvent() }
+        .onChange(of: controller.pendingRoundResult) { _, newValue in onRoundResultChange(newValue) }
+        .onChange(of: controller.trickResetCounter) { _, _ in onTrickReset() }
+    }
+
+    // MARK: Event Handlers
+
+    private func onReversalEvent() {
+        pendingEventOverlay = true
+        controller.extendOverlayBlock(for: 2.6)
+        Task {
+            try? await Task.sleep(nanoseconds: 650_000_000)
+            showReversalBanner = true
+            try? await Task.sleep(nanoseconds: 1_300_000_000)
+            showReversalBanner = false
+            pendingEventOverlay = false
         }
-        .onChange(of: controller.revolutionEventCounter) { _, _ in
-            pendingEventOverlay = true
-            controller.extendOverlayBlock(for: 3.0)
-            Task {
-                try? await Task.sleep(nanoseconds: 500_000_000)
-                showRevolutionBanner = true
+    }
+
+    private func onRevolutionEvent() {
+        pendingEventOverlay = true
+        controller.extendOverlayBlock(for: 3.0)
+        HapticManager.revolution()
+        SoundManager.shared.playRevolution()
+        Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            showRevolutionBanner = true
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            showRevolutionBanner = false
+            pendingEventOverlay = false
+        }
+    }
+
+    private func onCounterRevolutionEvent() {
+        pendingEventOverlay = true
+        controller.extendOverlayBlock(for: 3.0)
+        Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            showCounterRevolutionBanner = true
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            showCounterRevolutionBanner = false
+            pendingEventOverlay = false
+        }
+    }
+
+    private func onEightStopEvent() {
+        pendingEventOverlay = true
+        controller.extendOverlayBlock(for: 2.4)
+        Task {
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            showEightStopBanner = true
+            HapticManager.eightStop()
+            try? await Task.sleep(nanoseconds: 1_300_000_000)
+            showEightStopBanner = false
+            pendingEventOverlay = false
+        }
+    }
+
+    private func onBankruptcyEvent() {
+        let name: String
+        if let id = controller.bankruptedPlayerID,
+           let player = controller.state.players.first(where: { $0.id == id }) {
+            name = id == controller.humanPlayerID ? "You" : player.displayName
+        } else {
+            name = "Millionaire"
+        }
+        bankruptcyNameText = "\(name) bankrupt"
+        controller.extendOverlayBlock(for: 1.8)
+        showBankruptcyOverlay = true
+        Task {
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            showBankruptcyOverlay = false
+        }
+    }
+
+    private func onRoundResultChange(_ newValue: RoundResult?) {
+        guard newValue != nil else { return }
+        HapticManager.roundEnd()
+        SoundManager.shared.playRoundEnd()
+    }
+
+    private func onTrickReset() {
+        if let card = controller.trickResetLastTopCard {
+            pileExitCard = card
+            pileExitAnimating = false
+        }
+        let winnerID = controller.trickWinnerID
+        if winnerID == controller.humanPlayerID {
+            trickWinnerText = "Your lead"
+        } else if let id = winnerID,
+                  let player = controller.state.players.first(where: { $0.id == id }) {
+            trickWinnerText = "\(player.displayName) leads"
+        }
+        controller.extendOverlayBlock(for: 2.0)
+        Task {
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            guard !pendingEventOverlay && !showReversalBanner && !showRevolutionBanner && !showEightStopBanner else {
                 try? await Task.sleep(nanoseconds: 1_500_000_000)
-                showRevolutionBanner = false
-                pendingEventOverlay = false
-            }
-        }
-        .onChange(of: controller.counterRevolutionEventCounter) { _, _ in
-            pendingEventOverlay = true
-            controller.extendOverlayBlock(for: 3.0)
-            Task {
-                try? await Task.sleep(nanoseconds: 500_000_000)
-                showCounterRevolutionBanner = true
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                showCounterRevolutionBanner = false
-                pendingEventOverlay = false
-            }
-        }
-        .onChange(of: controller.eightStopEventCounter) { _, _ in
-            // Short delay so the 8 lands and the trick-reset fade plays before the pill appears.
-            pendingEventOverlay = true
-            controller.extendOverlayBlock(for: 2.0)
-            Task {
-                try? await Task.sleep(nanoseconds: 450_000_000)
-                showEightStopBanner = true
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                showEightStopBanner = false
-                pendingEventOverlay = false
-            }
-        }
-        .onChange(of: controller.bankruptcyEventCounter) { _, _ in
-            let name: String
-            if let id = controller.bankruptedPlayerID,
-               let player = controller.state.players.first(where: { $0.id == id }) {
-                name = id == controller.humanPlayerID ? "You" : player.displayName
-            } else {
-                name = "Millionaire"
-            }
-            bankruptcyNameText = "\(name) bankrupt"
-            controller.extendOverlayBlock(for: 1.8)
-            showBankruptcyOverlay = true
-            Task {
-                try? await Task.sleep(nanoseconds: 1_200_000_000)
-                showBankruptcyOverlay = false
-            }
-        }
-        .onChange(of: controller.trickResetCounter) { _, _ in
-            // Show the trigger card (or last trick card) in the pile immediately — no fade yet.
-            if let card = controller.trickResetLastTopCard {
-                pileExitCard = card
-                pileExitAnimating = false
-            }
-            // Trick winner label
-            let winnerID = controller.trickWinnerID
-            let isHuman = winnerID == controller.humanPlayerID
-            if isHuman {
-                trickWinnerText = "Your lead"
-            } else if let id = winnerID,
-                      let player = controller.state.players.first(where: { $0.id == id }) {
-                trickWinnerText = "\(player.displayName) leads"
-            }
-            controller.extendOverlayBlock(for: 2.0)
-            Task {
-                try? await Task.sleep(nanoseconds: 150_000_000)
-                // If an event banner is pending (8-stop, reversal) hold the pile card
-                // visible for the full notification window, then fade it out quietly.
-                guard !pendingEventOverlay && !showReversalBanner && !showRevolutionBanner && !showEightStopBanner else {
-                    try? await Task.sleep(nanoseconds: 1_500_000_000)
-                    withAnimation(.easeOut(duration: 0.3)) { pileExitAnimating = true }
-                    try? await Task.sleep(nanoseconds: 350_000_000)
-                    pileExitCard = nil
-                    pileExitAnimating = false
-                    return
-                }
-                // Normal trick reset: fade the last card while showing the trick-winner pill.
-                withAnimation(.easeOut(duration: 0.25)) { pileExitAnimating = true }
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    showTrickWinnerOverlay = true
-                }
-                try? await Task.sleep(nanoseconds: 1_300_000_000)
-                withAnimation(.easeOut(duration: 0.3)) {
-                    showTrickWinnerOverlay = false
-                }
+                withAnimation(.easeOut(duration: 0.3)) { pileExitAnimating = true }
                 try? await Task.sleep(nanoseconds: 350_000_000)
                 pileExitCard = nil
                 pileExitAnimating = false
+                return
             }
+            withAnimation(.easeOut(duration: 0.25)) { pileExitAnimating = true }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { showTrickWinnerOverlay = true }
+            try? await Task.sleep(nanoseconds: 1_300_000_000)
+            withAnimation(.easeOut(duration: 0.3)) { showTrickWinnerOverlay = false }
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            pileExitCard = nil
+            pileExitAnimating = false
         }
+    }
+
+    // MARK: Event Overlays
+
+    private var revolutionOverlay: some View {
+        ZStack {
+            Color.black
+                .opacity(showRevolutionBanner ? 0.88 : 0)
+                .ignoresSafeArea()
+                .animation(.easeOut(duration: 0.25), value: showRevolutionBanner)
+            Color.tycoonPink
+                .opacity(showRevolutionBanner ? 0.10 : 0)
+                .ignoresSafeArea()
+                .animation(.easeOut(duration: 0.25), value: showRevolutionBanner)
+            VStack(spacing: 0) {
+                Spacer()
+                Rectangle()
+                    .fill(Color.tycoonPink)
+                    .frame(height: 1.5)
+                    .scaleEffect(x: showRevolutionBanner ? 1 : 0, anchor: .center)
+                    .animation(.easeOut(duration: 0.4), value: showRevolutionBanner)
+                VStack(spacing: 10) {
+                    Text("REVOLUTION")
+                        .font(.custom("Fraunces-9ptBlackItalic", size: 68))
+                        .foregroundStyle(Color.white)
+                        .shadow(color: Color.tycoonPink, radius: 40, x: 0, y: 0)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text("RANK ORDER INVERTED")
+                        .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
+                        .foregroundStyle(Color.tycoonPink.opacity(0.85))
+                        .tracking(4)
+                }
+                .padding(.vertical, 22)
+                .scaleEffect(showRevolutionBanner ? 1 : 0.75)
+                .opacity(showRevolutionBanner ? 1 : 0)
+                .animation(.spring(response: 0.45, dampingFraction: 0.7), value: showRevolutionBanner)
+                Rectangle()
+                    .fill(Color.tycoonPink)
+                    .frame(height: 1.5)
+                    .scaleEffect(x: showRevolutionBanner ? 1 : 0, anchor: .center)
+                    .animation(.easeOut(duration: 0.4), value: showRevolutionBanner)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
+        }
+        .allowsHitTesting(false)
+        .zIndex(22)
+    }
+
+    private var counterRevolutionOverlay: some View {
+        ZStack {
+            Color.black
+                .opacity(showCounterRevolutionBanner ? 0.88 : 0)
+                .ignoresSafeArea()
+                .animation(.easeOut(duration: 0.25), value: showCounterRevolutionBanner)
+            Color.cardLavender
+                .opacity(showCounterRevolutionBanner ? 0.10 : 0)
+                .ignoresSafeArea()
+                .animation(.easeOut(duration: 0.25), value: showCounterRevolutionBanner)
+            VStack(spacing: 0) {
+                Spacer()
+                Rectangle()
+                    .fill(Color.cardLavender)
+                    .frame(height: 1.5)
+                    .scaleEffect(x: showCounterRevolutionBanner ? 1 : 0, anchor: .center)
+                    .animation(.easeOut(duration: 0.4), value: showCounterRevolutionBanner)
+                VStack(spacing: 10) {
+                    Text("Counter\nRevolution")
+                        .font(.custom("Fraunces-9ptBlackItalic", size: 58))
+                        .foregroundStyle(Color.white)
+                        .multilineTextAlignment(.center)
+                        .shadow(color: Color.cardLavender, radius: 40, x: 0, y: 0)
+                    Text("ORDER RESTORED")
+                        .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
+                        .foregroundStyle(Color.cardLavender.opacity(0.85))
+                        .tracking(4)
+                }
+                .padding(.vertical, 22)
+                .scaleEffect(showCounterRevolutionBanner ? 1 : 0.75)
+                .opacity(showCounterRevolutionBanner ? 1 : 0)
+                .animation(.spring(response: 0.45, dampingFraction: 0.7), value: showCounterRevolutionBanner)
+                Rectangle()
+                    .fill(Color.cardLavender)
+                    .frame(height: 1.5)
+                    .scaleEffect(x: showCounterRevolutionBanner ? 1 : 0, anchor: .center)
+                    .animation(.easeOut(duration: 0.4), value: showCounterRevolutionBanner)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
+        }
+        .allowsHitTesting(false)
+        .zIndex(22)
+    }
+
+    private var eventPills: some View {
+        ZStack {
+            // 3♠ Reversal
+            ZStack {
+                VStack(spacing: 5) {
+                    Text("Joker beaten")
+                        .font(.custom("Fraunces-9ptBlackItalic", size: 38))
+                        .foregroundStyle(Color.white)
+                    Text("3♠ REVERSAL")
+                        .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
+                        .foregroundStyle(Color.cardBlush.opacity(0.6))
+                        .tracking(2.5)
+                }
+                .padding(.horizontal, 34)
+                .padding(.vertical, 17)
+                .background(Color.tycoonSurface)
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.cardBlush.opacity(0.25), lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .opacity(showReversalBanner ? 1 : 0)
+                .scaleEffect(showReversalBanner ? 1 : 0.88)
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showReversalBanner)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .zIndex(20)
+
+            // 8-Stop
+            ZStack {
+                VStack(spacing: 5) {
+                    Text("8-Stop")
+                        .font(.custom("Fraunces-9ptBlackItalic", size: 38))
+                        .foregroundStyle(Color.white)
+                    Text("TURN OVER")
+                        .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
+                        .foregroundStyle(Color.cardMint.opacity(0.7))
+                        .tracking(2.5)
+                }
+                .padding(.horizontal, 34)
+                .padding(.vertical, 17)
+                .background(Color.tycoonSurface)
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.cardMint.opacity(0.25), lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .opacity(showEightStopBanner ? 1 : 0)
+                .scaleEffect(showEightStopBanner ? 1 : 0.88)
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showEightStopBanner)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .zIndex(20)
+
+            // Bankruptcy
+            ZStack {
+                VStack(spacing: 5) {
+                    Text(bankruptcyNameText)
+                        .font(.custom("Fraunces-9ptBlackItalic", size: 34))
+                        .foregroundStyle(Color.white)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                    Text("BANKRUPTCY")
+                        .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
+                        .foregroundStyle(Color.cardCream.opacity(0.6))
+                        .tracking(2.5)
+                }
+                .padding(.horizontal, 34)
+                .padding(.vertical, 17)
+                .background(Color.tycoonSurface)
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.cardCream.opacity(0.25), lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .opacity(showBankruptcyOverlay ? 1 : 0)
+                .scaleEffect(showBankruptcyOverlay ? 1 : 0.88)
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showBankruptcyOverlay)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .zIndex(20)
+
+            // Trick winner
+            ZStack {
+                VStack(spacing: 5) {
+                    Text("TRICK COMPLETE")
+                        .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
+                        .foregroundStyle(Color.white.opacity(0.4))
+                        .tracking(2.5)
+                    Text(trickWinnerText)
+                        .font(.custom("Fraunces-9ptBlackItalic", size: 38))
+                        .foregroundStyle(Color.white)
+                }
+                .padding(.horizontal, 34)
+                .padding(.vertical, 17)
+                .background(Color.tycoonSurface)
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .opacity(showTrickWinnerOverlay ? 1 : 0)
+                .scaleEffect(showTrickWinnerOverlay ? 1 : 0.88)
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showTrickWinnerOverlay)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .zIndex(19)
+        }
+        .allowsHitTesting(false)
     }
 
     // MARK: Revolution Active Pill
@@ -534,15 +547,6 @@ struct GameView: View {
                     PlayingCardView(card: card, style: .pile)
                         .matchedGeometryEffect(id: card, in: cardNamespace, isSource: false)
                         .id(card)
-                } else {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.cardCream)
-                        .frame(width: 96, height: 136)
-                        .overlay(
-                            Text("—")
-                                .font(.custom("Fraunces-9ptBlackItalic", size: 34))
-                                .foregroundStyle(Color.cardSuitBlack.opacity(0.3))
-                        )
                 }
 
                 if let card = pileExitCard {
@@ -762,6 +766,7 @@ struct GameView: View {
 
     private func toggle(_ card: Card) {
         guard controller.isHumansTurn else { return }
+        HapticManager.cardTap()
         withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
             if selected.contains(card) {
                 selected.remove(card)
@@ -773,17 +778,18 @@ struct GameView: View {
 
     private func play() {
         let cards = sortedHand.filter { selected.contains($0) }
-        // Tag the first card as the geometry source BEFORE the state update so
-        // matchedGeometryEffect can fly it from the hand to the pile.
         flyCard = cards.first
         do {
             try withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 try controller.play(cards)
                 selected.removeAll()
             }
+            HapticManager.cardPlay()
+            SoundManager.shared.playCardPlay()
             Task { await controller.resolveAITurnsIfNeeded() }
         } catch {
             flyCard = nil
+            HapticManager.cardPlayError()
             triggerInvalidShake()
         }
     }
@@ -793,6 +799,7 @@ struct GameView: View {
         do {
             try controller.pass()
             selected.removeAll()
+            HapticManager.pass()
             Task { await controller.resolveAITurnsIfNeeded() }
         } catch {
             triggerInvalidShake()
