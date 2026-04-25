@@ -6,15 +6,22 @@ struct OpponentPanel: View {
     let tint: Color
     let emoji: String
     let isActive: Bool
+    let aiPlayCount: Int
+    let pendingCard: Card?
+    let cardNamespace: Namespace.ID
 
-    private var cardsLeft: Int { player.hand.count }
-    private var rankLabel: String { player.displayTitle?.displayName.uppercased() ?? "—" }
+    @State private var isFlashing = false
+
+    private var cardsLeft: Int { player.isBankrupt ? 0 : player.hand.count }
+    private var rankLabel: String {
+        player.isBankrupt ? "BANKRUPT" : (player.displayTitle?.displayName.uppercased() ?? "—")
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
             tint
 
-            OpponentTag(cardsLeft: cardsLeft, rank: rankLabel, isActive: isActive)
+            OpponentTag(cardsLeft: cardsLeft, rank: rankLabel, isActive: isActive, isBankrupt: player.isBankrupt)
                 .padding(.top, 8)
                 .padding(.horizontal, 5)
 
@@ -49,6 +56,36 @@ struct OpponentPanel: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .padding(.bottom, 10)
+
+            // Pending card — shown face-up while the AI is "committing" to the play.
+            // Tagged with matchedGeometryEffect so it flies to the pile when state updates.
+            if let card = pendingCard {
+                PlayingCardView(card: card, style: .hand)
+                    .matchedGeometryEffect(id: card, in: cardNamespace)
+                    .rotationEffect(.degrees(-8))
+                    // Insertion scales in; removal fades while the pile card flies from this position.
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.6).combined(with: .opacity),
+                        removal: .opacity
+                    ))
+                    .zIndex(10)
+            }
+        }
+        .overlay(
+            Rectangle()
+                .strokeBorder(
+                    Color.tycoonPink.opacity(isFlashing ? 0.7 : 0),
+                    lineWidth: 1.5
+                )
+                .animation(.easeOut(duration: 0.35), value: isFlashing)
+        )
+        .onChange(of: aiPlayCount) { _, _ in
+            guard aiPlayCount > 0 else { return }
+            withAnimation(.easeIn(duration: 0.1)) { isFlashing = true }
+            Task {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                withAnimation(.easeOut(duration: 0.3)) { isFlashing = false }
+            }
         }
     }
 }
@@ -57,6 +94,7 @@ private struct OpponentTag: View {
     let cardsLeft: Int
     let rank: String
     let isActive: Bool
+    let isBankrupt: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -69,10 +107,16 @@ private struct OpponentTag: View {
                 .font(.custom("Fraunces-9ptBlackItalic", size: 20))
                 .foregroundStyle(Color.textPrimary)
                 .lineLimit(1)
+                .contentTransition(.numericText())
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: cardsLeft)
 
             Text(rank)
                 .font(.custom("InstrumentSans-Regular", size: 7).weight(.semibold))
-                .foregroundStyle(isActive ? Color.cardBlush : Color.white.opacity(0.3))
+                .foregroundStyle(
+                    isBankrupt
+                        ? Color.cardCream.opacity(0.75)
+                        : (isActive ? Color.cardBlush : Color.white.opacity(0.3))
+                )
                 .tracking(0.4)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
