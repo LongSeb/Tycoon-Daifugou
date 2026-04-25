@@ -54,7 +54,7 @@ struct RecentGameRow: View {
 #Preview {
     VStack(spacing: 12) {
         RecentGameRow(game: .init(rank: "Rich", xp: "+200", ago: "Yesterday", medal: "🥈", avatarEmoji: "😎"))
-        RecentGameRow(game: .init(rank: "Millionaire", xp: "+300", ago: "2d ago", medal: "🥇", avatarEmoji: "🦊"))
+        RecentGameRow(game: .init(rank: "Tycoon", xp: "+300", ago: "2d ago", medal: "🥇", avatarEmoji: "🦊"))
         RecentGameRow(game: .init(rank: "Poor", xp: "+50", ago: "3d ago", medal: nil, avatarEmoji: "🐱"))
     }
     .padding()

@@ -4,7 +4,7 @@ extension HomeViewState {
     static let preview = HomeViewState(
         totalGamesWon: 47,
         lastGame: LastGameData(
-            rank: "Millionaire",
+            rank: "Tycoon",
             emoji: "👑",
             xp: "+300",
             rounds: 3,
@@ -16,7 +16,7 @@ extension HomeViewState {
         ),
         recentGames: [
             .init(rank: "Rich",        xp: "+200", ago: "Yesterday", medal: "🥈", avatarEmoji: "😎"),
-            .init(rank: "Millionaire", xp: "+300", ago: "2d ago",    medal: "🥇", avatarEmoji: "🦊"),
+            .init(rank: "Tycoon", xp: "+300", ago: "2d ago",    medal: "🥇", avatarEmoji: "🦊"),
             .init(rank: "Poor",        xp: "+50",  ago: "3d ago",    medal: nil,  avatarEmoji: "🐱"),
             .init(rank: "Beggar",      xp: "+25",  ago: "4d ago",    medal: nil,  avatarEmoji: "🐼"),
         ]

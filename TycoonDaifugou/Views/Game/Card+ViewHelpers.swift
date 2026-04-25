@@ -64,7 +64,7 @@ extension Rank {
 extension Title {
     var displayName: String {
         switch self {
-        case .millionaire: return "Millionaire"
+        case .millionaire: return "Tycoon"
         case .rich:        return "Rich"
         case .commoner:    return "Commoner"
         case .poor:        return "Poor"

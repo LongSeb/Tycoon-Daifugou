@@ -112,7 +112,7 @@ struct ProfileEditorView: View {
                     dismiss()
                 }
                 .font(.tycoonBody.weight(.semibold))
-                .foregroundStyle(trimmedUsername.isEmpty ? Color.tycoonPink.opacity(0.4) : Color.tycoonPink)
+                .foregroundStyle(trimmedUsername.isEmpty ? Color.tycoonMint.opacity(0.4) : Color.tycoonMint)
                 .disabled(trimmedUsername.isEmpty)
             }
         }
@@ -162,7 +162,7 @@ struct ProfileEditorView: View {
             TextField("Player", text: $username)
                 .font(.tycoonBody)
                 .foregroundStyle(Color.textPrimary)
-                .tint(Color.tycoonPink)
+                .tint(Color.tycoonMint)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
                 .background(Color.tycoonSurface)

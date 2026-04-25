@@ -170,7 +170,7 @@ struct SettingsView: View {
                 in: 1...2
             )
             .labelsHidden()
-            .tint(Color.tycoonPink)
+            .tint(Color.tycoonMint)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
@@ -224,7 +224,7 @@ struct SettingsView: View {
                 in: AppSettings.minOpponentCount...AppSettings.maxOpponentCount
             )
             .labelsHidden()
-            .tint(Color.tycoonPink)
+            .tint(Color.tycoonMint)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
@@ -256,7 +256,7 @@ struct SettingsView: View {
                 in: AppSettings.minRoundsPerGame...AppSettings.maxRoundsPerGame
             )
             .labelsHidden()
-            .tint(Color.tycoonPink)
+            .tint(Color.tycoonMint)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
@@ -349,7 +349,7 @@ struct SettingsView: View {
         Button(action: { showResetConfirm = true }) {
             Text("Reset to defaults")
                 .font(.ruleTitle)
-                .foregroundStyle(Color.tycoonPink)
+                .foregroundStyle(Color.tycoonMint)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(Color.tycoonSurface)
@@ -395,7 +395,7 @@ struct SettingsView: View {
 
             Toggle("", isOn: isOn)
                 .labelsHidden()
-                .tint(Color.tycoonPink)
+                .tint(Color.tycoonMint)
                 .disabled(disabled)
         }
         .padding(.horizontal, 14)

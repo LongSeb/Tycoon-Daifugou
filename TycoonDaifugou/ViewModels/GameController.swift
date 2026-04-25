@@ -70,6 +70,10 @@ final class GameController {
     /// Set when a round ends; nil'd when the user advances past the inter-round overlay.
     private(set) var pendingRoundResult: RoundResult? = nil
 
+    /// Set when the trading phase begins and the human is involved in the exchange;
+    /// nil'd when the user confirms the exchange dialog.
+    private(set) var pendingExchange: CardExchangeState? = nil
+
     private var roundHistory: [RoundResult] = []
     private(set) var cumulativePoints: [PlayerID: Int] = [:]
     private let playerEmojis: [PlayerID: String]
@@ -287,12 +291,45 @@ final class GameController {
         pendingRoundResult = nil
     }
 
-    /// Starts the next round and resumes AI resolution.
-    /// No-op if this is the last round (the CTA routes to final results instead).
+    /// Starts the next round. If the human is involved in the trading phase, sets
+    /// `pendingExchange` and waits for `confirmExchange` before resuming AI resolution.
     func continueToNextRound() {
         guard !isLastRound else { return }
         pendingRoundResult = nil
         state = state.startNextRound(seed: UInt64.random(in: .min ... .max))
+        if let exchange = buildExchangeState() {
+            pendingExchange = exchange
+        } else {
+            Task { await resolveAITurnsIfNeeded() }
+        }
+    }
+
+    /// Applies all pending trades in order, using `selectedCards` for the human's
+    /// optional-choice trade (Millionaire/Rich). For forced trades (Beggar/Poor)
+    /// `selectedCards` is ignored and the engine auto-selects strongest cards.
+    func confirmExchange(selectedCards: [Card]) {
+        var currentState = state
+        while !currentState.pendingTrades.isEmpty {
+            guard let trade = currentState.pendingTrades.first,
+                  let giver = currentState.players.first(where: { $0.id == trade.from })
+            else { break }
+
+            let cards: [Card]
+            if trade.from == humanPlayerID && !trade.mustGiveStrongest {
+                cards = selectedCards
+            } else {
+                let sorted = giver.hand.sorted { tradingStrength($0) > tradingStrength($1) }
+                cards = trade.mustGiveStrongest
+                    ? Array(sorted.prefix(trade.cardCount))
+                    : Array(sorted.suffix(trade.cardCount))
+            }
+
+            guard let next = try? currentState.apply(.trade(cards: cards, from: trade.from, to: trade.to)) else { break }
+            currentState = next
+        }
+
+        state = currentState
+        pendingExchange = nil
         Task { await resolveAITurnsIfNeeded() }
     }
 
@@ -380,6 +417,49 @@ final class GameController {
             bankruptcyEventCounter &+= 1
             bankruptedPlayerID = newlyBankruptID
         }
+    }
+
+    /// Builds a CardExchangeState from the current trading phase if the human is
+    /// a participant. Returns nil when the human is a commoner (no trades) or when
+    /// the phase is not .trading.
+    private func buildExchangeState() -> CardExchangeState? {
+        guard state.phase == .trading,
+              let giveTrade = state.pendingTrades.first(where: { $0.from == humanPlayerID }),
+              let humanPlayer = state.players.first(where: { $0.id == humanPlayerID }),
+              let humanLastRank = humanPlayer.currentTitle
+        else { return nil }
+
+        let opponentID = giveTrade.to
+        guard let opponent = state.players.first(where: { $0.id == opponentID }),
+              let opponentTitle = opponent.currentTitle,
+              let receiveTrade = state.pendingTrades.first(where: {
+                  $0.from == opponentID && $0.to == humanPlayerID
+              })
+        else { return nil }
+
+        let engineAllowsSelection = !giveTrade.mustGiveStrongest
+
+        let cardsToGive: [Card]
+        if engineAllowsSelection {
+            cardsToGive = []
+        } else {
+            let sorted = humanPlayer.hand.sorted { tradingStrength($0) > tradingStrength($1) }
+            cardsToGive = Array(sorted.prefix(giveTrade.cardCount))
+        }
+
+        let opponentSorted = opponent.hand.sorted { tradingStrength($0) > tradingStrength($1) }
+        let cardsReceived = receiveTrade.mustGiveStrongest
+            ? Array(opponentSorted.prefix(receiveTrade.cardCount))
+            : Array(opponentSorted.suffix(receiveTrade.cardCount))
+
+        return CardExchangeState(
+            humanLastRank: humanLastRank,
+            opponentName: opponent.displayName,
+            cardsToGive: cardsToGive,
+            cardsReceived: cardsReceived,
+            requiredGiveCount: giveTrade.cardCount,
+            engineAllowsSelection: engineAllowsSelection
+        )
     }
 
     private func applyNextAutoTrade(_ state: GameState) -> GameState? {

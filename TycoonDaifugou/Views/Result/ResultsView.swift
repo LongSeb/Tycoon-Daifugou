@@ -12,16 +12,14 @@ struct ResultsView: View {
         ZStack {
             Color.tycoonBlack.ignoresSafeArea()
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    topBar
-                    winnerHero
-                    standingsCard
-                    xpCard
-                    actionButtons
-                }
-                .padding(.bottom, 40)
+            VStack(alignment: .leading, spacing: 0) {
+                topBar
+                winnerHero
+                standingsCard
+                xpCard
+                actionButtons
             }
+            .padding(.bottom, 40)
         }
         .preferredColorScheme(.dark)
         .onAppear {

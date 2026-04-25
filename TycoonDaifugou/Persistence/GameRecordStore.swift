@@ -85,13 +85,12 @@ final class GameRecordStore {
             : profile.totalXP
 
         let rankColors: [String: Color] = [
-            "Millionaire": .cardBlush,
+            "Tycoon": .cardBlush,
             "Rich": .cardLavender,
-            "Commoner": .white.opacity(0.35),
             "Poor": .white.opacity(0.25),
             "Beggar": .white.opacity(0.15),
         ]
-        let rankStats = ["Millionaire", "Rich", "Commoner", "Poor", "Beggar"].map { rank in
+        let rankStats = ["Tycoon", "Rich", "Poor", "Beggar"].map { rank in
             let count = records.filter { $0.finishRank == rank }.count
             let fraction: CGFloat = totalGames > 0 ? CGFloat(count) / CGFloat(totalGames) : 0
             return RankStat(rank: rank, count: count, fraction: fraction, color: rankColors[rank] ?? .white.opacity(0.2))
@@ -147,7 +146,7 @@ final class GameRecordStore {
             return record.roundPointsTotal > record.opponentBestPoints
         }
         // Legacy records (no points data): fall back to title — only Millionaire counts.
-        return record.finishRank == "Millionaire"
+        return record.finishRank == "Tycoon"
     }
 
     private var currentWinStreak: Int {
@@ -192,7 +191,7 @@ final class GameRecordStore {
 
     private func rankEmoji(for rank: String) -> String {
         switch rank {
-        case "Millionaire": return "👑"
+        case "Tycoon": return "👑"
         case "Rich":        return "💎"
         case "Commoner":    return "😐"
         case "Poor":        return "😔"
@@ -203,7 +202,7 @@ final class GameRecordStore {
 
     private func rankMedal(for rank: String) -> String? {
         switch rank {
-        case "Millionaire": return "🥇"
+        case "Tycoon": return "🥇"
         case "Rich":        return "🥈"
         default:            return nil
         }
