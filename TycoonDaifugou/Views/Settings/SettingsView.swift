@@ -7,6 +7,8 @@ struct SettingsView: View {
     @AppStorage(AppSettings.Key.ruleSetJSON) private var ruleSetJSON: String = AppSettings.encode(AppSettings.defaultRuleSet)
     @AppStorage(AppSettings.Key.opponentCount) private var opponentCount: Int = AppSettings.defaultOpponentCount
     @AppStorage(AppSettings.Key.roundsPerGame) private var roundsPerGame: Int = AppSettings.defaultRoundsPerGame
+    @AppStorage(AppSettings.Key.soundEffectsEnabled) private var soundEffectsEnabled: Bool = true
+    @AppStorage(AppSettings.Key.hapticsEnabled) private var hapticsEnabled: Bool = true
 
     @State private var ruleSet: RuleSet = AppSettings.defaultRuleSet
     @State private var showRules = false
@@ -21,6 +23,7 @@ struct SettingsView: View {
                     topBar
                     houseRulesCard
                     gameCard
+                    experienceCard
                     aboutCard
                     resetButton
                 }
@@ -257,6 +260,36 @@ struct SettingsView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
+    }
+
+    // MARK: - Experience
+
+    private var experienceCard: some View {
+        VStack(spacing: 0) {
+            cardHeader(title: "EXPERIENCE", badge: nil)
+
+            VStack(spacing: 0) {
+                toggleRow(
+                    title: "Sound effects",
+                    subtitle: "Card plays, revolutions, and round chimes.",
+                    isOn: $soundEffectsEnabled
+                )
+                divider
+                toggleRow(
+                    title: "Haptics",
+                    subtitle: "Tactile feedback on taps and game events.",
+                    isOn: $hapticsEnabled
+                )
+            }
+        }
+        .background(Color.tycoonSurface)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.tycoonBorder, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
     }
 
     // MARK: - About
