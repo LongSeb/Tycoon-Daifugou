@@ -2,6 +2,9 @@ import SwiftUI
 
 struct ProfileView: View {
     let profile: ProfileData
+    var store: GameRecordStore?
+
+    @State private var showingEditor = false
 
     var body: some View {
         ZStack {
@@ -18,6 +21,17 @@ struct ProfileView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showingEditor) {
+            NavigationStack {
+                ProfileEditorView(
+                    initialEmoji: profile.emoji,
+                    initialUsername: profile.username,
+                    onSave: { emoji, username in
+                        store?.updateProfile(emoji: emoji, username: username)
+                    }
+                )
+            }
+        }
     }
 
     // MARK: - Top Bar
@@ -64,7 +78,7 @@ struct ProfileView: View {
                             )
                     )
 
-                Button(action: {}) {
+                Button(action: { showingEditor = true }) {
                     ZStack {
                         Circle()
                             .fill(Color.tycoonCard)

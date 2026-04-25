@@ -16,6 +16,14 @@ final class GameRecordStore {
         self.records = Self.fetchAllRecords(context: context)
     }
 
+    // MARK: - Profile
+
+    func updateProfile(emoji: String, username: String) {
+        profile.emoji = emoji
+        profile.username = username
+        try? context.save()
+    }
+
     // MARK: - Save
 
     func save(controller: GameController, result: GameResultData, ruleSet: RuleSet) {
