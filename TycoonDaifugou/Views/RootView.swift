@@ -43,8 +43,8 @@ struct RootView: View {
                         onSettingsTapped: { coordinator.showSettings() }
                     )
                 case .profile:
-                    if let profileData = coordinator.store?.profileData {
-                        ProfileView(profile: profileData)
+                    if let store = coordinator.store {
+                        ProfileView(profile: store.profileData, store: store)
                     } else {
                         ProfileView(profile: .preview)
                     }
