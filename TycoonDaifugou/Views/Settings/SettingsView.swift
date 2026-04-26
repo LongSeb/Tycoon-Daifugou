@@ -6,6 +6,7 @@ struct SettingsView: View {
 
     @AppStorage(AppSettings.Key.soundEffectsEnabled) private var soundEffectsEnabled: Bool = true
     @AppStorage(AppSettings.Key.hapticsEnabled) private var hapticsEnabled: Bool = true
+    @AppStorage(AppSettings.Key.difficulty) private var difficultyRaw: String = AppSettings.defaultDifficulty.rawValue
 
     @State private var showRules = false
     @State private var showTutorial = false
@@ -66,6 +67,8 @@ struct SettingsView: View {
 
     private var settingsCard: some View {
         VStack(spacing: 0) {
+            difficultyRow
+            divider
             toggleRow(
                 title: "Sound effects",
                 subtitle: "Card plays, revolutions, and round chimes.",
@@ -190,6 +193,41 @@ struct SettingsView: View {
     }
 
     // MARK: - Row components
+
+    private var difficultyRow: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Difficulty")
+                    .font(.settingsRowTitle)
+                    .foregroundStyle(Color.textPrimary)
+
+                Text("How sharply CPU opponents play.")
+                    .font(.settingsRowSubtitle)
+                    .foregroundStyle(Color.textTertiary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            Picker(
+                "Difficulty",
+                selection: Binding(
+                    get: { Difficulty(rawValue: difficultyRaw) ?? AppSettings.defaultDifficulty },
+                    set: { difficultyRaw = $0.rawValue }
+                )
+            ) {
+                ForEach(Difficulty.allCases, id: \.self) { difficulty in
+                    Text(difficulty.displayName).tag(difficulty)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .tint(Color.tycoonMint)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 16)
+    }
 
     private func toggleRow(
         title: String,

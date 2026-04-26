@@ -20,7 +20,8 @@ struct GameControllerTests {
             ruleSet: .baseOnly,
             seed: 42,
             humanPlayerID: humanID,
-            opponents: [aiID: GreedyOpponent()]
+            opponents: [aiID: PolicyOpponent(policy: .greedy, temperature: 0, seed: 42)],
+            playerEmojis: [humanID: "😎", aiID: "🤖"]
         )
     }
 

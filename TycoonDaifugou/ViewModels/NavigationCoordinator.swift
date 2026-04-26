@@ -46,10 +46,11 @@ final class NavigationCoordinator {
             emojiMap[player.id] = profile.emoji
         }
 
-        var opponents: [PlayerID: any Opponent] = [:]
-        for ai in aiPlayers {
-            opponents[ai.id] = GreedyOpponent()
-        }
+        let opponents = OpponentRoster.randomAssignments(
+            playerIDs: aiPlayers.map { $0.id },
+            difficulty: AppSettings.loadDifficulty(),
+            seed: UInt64.random(in: .min ... .max)
+        )
 
         gameController = GameController(
             players: [human] + aiPlayers,

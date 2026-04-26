@@ -9,11 +9,11 @@ extension GameController {
         let kai = Player(displayName: "Kai")
         let hana = Player(displayName: "Hana")
 
-        let opponents: [PlayerID: any Opponent] = [
-            ryo.id: GreedyOpponent(),
-            kai.id: GreedyOpponent(),
-            hana.id: GreedyOpponent(),
-        ]
+        let opponents = OpponentRoster.randomAssignments(
+            playerIDs: [ryo.id, kai.id, hana.id],
+            difficulty: .medium,
+            seed: seed
+        )
 
         let playerEmojis: [PlayerID: String] = [
             human.id: "😎",
