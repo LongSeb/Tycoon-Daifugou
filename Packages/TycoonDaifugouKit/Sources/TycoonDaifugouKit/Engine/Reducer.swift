@@ -86,8 +86,7 @@ extension GameState {
                     moves.append(.play(cards: [joker], by: playerID))
                 }
             }
-            if lastHand.isSoloJoker && ruleSet.threeSpadeReversal && ruleSet.jokers
-                && !isRevolutionActive {
+            if lastHand.isSoloJoker && ruleSet.threeSpadeReversal && ruleSet.jokers {
                 let threeSpades = Card.regular(.three, .spades)
                 if player.hand.contains(threeSpades) {
                     moves.append(.play(cards: [threeSpades], by: playerID))

@@ -34,10 +34,14 @@ private func makeState(
 
 // MARK: - Tests
 
-@Suite("GreedyOpponent")
-struct GreedyOpponentTests {
+@Suite("Greedy policy")
+struct GreedyPolicyTests {
 
-    let greedy = GreedyOpponent()
+    /// Argmax greedy bot — same scenarios that previously validated the legacy
+    /// `GreedyOpponent` struct now validate the `Policy.greedy` weight vector
+    /// at τ = 0. Behavior under these scenarios is the spec for what "greedy"
+    /// means in the new framework.
+    let greedy = PolicyOpponent(policy: .greedy, temperature: 0, seed: 1)
 
     // MARK: Trick lead
 

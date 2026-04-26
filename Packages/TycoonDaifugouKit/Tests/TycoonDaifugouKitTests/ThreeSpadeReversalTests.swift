@@ -10,7 +10,8 @@ private func makeReversalState(
     lastPlayedByIndex: Int? = nil,
     threeSpadeReversal: Bool = true,
     jokers: Bool = true,
-    jokerCount: Int = 1
+    jokerCount: Int = 1,
+    isRevolutionActive: Bool = false
 ) -> GameState {
     let scores = Dictionary(uniqueKeysWithValues: players.map { ($0.id, 0) })
     return GameState(
@@ -20,6 +21,7 @@ private func makeReversalState(
         currentPlayerIndex: currentPlayerIndex,
         phase: .playing,
         ruleSet: RuleSet(jokers: jokers, threeSpadeReversal: threeSpadeReversal, jokerCount: jokerCount),
+        isRevolutionActive: isRevolutionActive,
         round: 1,
         scoresByPlayer: scores,
         lastPlayedByIndex: lastPlayedByIndex
@@ -173,5 +175,44 @@ struct ThreeSpadeReversalTests {
         let moves = state.validMoves(for: p1.id)
         let threeSpadeMove = Move.play(cards: [.regular(.three, .spades)], by: p1.id)
         #expect(!moves.contains(threeSpadeMove), "3♠ must not appear when rule is disabled")
+    }
+
+    // MARK: Revolution interaction
+
+    @Test("regression: 3♠ reversal is legal under revolution (trump-of-trump beyond rank order)")
+    func reversalUnderRevolutionAppearsInValidMoves() throws {
+        let jokerHand = try Hand(cards: [.joker(index: 0)])
+        let p0 = Player(displayName: "P0", hand: [.regular(.king, .hearts)])
+        let p1 = Player(displayName: "P1", hand: [.regular(.three, .spades), .regular(.five, .clubs)])
+        let state = makeReversalState(
+            players: [p0, p1],
+            currentPlayerIndex: 1,
+            currentTrick: [jokerHand],
+            lastPlayedByIndex: 0,
+            isRevolutionActive: true
+        )
+
+        let moves = state.validMoves(for: p1.id)
+        let threeSpadeMove = Move.play(cards: [.regular(.three, .spades)], by: p1.id)
+        #expect(moves.contains(threeSpadeMove), "3♠ must remain a legal beater of solo Joker even under revolution")
+    }
+
+    @Test("regression: applying 3♠ reversal under revolution clears the trick and grants lead")
+    func reversalUnderRevolutionExecutes() throws {
+        let jokerHand = try Hand(cards: [.joker(index: 0)])
+        let p0 = Player(displayName: "P0", hand: [.regular(.king, .hearts)])
+        let p1 = Player(displayName: "P1", hand: [.regular(.three, .spades), .regular(.five, .clubs)])
+        let state = makeReversalState(
+            players: [p0, p1],
+            currentPlayerIndex: 1,
+            currentTrick: [jokerHand],
+            lastPlayedByIndex: 0,
+            isRevolutionActive: true
+        )
+
+        let next = try state.apply(.play(cards: [.regular(.three, .spades)], by: p1.id))
+        #expect(next.currentTrick.isEmpty, "Trick must clear after 3♠ reversal even under revolution")
+        #expect(next.currentPlayerIndex == 1, "3♠ player must keep the lead")
+        #expect(next.isRevolutionActive, "Revolution flag must be unaffected by the reversal play")
     }
 }

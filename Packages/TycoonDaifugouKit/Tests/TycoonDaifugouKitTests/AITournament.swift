@@ -107,7 +107,7 @@ struct AITournamentTests {
         printReport(result)
     }
 
-    @Test("Calibration — Difficulty curve (1 difficulty bot vs 3 Balanced-Medium)")
+    @Test("Calibration — Difficulty curve (1 difficulty bot vs 3 Easy-Balanced refs)")
     func difficultyCurve() {
         for difficulty in Difficulty.allCases {
             let entrants: [TournamentEntrant] = [
@@ -116,9 +116,9 @@ struct AITournamentTests {
                     policy: .balanced,
                     temperature: difficulty.temperature
                 ),
-                TournamentEntrant(label: "Ref-Balanced-Med", policy: .balanced, temperature: Difficulty.medium.temperature),
-                TournamentEntrant(label: "Ref-Balanced-Med", policy: .balanced, temperature: Difficulty.medium.temperature),
-                TournamentEntrant(label: "Ref-Balanced-Med", policy: .balanced, temperature: Difficulty.medium.temperature),
+                TournamentEntrant(label: "Ref-Balanced-Easy", policy: .balanced, temperature: Difficulty.easy.temperature),
+                TournamentEntrant(label: "Ref-Balanced-Easy", policy: .balanced, temperature: Difficulty.easy.temperature),
+                TournamentEntrant(label: "Ref-Balanced-Easy", policy: .balanced, temperature: Difficulty.easy.temperature),
             ]
             let result = runTournament(entrants: entrants, gameCount: 1_000)
             printReport(result)

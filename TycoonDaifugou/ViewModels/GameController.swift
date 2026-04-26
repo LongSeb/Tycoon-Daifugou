@@ -122,6 +122,25 @@ final class GameController {
         self.playerEmojis = playerEmojis
     }
 
+    #if DEBUG
+    /// Boots the controller from a pre-built `GameState` instead of dealing a
+    /// fresh game. Intended only for SwiftUI Previews and debug scenarios —
+    /// production game flow goes through the seeded init above.
+    init(
+        scenarioState: GameState,
+        humanPlayerID: PlayerID,
+        opponents: [PlayerID: any Opponent],
+        playerEmojis: [PlayerID: String],
+        maxRounds: Int = 3
+    ) {
+        self.state = scenarioState
+        self.humanPlayerID = humanPlayerID
+        self.opponents = opponents
+        self.maxRounds = maxRounds
+        self.playerEmojis = playerEmojis
+    }
+    #endif
+
     func emoji(for playerID: PlayerID) -> String {
         playerEmojis[playerID] ?? "🃏"
     }

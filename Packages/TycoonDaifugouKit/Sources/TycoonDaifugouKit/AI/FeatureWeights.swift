@@ -65,22 +65,26 @@ extension FeatureWeights {
         passBias: -0.3
     )
 
-    /// Greedy-ish base, but combo preservation dominates — never breaks a held
-    /// pair / triple / quad if there's another option.
+    /// Combo-preservation focus, but still plays actively enough to win games.
+    /// Earlier draft over-passed and got stuck on combos; this version keeps
+    /// the dominant comboIntegrity signal but pairs it with enough fight to
+    /// shed cards on schedule.
     public static let comboKeeper = FeatureWeights(
-        cardsCleared: 0.3,
-        winLikelihood: 0.1,
-        comboIntegrity: 1.5,
-        cardValueSpent: -0.8,
-        passBias: 0.2
+        cardsCleared: 0.7,
+        winLikelihood: 0.6,
+        comboIntegrity: 1.2,
+        cardValueSpent: -0.6,
+        passBias: -0.2
     )
 
-    /// Default expert baseline — moderate weights across all features.
+    /// Default expert baseline. Tuned via the AITournament harness toward the
+    /// strong end of policy space — fights for tempo, avoids reflexive passing,
+    /// stays mindful of rank cost.
     public static let balanced = FeatureWeights(
-        cardsCleared: 0.6,
-        winLikelihood: 0.5,
-        comboIntegrity: 0.7,
-        cardValueSpent: -0.7,
-        passBias: 0.0
+        cardsCleared: 1.1,
+        winLikelihood: 1.1,
+        comboIntegrity: 0.5,
+        cardValueSpent: -0.55,
+        passBias: -0.5
     )
 }

@@ -9,12 +9,15 @@ public enum Difficulty: String, Sendable, CaseIterable, Hashable, Codable {
     case medium
     case hard
 
-    /// Softmax temperature. Placeholder values; tuned via the tournament harness.
+    /// Softmax temperature. Tuned via the AITournament harness against the
+    /// `~25 / ~40 / ~60` Millionaire-rate calibration targets. v1 heuristics
+    /// cap Hard around ~50% — the rest is reserved for v2 (card counting,
+    /// 1-ply lookahead).
     public var temperature: Double {
         switch self {
         case .easy:   return 1.0
-        case .medium: return 0.5
-        case .hard:   return 0.15
+        case .medium: return 0.3
+        case .hard:   return 0.05
         }
     }
 
