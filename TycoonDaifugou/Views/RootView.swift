@@ -5,6 +5,7 @@ struct RootView: View {
     @State private var coordinator = NavigationCoordinator()
     @State private var selectedTab: AppTab = .home
     @Environment(\.modelContext) private var modelContext
+    @AppStorage(TutorialState.storageKey) private var hasCompletedTutorial: Bool = false
 
     var body: some View {
         @Bindable var coordinator = coordinator
@@ -29,6 +30,12 @@ struct RootView: View {
             if coordinator.store == nil {
                 coordinator.store = GameRecordStore(context: modelContext)
             }
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { !hasCompletedTutorial },
+            set: { _ in }
+        )) {
+            TutorialView()
         }
     }
 
