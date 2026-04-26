@@ -19,9 +19,6 @@ final class NavigationCoordinator {
 
     var showingQuitConfirm = false
 
-    private static let opponentEmojis = ["🎩", "😏", "😤", "🦊", "🐻", "🦁", "🐼"]
-    private static let opponentNames = ["Ryo", "Kai", "Hana", "Sora", "Yuki", "Rin", "Mei"]
-
     /// Starts a new game using the provided rule set and player/round counts.
     /// If `ruleSet` is nil, loads the persisted settings (see AppSettings).
     func startNewGame(
@@ -38,10 +35,16 @@ final class NavigationCoordinator {
 
         currentRuleSet = resolvedRuleSet
 
+        let rosterSeed = UInt64.random(in: .min ... .max)
+        let cpus = CPURoster.sample(count: resolvedOpponentCount, seed: rosterSeed)
+
         let human = Player(displayName: "You")
-        let aiPlayers = Self.opponentNames
-            .prefix(resolvedOpponentCount)
-            .map { Player(displayName: $0) }
+        let aiPlayers = cpus.map { Player(displayName: $0.name) }
+
+        var emojiMap: [PlayerID: String] = [human.id: "😎"]
+        for (player, profile) in zip(aiPlayers, cpus) {
+            emojiMap[player.id] = profile.emoji
+        }
 
         var opponents: [PlayerID: any Opponent] = [:]
         for ai in aiPlayers {
@@ -54,6 +57,7 @@ final class NavigationCoordinator {
             seed: UInt64.random(in: .min ... .max),
             humanPlayerID: human.id,
             opponents: opponents,
+            playerEmojis: emojiMap,
             maxRounds: resolvedRounds
         )
         lastResult = nil
@@ -91,15 +95,13 @@ final class NavigationCoordinator {
         let standings = controller.finalStandings
         let humanTitle = controller.humanPlayer?.currentTitle
 
-        var oppIndex = 0
         let players: [ResultPlayer] = standings.map { entry in
             let isHuman = entry.player.id == humanID
             let emoji: String
             if isHuman {
                 emoji = profile?.emoji ?? "😎"
             } else {
-                emoji = opponentEmojis[oppIndex % opponentEmojis.count]
-                oppIndex += 1
+                emoji = controller.emoji(for: entry.player.id)
             }
             return ResultPlayer(
                 name: isHuman ? "You" : entry.player.displayName,

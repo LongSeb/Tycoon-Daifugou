@@ -22,9 +22,26 @@ struct PlayingCardView: View {
 
             if card.isJoker {
                 Text("JKR")
-                    .font(.custom("InstrumentSans-Regular", size: jokerFontSize).weight(.semibold))
-                    .foregroundStyle(Color.cardSuitRed)
-                    .tracking(1)
+                    .font(.custom("Fraunces-9ptBlackItalic", size: jokerCornerFontSize))
+                    .foregroundStyle(jokerColor)
+                    .padding(.leading, cornerPadding)
+                    .padding(.top, cornerPadding)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+                Text("JKR")
+                    .font(.custom("Fraunces-9ptBlackItalic", size: jokerCornerFontSize))
+                    .foregroundStyle(jokerColor)
+                    .rotationEffect(.degrees(180))
+                    .padding(.trailing, cornerPadding)
+                    .padding(.bottom, cornerPadding)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+
+                Image("JokerCard")
+                    .resizable()
+                    .renderingMode(.template)
+                    .foregroundStyle(jokerColor)
+                    .aspectRatio(268.0 / 360.0, contentMode: .fit)
+                    .padding(2)
             } else {
                 cornerLabel
                     .padding(.leading, cornerPadding)
@@ -71,7 +88,13 @@ struct PlayingCardView: View {
     private var cornerSuitFontSize: CGFloat { style == .hand ? 11 : 14 }
     private var centerSuitFontSize: CGFloat { style == .hand ? 34 : 52 }
     private var cornerPadding: CGFloat { style == .hand ? 6 : 10 }
-    private var jokerFontSize: CGFloat { style == .hand ? 10 : 14 }
+    private var jokerCornerFontSize: CGFloat { style == .hand ? 11 : 15 }
+    private var jokerColor: Color {
+        if case .joker(let index) = card {
+            return index == 0 ? Color.cardSuitBlack : Color.cardSuitRed
+        }
+        return Color.cardSuitRed
+    }
     private var selectionDotSize: CGFloat { style == .hand ? 5 : 6 }
     private var selectionDotOffset: CGFloat { style == .hand ? -9 : -11 }
 

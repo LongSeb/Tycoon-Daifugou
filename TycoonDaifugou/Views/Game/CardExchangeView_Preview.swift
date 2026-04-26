@@ -8,6 +8,7 @@ private extension CardExchangeState {
     static let millionaire = CardExchangeState(
         humanLastRank: .millionaire,
         opponentName: "Hana",
+        opponentTitle: "Beggar",
         cardsToGive: [],
         cardsReceived: [.regular(.ace, .spades), .regular(.two, .hearts)],
         requiredGiveCount: 2,
@@ -18,6 +19,7 @@ private extension CardExchangeState {
     static let beggar = CardExchangeState(
         humanLastRank: .beggar,
         opponentName: "Ryo",
+        opponentTitle: "Millionaire",
         cardsToGive: [.regular(.ace, .clubs), .regular(.two, .diamonds)],
         cardsReceived: [.regular(.three, .hearts), .regular(.four, .spades)],
         requiredGiveCount: 2,
@@ -28,6 +30,7 @@ private extension CardExchangeState {
     static let rich = CardExchangeState(
         humanLastRank: .rich,
         opponentName: "Kai",
+        opponentTitle: "Poor",
         cardsToGive: [],
         cardsReceived: [.regular(.king, .diamonds)],
         requiredGiveCount: 1,

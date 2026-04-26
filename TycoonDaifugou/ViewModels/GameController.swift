@@ -112,25 +112,18 @@ final class GameController {
         seed: UInt64,
         humanPlayerID: PlayerID,
         opponents: [PlayerID: any Opponent],
+        playerEmojis: [PlayerID: String],
         maxRounds: Int = 3
     ) {
         self.state = GameState.newGame(players: players, ruleSet: ruleSet, seed: seed)
         self.humanPlayerID = humanPlayerID
         self.opponents = opponents
         self.maxRounds = maxRounds
+        self.playerEmojis = playerEmojis
+    }
 
-        let aiEmojis = ["🎩", "😏", "😤", "🦊", "🐻", "🦁", "🐼"]
-        var emojiIdx = 0
-        var emojiMap: [PlayerID: String] = [:]
-        for player in players {
-            if player.id == humanPlayerID {
-                emojiMap[player.id] = "😎"
-            } else {
-                emojiMap[player.id] = aiEmojis[emojiIdx % aiEmojis.count]
-                emojiIdx += 1
-            }
-        }
-        self.playerEmojis = emojiMap
+    func emoji(for playerID: PlayerID) -> String {
+        playerEmojis[playerID] ?? "🃏"
     }
 
     var humanHand: [Card] {
@@ -201,6 +194,14 @@ final class GameController {
                     try? await Task.sleep(nanoseconds: UInt64(waitNs * 1_000_000_000))
                 } else {
                     try? await Task.sleep(nanoseconds: 600_000_000)
+                }
+                // Event banners (8-Stop, Reversal, etc.) are registered via onChange,
+                // which fires on the first run-loop cycle after the triggering play —
+                // i.e. during the 600 ms sleep above. Re-check before acting so the
+                // next card isn't played while a notification is still on screen.
+                let remainNs = overlayBlockUntil.timeIntervalSinceNow
+                if remainNs > 0 {
+                    try? await Task.sleep(nanoseconds: UInt64(remainNs * 1_000_000_000))
                 }
                 guard let opponent = opponents[activePlayer.id] else { return }
                 let move = opponent.move(for: activePlayer.id, in: state)
@@ -483,6 +484,7 @@ final class GameController {
         return CardExchangeState(
             humanLastRank: humanLastRank,
             opponentName: opponent.displayName,
+            opponentTitle: opponentTitle.displayName,
             cardsToGive: cardsToGive,
             cardsReceived: cardsReceived,
             requiredGiveCount: giveTrade.cardCount,
