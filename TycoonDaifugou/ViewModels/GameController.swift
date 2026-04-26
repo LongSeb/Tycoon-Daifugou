@@ -25,14 +25,18 @@ final class GameController {
     private(set) var aiPlayCountByID: [PlayerID: Int] = [:]
     /// Bumped each time all players pass (or 8-stop/reversal fires) and the pile resets.
     private(set) var trickResetCounter: Int = 0
-    /// The card that was on top when the pile last reset; used for the fade-out animation.
-    private(set) var trickResetLastTopCard: Card? = nil
+    /// The full sequence of hands that were on the pile when it last reset, oldest first.
+    /// Includes the trigger hand for 8-stop / 3♠ reversal so the UI can keep displaying
+    /// the multi-card play during the fade-out.
+    private(set) var trickResetExitHands: [Hand] = []
     /// The player who gets to lead after the last trick reset (the last unbeaten player).
     private(set) var trickWinnerID: PlayerID? = nil
     /// Bumped each time bankruptcy fires; views observe this to show the overlay.
     private(set) var bankruptcyEventCounter: Int = 0
     /// The player who just went bankrupt; set at the same time as bankruptcyEventCounter.
     private(set) var bankruptedPlayerID: PlayerID? = nil
+    /// Bumped the moment the human player earns the Tycoon (millionaire) title.
+    private(set) var humanTycoonEventCounter: Int = 0
     /// Set 0.4 s before the AI applies its play move so the opponent panel can reveal the card.
     private(set) var pendingAIPlay: (playerID: PlayerID, card: Card)? = nil
     /// Date until which the AI loop should wait before acting — extended by overlay durations.
@@ -42,6 +46,12 @@ final class GameController {
     func extendOverlayBlock(for duration: TimeInterval) {
         let candidate = Date().addingTimeInterval(duration)
         if candidate > overlayBlockUntil { overlayBlockUntil = candidate }
+    }
+
+    /// Called by the view after the trick-reset fade-out completes, so the next play
+    /// renders the live pile cleanly without a stale exit snapshot lingering.
+    func clearTrickResetExitHands() {
+        trickResetExitHands = []
     }
 
     // MARK: - Game Tracking (stats & XP inputs)
@@ -183,10 +193,14 @@ final class GameController {
             switch state.phase {
             case .playing:
                 if activePlayer.id == humanPlayerID { return }
-                // Pause while any full-screen overlay is visible (+ its buffer).
+                // Pause while any full-screen overlay is visible (+ its buffer). Otherwise
+                // observe a uniform inter-turn gap so the cadence after a human move matches
+                // the cadence between consecutive AI moves.
                 let waitNs = overlayBlockUntil.timeIntervalSinceNow
                 if waitNs > 0 {
                     try? await Task.sleep(nanoseconds: UInt64(waitNs * 1_000_000_000))
+                } else {
+                    try? await Task.sleep(nanoseconds: 600_000_000)
                 }
                 guard let opponent = opponents[activePlayer.id] else { return }
                 let move = opponent.move(for: activePlayer.id, in: state)
@@ -205,8 +219,10 @@ final class GameController {
                     } catch {}
                     pendingAIPlay = nil
                 }
+                if moveSucceeded, case .play = move {
+                    SoundManager.shared.playCardPlay()
+                }
                 guard moveSucceeded else { return }
-                try? await Task.sleep(nanoseconds: 600_000_000)
 
             case .roundEnded:
                 if !countedRounds.contains(state.round) {
@@ -339,9 +355,16 @@ final class GameController {
     private func applyMove(_ move: Move) throws {
         let priorHumanHandCount = humanHand.count
         let priorTop = state.currentTrick.last
+        let priorTrick = state.currentTrick
         let priorRevolution = state.isRevolutionActive
         let priorBankruptIDs = Set(state.players.filter { $0.isBankrupt }.map { $0.id })
+        let priorHumanTitle = state.players.first(where: { $0.id == humanPlayerID })?.currentTitle
         state = try state.apply(move)
+
+        if priorHumanTitle != .millionaire,
+           state.players.first(where: { $0.id == humanPlayerID })?.currentTitle == .millionaire {
+            humanTycoonEventCounter &+= 1
+        }
 
         if case .play(let cards, let byPlayerID) = move {
             let isHumanMove = byPlayerID == humanPlayerID
@@ -390,19 +413,24 @@ final class GameController {
             }
         }
 
-        if let topCard = priorTop?.cards.first, state.currentTrick.isEmpty {
+        // Detect any move that left the pile empty: either everyone passed (priorTop
+        // was non-nil), or the move itself was an 8-stop / 3♠ reversal — including
+        // the case where someone leads an 8 onto an empty pile.
+        let playedHand: Hand? = {
+            if case .play(let cards, _) = move { return try? Hand(cards: cards) }
+            return nil
+        }()
+        let isPlayedEventTrigger: Bool = {
+            guard case .play(let cards, _) = move, let hand = playedHand else { return false }
+            return (state.ruleSet.eightStop && hand.rank == .eight)
+                || (cards == [.regular(.three, .spades)] && priorTop?.isSoloJoker == true)
+        }()
+        if state.currentTrick.isEmpty && (priorTop != nil || isPlayedEventTrigger) {
             trickResetCounter &+= 1
-            // For 8-stop and reversal the trick resets immediately after the trigger card
-            // is played, so the engine never holds the trigger card in currentTrick.
-            // Store the played card so the pile can display it before the event banner fires.
-            if case .play(let cards, _) = move,
-               let playedCard = cards.first,
-               let playedHand = try? Hand(cards: cards) {
-                let isEventTrigger = (state.ruleSet.eightStop && playedHand.rank == .eight)
-                    || (cards == [.regular(.three, .spades)] && priorTop?.isSoloJoker == true)
-                trickResetLastTopCard = isEventTrigger ? playedCard : topCard
+            if isPlayedEventTrigger, let hand = playedHand {
+                trickResetExitHands = priorTrick + [hand]
             } else {
-                trickResetLastTopCard = topCard
+                trickResetExitHands = priorTrick
             }
             let idx = state.currentPlayerIndex
             trickWinnerID = idx < state.players.count ? state.players[idx].id : nil
