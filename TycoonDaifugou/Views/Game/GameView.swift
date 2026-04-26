@@ -13,8 +13,8 @@ struct GameView: View {
     @State private var showRevolutionBanner = false
     @State private var showCounterRevolutionBanner = false
     @State private var showEightStopBanner = false
+    @State private var showTycoonBanner = false
     @Namespace private var cardNamespace
-    @State private var pileExitCard: Card? = nil
     @State private var pileExitAnimating = false
     @State private var showBankruptcyOverlay = false
     @State private var bankruptcyNameText = ""
@@ -47,6 +47,7 @@ struct GameView: View {
 
                 revolutionOverlay
                 counterRevolutionOverlay
+                tycoonOverlay
                 eventPills
             }
             .allowsHitTesting(
@@ -85,6 +86,7 @@ struct GameView: View {
         .onChange(of: controller.revolutionEventCounter) { _, _ in onRevolutionEvent() }
         .onChange(of: controller.counterRevolutionEventCounter) { _, _ in onCounterRevolutionEvent() }
         .onChange(of: controller.eightStopEventCounter) { _, _ in onEightStopEvent() }
+        .onChange(of: controller.humanTycoonEventCounter) { _, _ in onHumanTycoonEvent() }
         .onChange(of: controller.bankruptcyEventCounter) { _, _ in onBankruptcyEvent() }
         .onChange(of: controller.pendingRoundResult) { _, newValue in onRoundResultChange(newValue) }
         .onChange(of: controller.trickResetCounter) { _, _ in onTrickReset() }
@@ -132,6 +134,19 @@ struct GameView: View {
         }
     }
 
+    private func onHumanTycoonEvent() {
+        pendingEventOverlay = true
+        controller.extendOverlayBlock(for: 3.0)
+        Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            HapticManager.revolution()
+            showTycoonBanner = true
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            showTycoonBanner = false
+            pendingEventOverlay = false
+        }
+    }
+
     private func onEightStopEvent() {
         pendingEventOverlay = true
         controller.extendOverlayBlock(for: 2.4)
@@ -169,10 +184,7 @@ struct GameView: View {
     }
 
     private func onTrickReset() {
-        if let card = controller.trickResetLastTopCard {
-            pileExitCard = card
-            pileExitAnimating = false
-        }
+        pileExitAnimating = false
         let winnerID = controller.trickWinnerID
         if winnerID == controller.humanPlayerID {
             trickWinnerText = "Your lead"
@@ -180,23 +192,20 @@ struct GameView: View {
                   let player = controller.state.players.first(where: { $0.id == id }) {
             trickWinnerText = "\(player.displayName) leads"
         }
-        controller.extendOverlayBlock(for: 2.0)
+
+        let hasEventBanner = pendingEventOverlay || showReversalBanner
+            || showRevolutionBanner || showCounterRevolutionBanner || showEightStopBanner
+        let preDelayNs: UInt64 = hasEventBanner ? 2_000_000_000 : 150_000_000
+        controller.extendOverlayBlock(for: hasEventBanner ? 4.0 : 2.0)
+
         Task {
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            guard !pendingEventOverlay && !showReversalBanner && !showRevolutionBanner && !showEightStopBanner else {
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                withAnimation(.easeOut(duration: 0.3)) { pileExitAnimating = true }
-                try? await Task.sleep(nanoseconds: 350_000_000)
-                pileExitCard = nil
-                pileExitAnimating = false
-                return
-            }
+            try? await Task.sleep(nanoseconds: preDelayNs)
             withAnimation(.easeOut(duration: 0.25)) { pileExitAnimating = true }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { showTrickWinnerOverlay = true }
             try? await Task.sleep(nanoseconds: 1_300_000_000)
             withAnimation(.easeOut(duration: 0.3)) { showTrickWinnerOverlay = false }
             try? await Task.sleep(nanoseconds: 350_000_000)
-            pileExitCard = nil
+            controller.clearTrickResetExitHands()
             pileExitAnimating = false
         }
     }
@@ -209,14 +218,14 @@ struct GameView: View {
                 .opacity(showRevolutionBanner ? 0.88 : 0)
                 .ignoresSafeArea()
                 .animation(.easeOut(duration: 0.25), value: showRevolutionBanner)
-            Color.tycoonMint
+            Color.cardRed
                 .opacity(showRevolutionBanner ? 0.10 : 0)
                 .ignoresSafeArea()
                 .animation(.easeOut(duration: 0.25), value: showRevolutionBanner)
             VStack(spacing: 0) {
                 Spacer()
                 Rectangle()
-                    .fill(Color.tycoonMint)
+                    .fill(Color.cardRed)
                     .frame(height: 1.5)
                     .scaleEffect(x: showRevolutionBanner ? 1 : 0, anchor: .center)
                     .animation(.easeOut(duration: 0.4), value: showRevolutionBanner)
@@ -224,12 +233,12 @@ struct GameView: View {
                     Text("REVOLUTION")
                         .font(.custom("Fraunces-9ptBlackItalic", size: 68))
                         .foregroundStyle(Color.white)
-                        .shadow(color: Color.tycoonMint, radius: 40, x: 0, y: 0)
+                        .shadow(color: Color.cardRed, radius: 40, x: 0, y: 0)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                     Text("RANK ORDER INVERTED")
                         .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
-                        .foregroundStyle(Color.tycoonMint.opacity(0.85))
+                        .foregroundStyle(Color.cardRed.opacity(0.85))
                         .tracking(4)
                 }
                 .padding(.vertical, 22)
@@ -237,7 +246,7 @@ struct GameView: View {
                 .opacity(showRevolutionBanner ? 1 : 0)
                 .animation(.spring(response: 0.45, dampingFraction: 0.7), value: showRevolutionBanner)
                 Rectangle()
-                    .fill(Color.tycoonMint)
+                    .fill(Color.cardRed)
                     .frame(height: 1.5)
                     .scaleEffect(x: showRevolutionBanner ? 1 : 0, anchor: .center)
                     .animation(.easeOut(duration: 0.4), value: showRevolutionBanner)
@@ -248,6 +257,53 @@ struct GameView: View {
         }
         .allowsHitTesting(false)
         .zIndex(22)
+    }
+
+    private var tycoonOverlay: some View {
+        ZStack {
+            Color.black
+                .opacity(showTycoonBanner ? 0.88 : 0)
+                .ignoresSafeArea()
+                .animation(.easeOut(duration: 0.25), value: showTycoonBanner)
+            Color.cardGold
+                .opacity(showTycoonBanner ? 0.10 : 0)
+                .ignoresSafeArea()
+                .animation(.easeOut(duration: 0.25), value: showTycoonBanner)
+            VStack(spacing: 0) {
+                Spacer()
+                Rectangle()
+                    .fill(Color.cardGold)
+                    .frame(height: 1.5)
+                    .scaleEffect(x: showTycoonBanner ? 1 : 0, anchor: .center)
+                    .animation(.easeOut(duration: 0.4), value: showTycoonBanner)
+                VStack(spacing: 10) {
+                    Text("TYCOON")
+                        .font(.custom("Fraunces-9ptBlackItalic", size: 78))
+                        .foregroundStyle(Color.white)
+                        .shadow(color: Color.cardGold, radius: 40, x: 0, y: 0)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text("FIRST PLACE")
+                        .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
+                        .foregroundStyle(Color.cardGold.opacity(0.85))
+                        .tracking(4)
+                }
+                .padding(.vertical, 22)
+                .scaleEffect(showTycoonBanner ? 1 : 0.75)
+                .opacity(showTycoonBanner ? 1 : 0)
+                .animation(.spring(response: 0.45, dampingFraction: 0.7), value: showTycoonBanner)
+                Rectangle()
+                    .fill(Color.cardGold)
+                    .frame(height: 1.5)
+                    .scaleEffect(x: showTycoonBanner ? 1 : 0, anchor: .center)
+                    .animation(.easeOut(duration: 0.4), value: showTycoonBanner)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
+        }
+        .allowsHitTesting(false)
+        .zIndex(23)
     }
 
     private var counterRevolutionOverlay: some View {
@@ -315,6 +371,7 @@ struct GameView: View {
                 .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(Color.cardBlush.opacity(0.25), lineWidth: 1))
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .shadow(color: Color.black.opacity(0.85), radius: 22, x: 0, y: 12)
                 .opacity(showReversalBanner ? 1 : 0)
                 .scaleEffect(showReversalBanner ? 1 : 0.88)
                 .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showReversalBanner)
@@ -339,6 +396,7 @@ struct GameView: View {
                 .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(Color.cardMint.opacity(0.25), lineWidth: 1))
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .shadow(color: Color.black.opacity(0.85), radius: 22, x: 0, y: 12)
                 .opacity(showEightStopBanner ? 1 : 0)
                 .scaleEffect(showEightStopBanner ? 1 : 0.88)
                 .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showEightStopBanner)
@@ -365,6 +423,7 @@ struct GameView: View {
                 .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(Color.cardCream.opacity(0.25), lineWidth: 1))
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .shadow(color: Color.black.opacity(0.85), radius: 22, x: 0, y: 12)
                 .opacity(showBankruptcyOverlay ? 1 : 0)
                 .scaleEffect(showBankruptcyOverlay ? 1 : 0.88)
                 .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showBankruptcyOverlay)
@@ -389,6 +448,7 @@ struct GameView: View {
                 .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .shadow(color: Color.black.opacity(0.85), radius: 22, x: 0, y: 12)
                 .opacity(showTrickWinnerOverlay ? 1 : 0)
                 .scaleEffect(showTrickWinnerOverlay ? 1 : 0.88)
                 .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showTrickWinnerOverlay)
@@ -426,6 +486,7 @@ struct GameView: View {
     private var isAnyOverlayShowing: Bool {
         showReversalBanner || showRevolutionBanner || showCounterRevolutionBanner
             || showEightStopBanner || showBankruptcyOverlay || showTrickWinnerOverlay
+            || showTycoonBanner
     }
 
     private var sortedHand: [Card] {
@@ -454,6 +515,65 @@ struct GameView: View {
 
     private var pileTopHand: Hand? {
         controller.state.currentTrick.last
+    }
+
+    /// Subtle fan offsets so doubles/triples/quads visibly stack on the pile
+    /// instead of collapsing to a single card. Singles render flat at center.
+    private func stackOffset(index: Int, count: Int) -> (x: CGFloat, y: CGFloat, rotation: Double) {
+        guard count > 1 else { return (0, 0, 0) }
+        let center = CGFloat(index) - CGFloat(count - 1) / 2
+        return (x: center * 7, y: center * 3, rotation: Double(center) * 2.5)
+    }
+
+    /// Up to 2 most-recent prior plays in the current trick (excluding the top),
+    /// ordered oldest → newest so SwiftUI z-orders them naturally behind the top.
+    private var priorPeekHands: [Hand] {
+        let trick = controller.state.currentTrick
+        guard trick.count > 1 else { return [] }
+        return Array(trick.dropLast().suffix(2))
+    }
+
+    /// Offset for a prior peek card. `stepsBack` is 1 for the most recent prior, 2 for the one before.
+    private func priorPeekOffset(stepsBack: Int) -> (x: CGFloat, y: CGFloat, rotation: Double, opacity: Double) {
+        let s = CGFloat(stepsBack)
+        return (x: -s * 14, y: -s * 5, rotation: -Double(stepsBack) * 6, opacity: 1.0)
+    }
+
+    /// Static snapshot of the pile (priors + stacked top) used during the trick-reset
+    /// fade-out so 8-stop / reversal plays still display their full multi-card stack.
+    @ViewBuilder
+    private func pileStack(hands: [Hand], applyMatchedGeometry: Bool) -> some View {
+        let priors = hands.count > 1 ? Array(hands.dropLast().suffix(2)) : []
+        ZStack {
+            ForEach(Array(priors.enumerated()), id: \.element) { idx, hand in
+                if let lead = hand.cards.first {
+                    let stepsBack = priors.count - idx
+                    let peek = priorPeekOffset(stepsBack: stepsBack)
+                    PlayingCardView(card: lead, style: .pile)
+                        .opacity(peek.opacity)
+                        .offset(x: peek.x, y: peek.y)
+                        .rotationEffect(.degrees(peek.rotation))
+                        .zIndex(Double(-stepsBack))
+                }
+            }
+            if let top = hands.last {
+                ForEach(Array(top.cards.enumerated()), id: \.element) { index, card in
+                    let off = stackOffset(index: index, count: top.cards.count)
+                    Group {
+                        if index == 0 && applyMatchedGeometry {
+                            PlayingCardView(card: card, style: .pile)
+                                .matchedGeometryEffect(id: card, in: cardNamespace, isSource: false)
+                                .id(card)
+                        } else {
+                            PlayingCardView(card: card, style: .pile)
+                        }
+                    }
+                    .offset(x: off.x, y: off.y)
+                    .rotationEffect(.degrees(off.rotation))
+                    .zIndex(Double(index))
+                }
+            }
+        }
     }
 
     private var pileHint: String {
@@ -519,7 +639,9 @@ struct GameView: View {
                     aiPlayCount: controller.aiPlayCountByID[opp.id] ?? 0,
                     pendingCard: controller.pendingAIPlay?.playerID == opp.id
                         ? controller.pendingAIPlay?.card : nil,
-                    cardNamespace: cardNamespace
+                    cardNamespace: cardNamespace,
+                    isFirst: index == 0,
+                    isLast: index == opponents.count - 1
                 )
                 if index < opponents.count - 1 {
                     Divider().background(Color.black.opacity(0.5))
@@ -545,31 +667,49 @@ struct GameView: View {
                 .tracking(2.5)
 
             ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color(red: 0.094, green: 0.094, blue: 0.094))
-                    .frame(width: 96, height: 136)
-                    .rotationEffect(.degrees(-6))
-                    .offset(x: -4, y: 4)
+                Color.clear
+                    .frame(width: 140, height: 165)
 
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color(red: 0.102, green: 0.102, blue: 0.102))
-                    .frame(width: 96, height: 136)
-                    .rotationEffect(.degrees(-2))
-                    .offset(x: 2, y: 1)
-
-                if let top = pileTopHand, let card = top.cards.first {
-                    PlayingCardView(card: card, style: .pile)
-                        .matchedGeometryEffect(id: card, in: cardNamespace, isSource: false)
-                        .id(card)
+                ForEach(Array(priorPeekHands.enumerated()), id: \.element) { idx, hand in
+                    if let lead = hand.cards.first {
+                        let stepsBack = priorPeekHands.count - idx
+                        let peek = priorPeekOffset(stepsBack: stepsBack)
+                        PlayingCardView(card: lead, style: .pile)
+                            .opacity(peek.opacity)
+                            .offset(x: peek.x, y: peek.y)
+                            .rotationEffect(.degrees(peek.rotation))
+                            .zIndex(Double(-stepsBack))
+                            .transition(.opacity)
+                            .allowsHitTesting(false)
+                    }
                 }
 
-                if let card = pileExitCard {
-                    PlayingCardView(card: card, style: .pile)
+                if let top = pileTopHand {
+                    ForEach(Array(top.cards.enumerated()), id: \.element) { index, card in
+                        let offset = stackOffset(index: index, count: top.cards.count)
+                        Group {
+                            if index == 0 {
+                                PlayingCardView(card: card, style: .pile)
+                                    .matchedGeometryEffect(id: card, in: cardNamespace, isSource: false)
+                                    .id(card)
+                            } else {
+                                PlayingCardView(card: card, style: .pile)
+                                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                            }
+                        }
+                        .offset(x: offset.x, y: offset.y)
+                        .rotationEffect(.degrees(offset.rotation))
+                        .zIndex(Double(index))
+                    }
+                }
+
+                if !controller.trickResetExitHands.isEmpty && controller.state.currentTrick.isEmpty {
+                    pileStack(hands: controller.trickResetExitHands, applyMatchedGeometry: true)
                         .scaleEffect(pileExitAnimating ? 0.8 : 1.0)
                         .opacity(pileExitAnimating ? 0 : 1.0)
                         .animation(.easeOut(duration: 0.25), value: pileExitAnimating)
-                        .transition(.scale(scale: 0.82).combined(with: .opacity))
                         .allowsHitTesting(false)
+                        .zIndex(100)
                 }
             }
 

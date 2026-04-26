@@ -9,6 +9,8 @@ struct OpponentPanel: View {
     let aiPlayCount: Int
     let pendingCard: Card?
     let cardNamespace: Namespace.ID
+    var isFirst: Bool = false
+    var isLast: Bool = false
 
     @State private var isFlashing = false
 
@@ -72,12 +74,18 @@ struct OpponentPanel: View {
             }
         }
         .overlay(
-            Rectangle()
-                .strokeBorder(
-                    Color.tycoonMint.opacity(isFlashing ? 0.7 : 0),
-                    lineWidth: 1.5
-                )
-                .animation(.easeOut(duration: 0.35), value: isFlashing)
+            UnevenRoundedRectangle(
+                topLeadingRadius: isFirst ? 16 : 0,
+                bottomLeadingRadius: isFirst ? 16 : 0,
+                bottomTrailingRadius: isLast ? 16 : 0,
+                topTrailingRadius: isLast ? 16 : 0,
+                style: .continuous
+            )
+            .strokeBorder(
+                Color.tycoonMint.opacity(isFlashing ? 0.7 : 0),
+                lineWidth: 1.5
+            )
+            .animation(.easeOut(duration: 0.35), value: isFlashing)
         )
         .onChange(of: aiPlayCount) { _, _ in
             guard aiPlayCount > 0 else { return }
@@ -138,12 +146,19 @@ private struct OpponentTag: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .overlay(
-            OpponentTagTriangle()
-                .fill(isActive
-                      ? Color(red: 0.098, green: 0.055, blue: 0.071)
-                      : Color.tycoonBlack)
-                .frame(width: 12, height: 8)
-                .offset(y: 4),
+            ZStack {
+                OpponentTagTriangle()
+                    .fill(isActive
+                          ? Color(red: 0.098, green: 0.055, blue: 0.071)
+                          : Color.tycoonBlack)
+                OpponentTagTriangleSlants()
+                    .stroke(
+                        isActive ? Color.cardBlush.opacity(0.4) : Color.white.opacity(0.1),
+                        lineWidth: 1
+                    )
+            }
+            .frame(width: 12, height: 8)
+            .offset(y: 4),
             alignment: .bottom
         )
         .padding(.bottom, 8)
@@ -157,6 +172,20 @@ private struct OpponentTagTriangle: Shape {
             p.addLine(to: CGPoint(x: rect.midX + 6, y: rect.minY))
             p.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
             p.closeSubpath()
+        }
+    }
+}
+
+/// Strokes only the visible portion of each slant — from where it exits the box's
+/// bottom edge (the slant's midpoint) down to the tip. The top half of each slant
+/// sits inside the box and is hidden by the box's own border.
+private struct OpponentTagTriangleSlants: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { p in
+            p.move(to: CGPoint(x: rect.minX + rect.width / 4, y: rect.midY))
+            p.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+            p.move(to: CGPoint(x: rect.maxX - rect.width / 4, y: rect.midY))
+            p.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
         }
     }
 }

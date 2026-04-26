@@ -14,6 +14,8 @@ extension Color {
     static let cardBlush = Color(ds: 0xCFFFF7)
     static let cardLavender = Color(ds: 0xE5D4FF)
     static let cardMint = Color(ds: 0xD4FFE5)
+    static let cardGold = Color(ds: 0xFFE9A3)
+    static let cardRed = Color(ds: 0xFFB3B3)
 
     // Classic playing-card rank/suit colors — used on light card faces
     static let cardSuitRed = Color(ds: 0xEB3D42)
