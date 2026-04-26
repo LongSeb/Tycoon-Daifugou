@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage(AppSettings.Key.hapticsEnabled) private var hapticsEnabled: Bool = true
 
     @State private var showRules = false
+    @State private var showTutorial = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -26,6 +27,9 @@ struct SettingsView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showRules)
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showTutorial) {
+            TutorialView(isReplay: true)
+        }
     }
 
     // MARK: - Top Bar
@@ -112,6 +116,24 @@ struct SettingsView: View {
             Button(action: { showRules = true }) {
                 HStack {
                     Text("Rules reference")
+                        .font(.settingsRowTitle)
+                        .foregroundStyle(Color.textPrimary)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.textTertiary)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 16)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            divider
+            Button(action: { showTutorial = true }) {
+                HStack {
+                    Text("Replay tutorial")
                         .font(.settingsRowTitle)
                         .foregroundStyle(Color.textPrimary)
 
