@@ -22,6 +22,7 @@ struct GameView: View {
     @State private var trickWinnerText = ""
     /// The lead card currently flying from hand to pile via matchedGeometryEffect.
     @State private var flyCard: Card? = nil
+    @State private var fastForwardPressed = false
     /// True from the moment an event fires until the event banner fully hides,
     /// including the pre-banner delay while the card lands on the pile.
     @State private var pendingEventOverlay = false
@@ -878,18 +879,25 @@ struct GameView: View {
                 }
                 HStack {
                     Spacer(minLength: 0)
-                    Button(action: play) {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(Color.tycoonBlack)
+                    if controller.humanHasFinishedRound {
+                        fastForwardButton
+                            .transition(.opacity)
+                    } else {
+                        Button(action: play) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(Color.tycoonBlack)
+                        }
+                        .frame(width: 54, height: 54)
+                        .background(playButtonEnabled ? Color.cardBlush : Color.cardBlush.opacity(0.25))
+                        .clipShape(Circle())
+                        .disabled(!playButtonEnabled)
+                        .opacity(selected.isEmpty ? 0 : 1)
+                        .animation(.easeInOut(duration: 0.15), value: selected.isEmpty)
+                        .transition(.opacity)
                     }
-                    .frame(width: 54, height: 54)
-                    .background(playButtonEnabled ? Color.cardBlush : Color.cardBlush.opacity(0.25))
-                    .clipShape(Circle())
-                    .disabled(!playButtonEnabled)
-                    .opacity(selected.isEmpty ? 0 : 1)
-                    .animation(.easeInOut(duration: 0.15), value: selected.isEmpty)
                 }
+                .animation(.easeInOut(duration: 0.2), value: controller.humanHasFinishedRound)
             }
             .frame(maxWidth: .infinity)
         }
@@ -1010,6 +1018,40 @@ struct GameView: View {
 
     private var playButtonEnabled: Bool {
         controller.isHumansTurn && !selected.isEmpty && controller.canPlay(cards: Array(selected))
+    }
+
+    private var fastForwardButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.08)) { fastForwardPressed = true }
+            Task {
+                try? await Task.sleep(nanoseconds: 80_000_000)
+                withAnimation(.easeInOut(duration: 0.08)) { fastForwardPressed = false }
+                controller.fastForwardRound()
+            }
+        } label: {
+            if controller.isFastForwarding {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .scaleEffect(0.75)
+                        .tint(.white)
+                    Text("Finishing…")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Color.white)
+                }
+            } else {
+                Text("⏭ Skip")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.white)
+            }
+        }
+        .frame(height: 46)
+        .padding(.horizontal, 22)
+        .background(Color.tycoonSurface)
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.09), lineWidth: 1))
+        .clipShape(Capsule())
+        .scaleEffect(fastForwardPressed ? 0.96 : 1.0)
+        .disabled(controller.isFastForwarding)
     }
 
     // MARK: Actions

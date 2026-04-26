@@ -42,6 +42,10 @@ final class GameController {
     private(set) var pendingAIPlay: (playerID: PlayerID, card: Card)? = nil
     /// Date until which the AI loop should wait before acting — extended by overlay durations.
     private var overlayBlockUntil: Date = .distantPast
+    /// True while fastForwardRound() is processing the remaining CPU turns.
+    /// resolveAITurnsIfNeeded() exits immediately when this is set to prevent
+    /// concurrent move application with the fast-forward task.
+    private(set) var isFastForwarding: Bool = false
 
     /// Extends the overlay block window. Views call this whenever a full-screen overlay appears.
     func extendOverlayBlock(for duration: TimeInterval) {
@@ -171,6 +175,13 @@ final class GameController {
         state.phase == .playing && activePlayer.id == humanPlayerID
     }
 
+    /// True once the human has played their last card and the round is still in progress.
+    /// False during .roundEnded, .trading, and before any cards are played.
+    var humanHasFinishedRound: Bool {
+        guard state.phase == .playing else { return false }
+        return state.players.first { $0.id == humanPlayerID }?.hand.isEmpty == true
+    }
+
     var currentTrick: [Hand] {
         state.currentTrick
     }
@@ -201,6 +212,40 @@ final class GameController {
         try applyMove(.pass(by: humanPlayerID))
     }
 
+    /// Processes remaining CPU turns at 0.1 s/move instead of the normal 600 ms cadence.
+    /// The engine has no force-end method, so each move still goes through full validation.
+    /// CPU rank assignment is handled naturally by the engine's applyFinish logic.
+    func fastForwardRound() {
+        guard humanHasFinishedRound, !isFastForwarding else { return }
+        isFastForwarding = true
+        Task {
+            while state.phase == .playing {
+                let current = activePlayer
+                guard current.id != humanPlayerID else { break }
+                guard let opponent = opponents[current.id] else { break }
+                let move = opponent.move(for: current.id, in: state)
+                if case .play(let cards, let byID) = move, let first = cards.first {
+                    pendingAIPlay = (playerID: byID, card: first)
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                }
+                var moveSucceeded = false
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    do {
+                        try applyMove(move)
+                        moveSucceeded = true
+                    } catch {}
+                    pendingAIPlay = nil
+                }
+                if moveSucceeded, case .play = move {
+                    SoundManager.shared.playCardPlay()
+                }
+                guard moveSucceeded else { break }
+            }
+            isFastForwarding = false
+            await resolveAITurnsIfNeeded()
+        }
+    }
+
     /// Drives the game forward until the human has something to do (or a round ends).
     /// Runs AI plays, auto-resolves the trading phase, and records inter-round results
     /// when a round ends. The loop always pauses at `.roundEnded` — the user must
@@ -210,6 +255,7 @@ final class GameController {
             switch state.phase {
             case .playing:
                 if activePlayer.id == humanPlayerID { return }
+                if isFastForwarding { return }
                 // Pause while any full-screen overlay is visible (+ its buffer). Otherwise
                 // observe a uniform inter-turn gap so the cadence after a human move matches
                 // the cadence between consecutive AI moves.
@@ -227,6 +273,7 @@ final class GameController {
                 if remainNs > 0 {
                     try? await Task.sleep(nanoseconds: UInt64(remainNs * 1_000_000_000))
                 }
+                if isFastForwarding { return }
                 guard let opponent = opponents[activePlayer.id] else { return }
                 let move = opponent.move(for: activePlayer.id, in: state)
                 // Pre-announce play so the opponent panel can reveal the card before state updates.
