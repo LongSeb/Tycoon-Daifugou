@@ -36,11 +36,8 @@ struct GameView: View {
                     opponentZone
                     playPile
                     Spacer(minLength: 0)
-                    playerStatusTag
-                    handHeader
-                    noPlayableCardsHint
+                    actionArea
                     fanHand
-                    actionButtons
                 }
 
                 RulesDrawer(isPresented: $showRules)
@@ -810,24 +807,91 @@ struct GameView: View {
                 }
             }
 
-            Text(pileHint)
-                .font(.custom("InstrumentSans-Regular", size: 15).weight(.medium))
-                .foregroundStyle(Color.white.opacity(0.45))
+            Group {
+                if controller.isHumansTurn && playableCards.isEmpty {
+                    Text("No playable cards — you must Pass")
+                        .font(.system(size: 13, weight: .medium).italic())
+                } else {
+                    Text(pileHint)
+                        .font(.custom("InstrumentSans-Regular", size: 15).weight(.medium))
+                }
+            }
+            .foregroundStyle(Color.white.opacity(0.45))
+            .animation(.easeIn(duration: 0.2), value: controller.isHumansTurn && playableCards.isEmpty)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        .padding(.top, 12)
+        .padding(.bottom, 4)
     }
 
-    // MARK: Player Status Tag
+    // MARK: Action Area
 
-    private var playerStatusTag: some View {
-        HStack(spacing: 12) {
-            statusBox
-            Spacer(minLength: 8)
-            if controller.state.isRevolutionActive {
-                revolutionActivePill
-                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+    private var actionArea: some View {
+        HStack(alignment: .top, spacing: 16) {
+            // LEFT COLUMN: YOUR TURN indicator, Rank/Cards Left pill, PASS button
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(controller.isHumansTurn ? Color.cardBlush : Color.white.opacity(0.2))
+                        .frame(width: 8, height: 8)
+                    Text(controller.isHumansTurn ? "YOUR TURN" : "WAITING…")
+                        .font(.custom("InstrumentSans-Regular", size: 13).weight(.semibold))
+                        .foregroundStyle(controller.isHumansTurn ? Color.cardBlush : Color.white.opacity(0.35))
+                        .tracking(1.5)
+                }
+                statusBox
+                if controller.state.isRevolutionActive {
+                    revolutionActivePill
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                }
+                Button("PASS") { pass() }
+                    .font(.custom("InstrumentSans-Regular", size: 13).weight(.semibold))
+                    .foregroundStyle(controller.canPass ? Color.textPrimary : Color.textTertiary)
+                    .tracking(1)
+                    .frame(height: 46)
+                    .padding(.horizontal, 22)
+                    .background(Color.white.opacity(0.05))
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.09), lineWidth: 1))
+                    .clipShape(Capsule())
+                    .disabled(!controller.canPass)
             }
+            .frame(maxWidth: .infinity)
+
+            // RIGHT COLUMN: [?] help + cards label, PLAY button
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Spacer(minLength: 0)
+                    Button(action: { showRules = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.06))
+                                .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                                .frame(width: 26, height: 26)
+                            Text("?")
+                                .font(.custom("InstrumentSans-Regular", size: 14).weight(.semibold))
+                                .foregroundStyle(Color.textTertiary)
+                        }
+                    }
+                    Text("\(controller.humanHand.count) cards")
+                        .font(.custom("InstrumentSans-Regular", size: 13).weight(.medium))
+                        .foregroundStyle(Color.white.opacity(0.35))
+                }
+                HStack {
+                    Spacer(minLength: 0)
+                    Button(action: play) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color.tycoonBlack)
+                    }
+                    .frame(width: 54, height: 54)
+                    .background(playButtonEnabled ? Color.cardBlush : Color.cardBlush.opacity(0.25))
+                    .clipShape(Circle())
+                    .disabled(!playButtonEnabled)
+                    .opacity(selected.isEmpty ? 0 : 1)
+                    .animation(.easeInOut(duration: 0.15), value: selected.isEmpty)
+                }
+            }
+            .frame(maxWidth: .infinity)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 4)
@@ -869,60 +933,6 @@ struct GameView: View {
                 .strokeBorder(Color.cardBlush.opacity(0.2), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-
-    // MARK: Hand Header
-
-    private var handHeader: some View {
-        HStack {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(controller.isHumansTurn ? Color.cardBlush : Color.white.opacity(0.2))
-                    .frame(width: 8, height: 8)
-                Text(controller.isHumansTurn ? "YOUR TURN" : "WAITING…")
-                    .font(.custom("InstrumentSans-Regular", size: 13).weight(.semibold))
-                    .foregroundStyle(controller.isHumansTurn ? Color.cardBlush : Color.white.opacity(0.35))
-                    .tracking(1.5)
-            }
-            Spacer()
-            HStack(spacing: 8) {
-                Button(action: { showRules = true }) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.white.opacity(0.06))
-                            .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-                            .frame(width: 26, height: 26)
-                        Text("?")
-                            .font(.custom("InstrumentSans-Regular", size: 14).weight(.semibold))
-                            .foregroundStyle(Color.textTertiary)
-                    }
-                }
-                Text("\(controller.humanHand.count) cards")
-                    .font(.custom("InstrumentSans-Regular", size: 13).weight(.medium))
-                    .foregroundStyle(Color.white.opacity(0.35))
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 4)
-    }
-
-    // MARK: No-Playable-Cards Hint
-
-    private var noPlayableCardsHint: some View {
-        let shouldShow = controller.isHumansTurn && playableCards.isEmpty
-        return Group {
-            if shouldShow {
-                Text("No playable cards — you must Pass")
-                    .font(.system(size: 13, weight: .medium).italic())
-                    .foregroundStyle(Color.white.opacity(0.45))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 4)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeIn(duration: 0.2), value: shouldShow)
     }
 
     // MARK: Fan Hand
@@ -994,41 +1004,8 @@ struct GameView: View {
             .offset(x: invalidPlayShake)
         }
         .frame(height: 235)
-        .padding(.top, 8)
+        .padding(.top, 6)
         .padding(.horizontal, 4)
-    }
-
-    // MARK: Action Buttons
-
-    private var actionButtons: some View {
-        HStack {
-            Button("PASS") { pass() }
-                .font(.custom("InstrumentSans-Regular", size: 13).weight(.semibold))
-                .foregroundStyle(controller.canPass ? Color.textPrimary : Color.textTertiary)
-                .tracking(1)
-                .frame(height: 46)
-                .padding(.horizontal, 22)
-                .background(Color.white.opacity(0.05))
-                .overlay(Capsule().strokeBorder(Color.white.opacity(0.09), lineWidth: 1))
-                .clipShape(Capsule())
-                .disabled(!controller.canPass)
-
-            Spacer()
-
-            Button(action: play) {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Color.tycoonBlack)
-            }
-            .frame(width: 54, height: 54)
-            .background(playButtonEnabled ? Color.cardBlush : Color.cardBlush.opacity(0.25))
-            .clipShape(Circle())
-            .disabled(!playButtonEnabled)
-            .opacity(selected.isEmpty ? 0 : 1)
-            .animation(.easeInOut(duration: 0.15), value: selected.isEmpty)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
     }
 
     private var playButtonEnabled: Bool {
