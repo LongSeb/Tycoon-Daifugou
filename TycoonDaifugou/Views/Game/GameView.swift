@@ -525,6 +525,70 @@ struct GameView: View {
         return (x: center * 7, y: center * 3, rotation: Double(center) * 2.5)
     }
 
+    private struct PileCardSlot {
+        var offsetX: CGFloat
+        var offsetY: CGFloat
+        var rotation: Double
+        var zIndex: Double
+    }
+
+    /// Per-card layout for the current top hand. For "rank + wild" plays
+    /// (mixed regulars + Jokers, or a double-Joker trump pair) the regular
+    /// card(s) stack centrally on top and the Joker(s) poke out to the right
+    /// behind them, so the rank being played stays visible. Pure regular and
+    /// solo-Joker plays use the standard left-fan.
+    private func pileLayout(for hand: Hand) -> [PileCardSlot] {
+        let cards = hand.cards
+        let count = cards.count
+        guard count > 0 else { return [] }
+
+        let jokerIndices = cards.indices.filter { cards[$0].isJoker }
+        let regularIndices = cards.indices.filter { !cards[$0].isJoker }
+        let isMixed = !jokerIndices.isEmpty && !regularIndices.isEmpty
+
+        guard isMixed || hand.isDoubleJoker else {
+            return cards.indices.map { index in
+                let off = stackOffset(index: index, count: count)
+                return PileCardSlot(offsetX: off.x, offsetY: off.y, rotation: off.rotation, zIndex: Double(index))
+            }
+        }
+
+        // For double-Joker the first Joker is promoted to "primary" so the
+        // right-poke style still reads as one-card-plus-wild visually.
+        let primary: [Int] = isMixed ? regularIndices : [jokerIndices[0]]
+        let satellite: [Int] = isMixed ? jokerIndices : Array(jokerIndices.dropFirst())
+
+        var slots = Array(
+            repeating: PileCardSlot(offsetX: 0, offsetY: 0, rotation: 0, zIndex: 0),
+            count: count
+        )
+
+        // Tighter inner fan on the primary group so it doesn't crowd the Joker poke.
+        let primaryCount = primary.count
+        for (orderIndex, cardIndex) in primary.enumerated() {
+            let center = CGFloat(orderIndex) - CGFloat(primaryCount - 1) / 2
+            slots[cardIndex] = PileCardSlot(
+                offsetX: center * 5,
+                offsetY: center * 2,
+                rotation: Double(center) * 2,
+                zIndex: 10 + Double(orderIndex)
+            )
+        }
+
+        // Satellite Jokers hang to the right, slightly tilted and behind the primary.
+        for (orderIndex, cardIndex) in satellite.enumerated() {
+            let step = CGFloat(orderIndex)
+            slots[cardIndex] = PileCardSlot(
+                offsetX: 22 + step * 8,
+                offsetY: -3 - step,
+                rotation: 9 + Double(orderIndex) * 3,
+                zIndex: -1 - Double(orderIndex)
+            )
+        }
+
+        return slots
+    }
+
     /// Up to 2 most-recent prior plays in the current trick (excluding the top),
     /// ordered oldest → newest so SwiftUI z-orders them naturally behind the top.
     private var priorPeekHands: [Hand] {
@@ -557,8 +621,9 @@ struct GameView: View {
                 }
             }
             if let top = hands.last {
+                let slots = pileLayout(for: top)
                 ForEach(Array(top.cards.enumerated()), id: \.element) { index, card in
-                    let off = stackOffset(index: index, count: top.cards.count)
+                    let slot = slots[index]
                     Group {
                         if index == 0 && applyMatchedGeometry {
                             PlayingCardView(card: card, style: .pile)
@@ -568,9 +633,9 @@ struct GameView: View {
                             PlayingCardView(card: card, style: .pile)
                         }
                     }
-                    .offset(x: off.x, y: off.y)
-                    .rotationEffect(.degrees(off.rotation))
-                    .zIndex(Double(index))
+                    .offset(x: slot.offsetX, y: slot.offsetY)
+                    .rotationEffect(.degrees(slot.rotation))
+                    .zIndex(slot.zIndex)
                 }
             }
         }
@@ -578,7 +643,16 @@ struct GameView: View {
 
     private var pileHint: String {
         guard let top = pileTopHand else { return "Lead any hand" }
-        if top.isSoloJoker || top.isDoubleJoker {
+        if top.isDoubleJoker {
+            return "\(top.type.displayName) · Unbeatable"
+        }
+        if top.isSoloJoker {
+            let reversalRuleOn = controller.state.ruleSet.threeSpadeReversal
+                && controller.state.ruleSet.jokers
+            let humanHasThreeSpades = controller.humanHand.contains(.regular(.three, .spades))
+            if reversalRuleOn && humanHasThreeSpades {
+                return "\(top.type.displayName) · Beat with 3♠"
+            }
             return "\(top.type.displayName) · Unbeatable"
         }
         let isRevolution = controller.state.isRevolutionActive
@@ -609,7 +683,7 @@ struct GameView: View {
                 .foregroundStyle(Color.white.opacity(0.6))
                 .tracking(-0.2)
             Spacer()
-            Text("ROUND \(controller.state.round) / \(controller.maxRounds)")
+            Text("\(controller.difficulty.displayName.uppercased()) · ROUND \(controller.state.round) / \(controller.maxRounds)")
                 .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
                 .foregroundStyle(Color.white.opacity(0.35))
                 .tracking(2)
@@ -684,8 +758,9 @@ struct GameView: View {
                 }
 
                 if let top = pileTopHand {
+                    let slots = pileLayout(for: top)
                     ForEach(Array(top.cards.enumerated()), id: \.element) { index, card in
-                        let offset = stackOffset(index: index, count: top.cards.count)
+                        let slot = slots[index]
                         Group {
                             if index == 0 {
                                 PlayingCardView(card: card, style: .pile)
@@ -696,9 +771,9 @@ struct GameView: View {
                                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
                             }
                         }
-                        .offset(x: offset.x, y: offset.y)
-                        .rotationEffect(.degrees(offset.rotation))
-                        .zIndex(Double(index))
+                        .offset(x: slot.offsetX, y: slot.offsetY)
+                        .rotationEffect(.degrees(slot.rotation))
+                        .zIndex(slot.zIndex)
                     }
                 }
 

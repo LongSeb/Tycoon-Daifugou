@@ -10,6 +10,7 @@ enum AppSettings {
         static let roundsPerGame = "settings.roundsPerGame"
         static let soundEffectsEnabled = "settings.soundEffectsEnabled"
         static let hapticsEnabled = "settings.hapticsEnabled"
+        static let difficulty = "settings.difficulty"
     }
 
     static let minOpponentCount = 1
@@ -20,6 +21,7 @@ enum AppSettings {
     static let defaultRoundsPerGame = 3
 
     static let defaultRuleSet: RuleSet = .allRules
+    static let defaultDifficulty: Difficulty = .medium
 
     static func loadRuleSet() -> RuleSet {
         guard let data = UserDefaults.standard.string(forKey: Key.ruleSetJSON)?.data(using: .utf8),
@@ -39,6 +41,14 @@ enum AppSettings {
         let stored = UserDefaults.standard.integer(forKey: Key.roundsPerGame)
         let resolved = stored == 0 ? defaultRoundsPerGame : stored
         return max(minRoundsPerGame, min(maxRoundsPerGame, resolved))
+    }
+
+    static func loadDifficulty() -> Difficulty {
+        guard let raw = UserDefaults.standard.string(forKey: Key.difficulty),
+              let parsed = Difficulty(rawValue: raw) else {
+            return defaultDifficulty
+        }
+        return parsed
     }
 
     static func encode(_ ruleSet: RuleSet) -> String {

@@ -11,6 +11,7 @@ final class GameController {
     let humanPlayerID: PlayerID
     private let opponents: [PlayerID: any Opponent]
     let maxRounds: Int
+    let difficulty: Difficulty
 
     /// Bumped each time a play causes a 3-Spade Reversal. Views observe this to
     /// trigger a brief on-screen highlight.
@@ -113,14 +114,37 @@ final class GameController {
         humanPlayerID: PlayerID,
         opponents: [PlayerID: any Opponent],
         playerEmojis: [PlayerID: String],
-        maxRounds: Int = 3
+        maxRounds: Int = 3,
+        difficulty: Difficulty = AppSettings.defaultDifficulty
     ) {
         self.state = GameState.newGame(players: players, ruleSet: ruleSet, seed: seed)
         self.humanPlayerID = humanPlayerID
         self.opponents = opponents
         self.maxRounds = maxRounds
         self.playerEmojis = playerEmojis
+        self.difficulty = difficulty
     }
+
+    #if DEBUG
+    /// Boots the controller from a pre-built `GameState` instead of dealing a
+    /// fresh game. Intended only for SwiftUI Previews and debug scenarios —
+    /// production game flow goes through the seeded init above.
+    init(
+        scenarioState: GameState,
+        humanPlayerID: PlayerID,
+        opponents: [PlayerID: any Opponent],
+        playerEmojis: [PlayerID: String],
+        maxRounds: Int = 3,
+        difficulty: Difficulty = AppSettings.defaultDifficulty
+    ) {
+        self.state = scenarioState
+        self.humanPlayerID = humanPlayerID
+        self.opponents = opponents
+        self.maxRounds = maxRounds
+        self.playerEmojis = playerEmojis
+        self.difficulty = difficulty
+    }
+    #endif
 
     func emoji(for playerID: PlayerID) -> String {
         playerEmojis[playerID] ?? "🃏"
