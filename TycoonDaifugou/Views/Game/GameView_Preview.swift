@@ -15,12 +15,20 @@ extension GameController {
             hana.id: GreedyOpponent(),
         ]
 
+        let playerEmojis: [PlayerID: String] = [
+            human.id: "😎",
+            ryo.id: "🐯",
+            kai.id: "🦊",
+            hana.id: "🌸",
+        ]
+
         return GameController(
             players: [human, ryo, kai, hana],
             ruleSet: .allRules,
             seed: seed,
             humanPlayerID: human.id,
-            opponents: opponents
+            opponents: opponents,
+            playerEmojis: playerEmojis
         )
     }
 }

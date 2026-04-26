@@ -4,6 +4,7 @@ import TycoonDaifugouKit
 struct CardExchangeState: Equatable {
     let humanLastRank: Title
     let opponentName: String
+    let opponentTitle: String
     let cardsToGive: [Card]          // pre-selected when !engineAllowsSelection; empty otherwise
     let cardsReceived: [Card]
     let requiredGiveCount: Int

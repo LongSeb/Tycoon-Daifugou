@@ -628,13 +628,12 @@ struct GameView: View {
             Color(red: 0.102, green: 0.063, blue: 0.094),
             Color(red: 0.055, green: 0.094, blue: 0.078),
         ]
-        let emojis = ["🎩", "😏", "😤", "🤖", "🦊"]
         return HStack(spacing: 0) {
             ForEach(Array(opponents.enumerated()), id: \.element.id) { index, opp in
                 OpponentPanel(
                     player: opp,
                     tint: tints[index % tints.count],
-                    emoji: emojis[index % emojis.count],
+                    emoji: controller.emoji(for: opp.id),
                     isActive: controller.activePlayer.id == opp.id,
                     aiPlayCount: controller.aiPlayCountByID[opp.id] ?? 0,
                     pendingCard: controller.pendingAIPlay?.playerID == opp.id

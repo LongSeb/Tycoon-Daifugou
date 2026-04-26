@@ -78,7 +78,7 @@ struct CardExchangeView: View {
     private var giveSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Give \(exchange.requiredGiveCount) card\(exchange.requiredGiveCount == 1 ? "" : "s") to \(exchange.opponentName)")
+                Text("Give \(exchange.requiredGiveCount) card\(exchange.requiredGiveCount == 1 ? "" : "s") to \(exchange.opponentName) (\(exchange.opponentTitle))")
                     .font(.custom("Fraunces-9ptBlackItalic", size: 28))
                     .foregroundStyle(Color.tycoonMint)
 
