@@ -46,9 +46,10 @@ final class NavigationCoordinator {
             emojiMap[player.id] = profile.emoji
         }
 
+        let resolvedDifficulty = AppSettings.loadDifficulty()
         let opponents = OpponentRoster.randomAssignments(
             playerIDs: aiPlayers.map { $0.id },
-            difficulty: AppSettings.loadDifficulty(),
+            difficulty: resolvedDifficulty,
             seed: UInt64.random(in: .min ... .max)
         )
 
@@ -59,7 +60,8 @@ final class NavigationCoordinator {
             humanPlayerID: human.id,
             opponents: opponents,
             playerEmojis: emojiMap,
-            maxRounds: resolvedRounds
+            maxRounds: resolvedRounds,
+            difficulty: resolvedDifficulty
         )
         lastResult = nil
         path = [.game]

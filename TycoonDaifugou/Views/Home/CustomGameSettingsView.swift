@@ -7,6 +7,7 @@ struct CustomGameSettingsView: View {
     @AppStorage(AppSettings.Key.ruleSetJSON) private var ruleSetJSON: String = AppSettings.encode(AppSettings.defaultRuleSet)
     @AppStorage(AppSettings.Key.opponentCount) private var opponentCount: Int = AppSettings.defaultOpponentCount
     @AppStorage(AppSettings.Key.roundsPerGame) private var roundsPerGame: Int = AppSettings.defaultRoundsPerGame
+    @AppStorage(AppSettings.Key.difficulty) private var difficultyRaw: String = AppSettings.defaultDifficulty.rawValue
 
     @State private var ruleSet: RuleSet = AppSettings.defaultRuleSet
     @State private var showResetConfirm = false
@@ -174,6 +175,8 @@ struct CustomGameSettingsView: View {
                 opponentsRow
                 divider
                 roundsRow
+                divider
+                difficultyRow
             }
         }
         .background(Color.tycoonSurface)
@@ -212,6 +215,39 @@ struct CustomGameSettingsView: View {
                 in: AppSettings.minOpponentCount...AppSettings.maxOpponentCount
             )
             .labelsHidden()
+            .tint(Color.tycoonMint)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+    }
+
+    private var difficultyRow: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("CPU difficulty")
+                    .font(.ruleTitle)
+                    .foregroundStyle(Color.textPrimary)
+
+                Text("How sharply opponents play.")
+                    .font(.ruleCaption)
+                    .foregroundStyle(Color.textTertiary)
+            }
+
+            Spacer()
+
+            Picker(
+                "CPU difficulty",
+                selection: Binding(
+                    get: { Difficulty(rawValue: difficultyRaw) ?? AppSettings.defaultDifficulty },
+                    set: { difficultyRaw = $0.rawValue }
+                )
+            ) {
+                ForEach(Difficulty.allCases.filter { !$0.isLocked }, id: \.self) { difficulty in
+                    Text(difficulty.displayName).tag(difficulty)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
             .tint(Color.tycoonMint)
         }
         .padding(.horizontal, 14)

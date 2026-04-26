@@ -31,6 +31,7 @@ struct HomeView: View {
     var onSettingsTapped: () -> Void = {}
 
     @State private var showCustomSettings = false
+    @State private var showDifficultyPicker = false
     @State private var scrolledMode: GameMode? = .classic
 
     var body: some View {
@@ -98,7 +99,7 @@ struct HomeView: View {
                         GameModeCard(
                             mode: .classic,
                             width: cardWidth,
-                            onTap: onPlayTapped
+                            onTap: { showDifficultyPicker = true }
                         )
                         .id(GameMode.classic)
 
@@ -132,6 +133,12 @@ struct HomeView: View {
         .sheet(isPresented: $showCustomSettings) {
             CustomGameSettingsView()
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showDifficultyPicker) {
+            DifficultyPickerSheet(
+                isPresented: $showDifficultyPicker,
+                onSelect: { _ in onPlayTapped() }
+            )
         }
     }
 

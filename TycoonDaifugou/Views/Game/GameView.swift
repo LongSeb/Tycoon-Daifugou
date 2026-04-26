@@ -683,7 +683,7 @@ struct GameView: View {
                 .foregroundStyle(Color.white.opacity(0.6))
                 .tracking(-0.2)
             Spacer()
-            Text("ROUND \(controller.state.round) / \(controller.maxRounds)")
+            Text("\(controller.difficulty.displayName.uppercased()) · ROUND \(controller.state.round) / \(controller.maxRounds)")
                 .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
                 .foregroundStyle(Color.white.opacity(0.35))
                 .tracking(2)
