@@ -38,6 +38,7 @@ struct GameView: View {
                     Spacer(minLength: 0)
                     playerStatusTag
                     handHeader
+                    noPlayableCardsHint
                     fanHand
                     actionButtons
                 }
@@ -517,6 +518,28 @@ struct GameView: View {
         controller.state.currentTrick.last
     }
 
+    /// Cards in the human's hand that appear in at least one legal play move right now.
+    /// Empty when it is not the human's turn (all cards dim) or when the only valid move is Pass.
+    private var playableCards: Set<Card> {
+        guard controller.isHumansTurn else { return [] }
+        var result = Set<Card>()
+        for move in controller.state.validMoves(for: controller.humanPlayerID) {
+            if case .play(let cards, _) = move {
+                result.formUnion(cards)
+            }
+        }
+        // If the engine returns only a subset of rank-siblings in a pair/triple play (e.g.
+        // [5♠, joker] but not [5♥, joker]), the sibling 5♥ would be wrongly dimmed. Expand
+        // by rank: once any card of a given rank is playable, all hand cards of that rank are.
+        let playableRanks = Set(result.compactMap(\.rank))
+        for card in controller.humanHand {
+            if let rank = card.rank, playableRanks.contains(rank) {
+                result.insert(card)
+            }
+        }
+        return result
+    }
+
     /// Subtle fan offsets so doubles/triples/quads visibly stack on the pile
     /// instead of collapsing to a single card. Singles render flat at center.
     private func stackOffset(index: Int, count: Int) -> (x: CGFloat, y: CGFloat, rotation: Double) {
@@ -883,6 +906,25 @@ struct GameView: View {
         .padding(.bottom, 4)
     }
 
+    // MARK: No-Playable-Cards Hint
+
+    private var noPlayableCardsHint: some View {
+        let shouldShow = controller.isHumansTurn && playableCards.isEmpty
+        return Group {
+            if shouldShow {
+                Text("No playable cards — you must Pass")
+                    .font(.system(size: 13, weight: .medium).italic())
+                    .foregroundStyle(Color.white.opacity(0.45))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 4)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeIn(duration: 0.2), value: shouldShow)
+    }
+
     // MARK: Fan Hand
 
     private var fanHand: some View {
@@ -926,13 +968,16 @@ struct GameView: View {
                     let y = pivotY - pivotDistance * cos(rad) - cardH
                     let isSelected = selected.contains(card)
                     let liftOffset: CGFloat = isSelected ? -lift : 0
+                    // Only dim during the human's turn. When CPUs are playing, show all cards normally.
+                    // When bankrupt, external modifiers already handle styling.
+                    let isPlayable = !controller.isHumansTurn || isBankrupt || playableCards.contains(card)
 
                     Group {
                         if card == flyCard {
-                            PlayingCardView(card: card, style: .hand, isSelected: isSelected)
+                            PlayingCardView(card: card, style: .hand, isSelected: isSelected, playable: isPlayable)
                                 .matchedGeometryEffect(id: card, in: cardNamespace)
                         } else {
-                            PlayingCardView(card: card, style: .hand, isSelected: isSelected)
+                            PlayingCardView(card: card, style: .hand, isSelected: isSelected, playable: isPlayable)
                         }
                     }
                     .saturation(isBankrupt ? 0 : 1)
@@ -994,6 +1039,7 @@ struct GameView: View {
 
     private func toggle(_ card: Card) {
         guard controller.isHumansTurn else { return }
+        guard playableCards.contains(card) else { return }
         HapticManager.cardTap()
         withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
             if selected.contains(card) {

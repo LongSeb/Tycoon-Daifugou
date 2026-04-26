@@ -10,6 +10,7 @@ struct PlayingCardView: View {
     let card: Card
     var style: Style = .hand
     var isSelected: Bool = false
+    var playable: Bool = true
 
     var body: some View {
         ZStack {
@@ -23,14 +24,14 @@ struct PlayingCardView: View {
             if card.isJoker {
                 Text("JKR")
                     .font(.custom("Fraunces-9ptBlackItalic", size: jokerCornerFontSize))
-                    .foregroundStyle(jokerColor)
+                    .foregroundStyle(inkColor)
                     .padding(.leading, cornerPadding)
                     .padding(.top, cornerPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 Text("JKR")
                     .font(.custom("Fraunces-9ptBlackItalic", size: jokerCornerFontSize))
-                    .foregroundStyle(jokerColor)
+                    .foregroundStyle(inkColor)
                     .rotationEffect(.degrees(180))
                     .padding(.trailing, cornerPadding)
                     .padding(.bottom, cornerPadding)
@@ -39,7 +40,7 @@ struct PlayingCardView: View {
                 Image("JokerCard")
                     .resizable()
                     .renderingMode(.template)
-                    .foregroundStyle(jokerColor)
+                    .foregroundStyle(inkColor)
                     .aspectRatio(268.0 / 360.0, contentMode: .fit)
                     .padding(2)
             } else {
@@ -56,7 +57,7 @@ struct PlayingCardView: View {
 
                 Text(card.displaySuit)
                     .font(.system(size: centerSuitFontSize))
-                    .foregroundStyle(card.suitColor)
+                    .foregroundStyle(inkColor)
             }
 
             if isSelected {
@@ -68,6 +69,8 @@ struct PlayingCardView: View {
             }
         }
         .frame(width: width, height: height)
+        .colorMultiply(playable ? .white : Color(white: 0.55))
+        .allowsHitTesting(playable)
     }
 
     private var cornerLabel: some View {
@@ -94,6 +97,10 @@ struct PlayingCardView: View {
             return index == 0 ? Color.cardSuitBlack : Color.cardSuitRed
         }
         return Color.cardSuitRed
+    }
+    private var inkColor: Color {
+        guard playable else { return .black }
+        return card.isJoker ? jokerColor : card.suitColor
     }
     private var selectionDotSize: CGFloat { style == .hand ? 5 : 6 }
     private var selectionDotOffset: CGFloat { style == .hand ? -9 : -11 }
