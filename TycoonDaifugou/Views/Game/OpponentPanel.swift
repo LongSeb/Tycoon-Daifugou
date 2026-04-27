@@ -11,6 +11,7 @@ struct OpponentPanel: View {
     let cardNamespace: Namespace.ID
     var isFirst: Bool = false
     var isLast: Bool = false
+    var skin: CardSkin? = nil
 
     @State private var isFlashing = false
 
@@ -42,7 +43,7 @@ struct OpponentPanel: View {
                 HStack(spacing: 2) {
                     ForEach(0..<min(cardsLeft, 5), id: \.self) { _ in
                         RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .fill(Color.white.opacity(0.08))
+                            .fill(skin.map { $0.color.opacity(0.6) } ?? Color.white.opacity(0.08))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                                     .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
@@ -62,7 +63,7 @@ struct OpponentPanel: View {
             // Pending card — shown face-up while the AI is "committing" to the play.
             // Tagged with matchedGeometryEffect so it flies to the pile when state updates.
             if let card = pendingCard {
-                PlayingCardView(card: card, style: .hand)
+                PlayingCardView(card: card, style: .hand, skin: skin)
                     .matchedGeometryEffect(id: card, in: cardNamespace)
                     .rotationEffect(.degrees(-8))
                     // Insertion scales in; removal fades while the pile card flies from this position.

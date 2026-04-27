@@ -29,4 +29,5 @@ struct GameResultData {
     let currentLevel: Int
     let xpBreakdown: [XPBreakdownItem]
     let roundPointsTotal: Int
+    var levelUpUnlocks: [UnlockDefinition]? = nil
 }

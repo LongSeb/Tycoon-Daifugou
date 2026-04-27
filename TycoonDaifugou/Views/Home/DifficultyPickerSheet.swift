@@ -6,6 +6,7 @@ import TycoonDaifugouKit
 /// progression is discoverable, but not selectable in v1.
 struct DifficultyPickerSheet: View {
     @Binding var isPresented: Bool
+    var isExpertUnlocked: Bool = false
 
     /// Called once the user picks a difficulty. The sheet writes the value to
     /// AppStorage before invoking, so callers don't need to thread it through.
@@ -70,7 +71,7 @@ struct DifficultyPickerSheet: View {
 
     @ViewBuilder
     private func row(for difficulty: Difficulty) -> some View {
-        let isLocked = difficulty.isLocked
+        let isLocked = difficulty == .expert ? !isExpertUnlocked : difficulty.isLocked
         Button {
             guard !isLocked else { return }
             difficultyRaw = difficulty.rawValue
@@ -118,7 +119,10 @@ struct DifficultyPickerSheet: View {
         case .easy:   return "Casual. Plenty of mistakes."
         case .medium: return "Solid. Holds combos, fights for tempo."
         case .hard:   return "Sharp. Rarely passes up an edge."
-        case .expert: return "Locked. Coming in a future update."
+        case .expert:
+            return isExpertUnlocked
+                ? "Maximum challenge. Card counting, 1-ply lookahead."
+                : "Reach Level 20 with 10 Hard wins to unlock."
         }
     }
 }

@@ -5,7 +5,11 @@ struct GameView: View {
     @Bindable var controller: GameController
     var onExitRequest: (() -> Void)? = nil
     var onGameEnded: ((GameController) -> Void)? = nil
+    var humanEquippedTitle: String? = nil
+    var humanEquippedBorder: ProfileBorder? = nil
+    var humanEquippedSkin: CardSkin? = nil
 
+    @State private var motionManager = MotionManager()
     @State private var showRules = false
     @State private var selected: Set<Card> = []
     @State private var invalidPlayShake: CGFloat = 0
@@ -59,7 +63,12 @@ struct GameView: View {
             .task { await controller.resolveAITurnsIfNeeded() }
 
             if let result = controller.pendingRoundResult {
-                InterRoundResultsView(result: result, isLastRound: controller.isLastRound) {
+                InterRoundResultsView(
+                    result: result,
+                    isLastRound: controller.isLastRound,
+                    humanEquippedTitle: humanEquippedTitle,
+                    humanEquippedBorder: humanEquippedBorder
+                ) {
                     if controller.isLastRound {
                         onGameEnded?(controller)
                     } else {
@@ -89,6 +98,9 @@ struct GameView: View {
         .onChange(of: controller.bankruptcyEventCounter) { _, _ in onBankruptcyEvent() }
         .onChange(of: controller.pendingRoundResult) { _, newValue in onRoundResultChange(newValue) }
         .onChange(of: controller.trickResetCounter) { _, _ in onTrickReset() }
+        .environment(\.motionManager, motionManager)
+        .onAppear { motionManager.start() }
+        .onDisappear { motionManager.stop() }
     }
 
     // MARK: Event Handlers
@@ -516,6 +528,7 @@ struct GameView: View {
         controller.state.currentTrick.last
     }
 
+
     /// Cards in the human's hand that appear in at least one legal play move right now.
     /// Empty when it is not the human's turn (all cards dim) or when the only valid move is Pass.
     private var playableCards: Set<Card> {
@@ -627,14 +640,14 @@ struct GameView: View {
     /// Static snapshot of the pile (priors + stacked top) used during the trick-reset
     /// fade-out so 8-stop / reversal plays still display their full multi-card stack.
     @ViewBuilder
-    private func pileStack(hands: [Hand], applyMatchedGeometry: Bool) -> some View {
+    private func pileStack(hands: [Hand], applyMatchedGeometry: Bool, activeSkin: CardSkin? = nil) -> some View {
         let priors = hands.count > 1 ? Array(hands.dropLast().suffix(2)) : []
         ZStack {
             ForEach(Array(priors.enumerated()), id: \.element) { idx, hand in
                 if let lead = hand.cards.first {
                     let stepsBack = priors.count - idx
                     let peek = priorPeekOffset(stepsBack: stepsBack)
-                    PlayingCardView(card: lead, style: .pile)
+                    PlayingCardView(card: lead, style: .pile, skin: activeSkin)
                         .opacity(peek.opacity)
                         .offset(x: peek.x, y: peek.y)
                         .rotationEffect(.degrees(peek.rotation))
@@ -647,11 +660,11 @@ struct GameView: View {
                     let slot = slots[index]
                     Group {
                         if index == 0 && applyMatchedGeometry {
-                            PlayingCardView(card: card, style: .pile)
+                            PlayingCardView(card: card, style: .pile, skin: activeSkin)
                                 .matchedGeometryEffect(id: card, in: cardNamespace, isSource: false)
                                 .id(card)
                         } else {
-                            PlayingCardView(card: card, style: .pile)
+                            PlayingCardView(card: card, style: .pile, skin: activeSkin)
                         }
                     }
                     .offset(x: slot.offsetX, y: slot.offsetY)
@@ -735,7 +748,8 @@ struct GameView: View {
                         ? controller.pendingAIPlay?.card : nil,
                     cardNamespace: cardNamespace,
                     isFirst: index == 0,
-                    isLast: index == opponents.count - 1
+                    isLast: index == opponents.count - 1,
+                    skin: humanEquippedSkin
                 )
                 if index < opponents.count - 1 {
                     Divider().background(Color.black.opacity(0.5))
@@ -768,7 +782,7 @@ struct GameView: View {
                     if let lead = hand.cards.first {
                         let stepsBack = priorPeekHands.count - idx
                         let peek = priorPeekOffset(stepsBack: stepsBack)
-                        PlayingCardView(card: lead, style: .pile)
+                        PlayingCardView(card: lead, style: .pile, skin: humanEquippedSkin)
                             .opacity(peek.opacity)
                             .offset(x: peek.x, y: peek.y)
                             .rotationEffect(.degrees(peek.rotation))
@@ -784,11 +798,11 @@ struct GameView: View {
                         let slot = slots[index]
                         Group {
                             if index == 0 {
-                                PlayingCardView(card: card, style: .pile)
+                                PlayingCardView(card: card, style: .pile, skin: humanEquippedSkin)
                                     .matchedGeometryEffect(id: card, in: cardNamespace, isSource: false)
                                     .id(card)
                             } else {
-                                PlayingCardView(card: card, style: .pile)
+                                PlayingCardView(card: card, style: .pile, skin: humanEquippedSkin)
                                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
                             }
                         }
@@ -799,7 +813,7 @@ struct GameView: View {
                 }
 
                 if !controller.trickResetExitHands.isEmpty && controller.state.currentTrick.isEmpty {
-                    pileStack(hands: controller.trickResetExitHands, applyMatchedGeometry: true)
+                    pileStack(hands: controller.trickResetExitHands, applyMatchedGeometry: true, activeSkin: humanEquippedSkin)
                         .scaleEffect(pileExitAnimating ? 0.8 : 1.0)
                         .opacity(pileExitAnimating ? 0 : 1.0)
                         .animation(.easeOut(duration: 0.25), value: pileExitAnimating)
@@ -992,10 +1006,10 @@ struct GameView: View {
 
                     Group {
                         if card == flyCard {
-                            PlayingCardView(card: card, style: .hand, isSelected: isSelected, playable: isPlayable)
+                            PlayingCardView(card: card, style: .hand, isSelected: isSelected, playable: isPlayable, skin: humanEquippedSkin)
                                 .matchedGeometryEffect(id: card, in: cardNamespace)
                         } else {
-                            PlayingCardView(card: card, style: .hand, isSelected: isSelected, playable: isPlayable)
+                            PlayingCardView(card: card, style: .hand, isSelected: isSelected, playable: isPlayable, skin: humanEquippedSkin)
                         }
                     }
                     .saturation(isBankrupt ? 0 : 1)

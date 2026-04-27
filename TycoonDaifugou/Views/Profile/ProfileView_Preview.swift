@@ -38,6 +38,26 @@ extension ProfileData {
             SpecialPlayStat(name: "Jokers played",       subtitle: "Wild card uses",            count: 31, badge: .joker),
             SpecialPlayStat(name: "3-Spade reversals",   subtitle: "Joker beats",               count: 4,  badge: .threeSpade),
             SpecialPlayStat(name: "8-stops",             subtitle: "Round-ending eights",       count: 18, badge: .eight),
+        ],
+        equippedTitle: "Card Shark",
+        equippedSkinID: "royal_red",
+        equippedBorder: ProfileBorder(id: "silver", name: "Silver", color: Color(hex: "#C0C0C0"), isAnimated: false),
+        hasPrestigeBadge: false,
+        isExtendedStatsUnlocked: true,
+        unlockedTitles: ["Commoner", "The Joker", "Flower Queen", "Card Shark"],
+        lockedTitles: ["All The Primes", "Lady Amagi", "Kissing Kings", "Truth Seeker", "Kingpin of Steel", "The High Roller", "Chad", "Tycoon"],
+        unlockedSkins: [
+            CardSkin(id: "default", name: "Cream", color: .cardCream, isFoil: false),
+            CardSkin(id: "royal_red", name: "Royal Red", color: Color(hex: "#AC2317"), isFoil: true),
+        ],
+        lockedSkins: [
+            CardSkin(id: "vine_green", name: "Vine Green", color: Color(hex: "#D2DCB6"), isFoil: false),
+            CardSkin(id: "wake_up_yellow", name: "Wake Up Yellow", color: Color(hex: "#FFF799"), isFoil: false),
+            CardSkin(id: "pretty_pink", name: "Pretty Pink", color: Color(hex: "#FFD4E5"), isFoil: false),
+            CardSkin(id: "repeat_blue", name: "Repeat Blue", color: Color(hex: "#99DAFF"), isFoil: false),
+            CardSkin(id: "orange", name: "Orange", color: Color(hex: "#FFDCA9"), isFoil: false),
+            CardSkin(id: "plum_purple", name: "Plum Purple", color: Color(hex: "#545B77"), isFoil: false),
+            CardSkin(id: "shiny_black", name: "Shiny Black", color: Color(hex: "#171616"), isFoil: true),
         ]
     )
 }

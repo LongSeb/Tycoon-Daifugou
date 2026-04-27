@@ -85,7 +85,10 @@ struct RootView: View {
                 GameView(
                     controller: controller,
                     onExitRequest: { coordinator.showingQuitConfirm = true },
-                    onGameEnded: { coordinator.showResults(for: $0) }
+                    onGameEnded: { coordinator.showResults(for: $0) },
+                    humanEquippedTitle: coordinator.store?.profile.equippedTitleID,
+                    humanEquippedBorder: coordinator.store?.profile.equippedBorder,
+                    humanEquippedSkin: coordinator.store?.profile.equippedSkin
                 )
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationBarBackButtonHidden(true)

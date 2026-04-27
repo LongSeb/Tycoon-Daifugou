@@ -6,6 +6,7 @@ struct HomeViewState {
     let totalGamesWon: Int
     let lastGame: LastGameData?
     let recentGames: [RecentGameRowData]
+    var isExpertUnlocked: Bool = false
 
     static let empty = HomeViewState(totalGamesWon: 0, lastGame: nil, recentGames: [])
 }
@@ -131,12 +132,13 @@ struct HomeView: View {
         }
         .padding(.bottom, 20)
         .sheet(isPresented: $showCustomSettings) {
-            CustomGameSettingsView()
+            CustomGameSettingsView(isExpertUnlocked: state.isExpertUnlocked)
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showDifficultyPicker) {
             DifficultyPickerSheet(
                 isPresented: $showDifficultyPicker,
+                isExpertUnlocked: state.isExpertUnlocked,
                 onSelect: { _ in onPlayTapped() }
             )
         }

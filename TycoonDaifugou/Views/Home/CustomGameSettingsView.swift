@@ -2,6 +2,8 @@ import SwiftUI
 import TycoonDaifugouKit
 
 struct CustomGameSettingsView: View {
+    var isExpertUnlocked: Bool = false
+
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage(AppSettings.Key.ruleSetJSON) private var ruleSetJSON: String = AppSettings.encode(AppSettings.defaultRuleSet)
@@ -222,36 +224,70 @@ struct CustomGameSettingsView: View {
     }
 
     private var difficultyRow: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("CPU difficulty")
-                    .font(.ruleTitle)
-                    .foregroundStyle(Color.textPrimary)
+        VStack(spacing: 0) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("CPU difficulty")
+                        .font(.ruleTitle)
+                        .foregroundStyle(Color.textPrimary)
 
-                Text("How sharply opponents play.")
+                    Text("How sharply opponents play.")
+                        .font(.ruleCaption)
+                        .foregroundStyle(Color.textTertiary)
+                }
+
+                Spacer()
+
+                Picker(
+                    "CPU difficulty",
+                    selection: Binding(
+                        get: { Difficulty(rawValue: difficultyRaw) ?? AppSettings.defaultDifficulty },
+                        set: { difficultyRaw = $0.rawValue }
+                    )
+                ) {
+                    ForEach(
+                        isExpertUnlocked
+                            ? Difficulty.allCases
+                            : Difficulty.allCases.filter { !$0.isLocked },
+                        id: \.self
+                    ) { difficulty in
+                        Text(difficulty.displayName).tag(difficulty)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .tint(Color.tycoonMint)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+
+            if !isExpertUnlocked {
+                divider
+                lockedExpertRow
+            }
+        }
+    }
+
+    private var lockedExpertRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 12))
+                .foregroundStyle(Color.textTertiary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Expert")
+                    .font(.ruleTitle)
+                    .foregroundStyle(Color.textTertiary)
+                Text("Reach Level 20 with 10 Hard wins to unlock")
                     .font(.ruleCaption)
                     .foregroundStyle(Color.textTertiary)
+                    .lineLimit(2)
             }
-
-            Spacer()
-
-            Picker(
-                "CPU difficulty",
-                selection: Binding(
-                    get: { Difficulty(rawValue: difficultyRaw) ?? AppSettings.defaultDifficulty },
-                    set: { difficultyRaw = $0.rawValue }
-                )
-            ) {
-                ForEach(Difficulty.allCases.filter { !$0.isLocked }, id: \.self) { difficulty in
-                    Text(difficulty.displayName).tag(difficulty)
-                }
-            }
-            .labelsHidden()
-            .pickerStyle(.menu)
-            .tint(Color.tycoonMint)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .padding(.vertical, 10)
+        .opacity(0.4)
+        .allowsHitTesting(false)
     }
 
     private var roundsRow: some View {

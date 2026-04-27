@@ -4,6 +4,8 @@ import TycoonDaifugouKit
 struct InterRoundResultsView: View {
     let result: RoundResult
     let isLastRound: Bool
+    var humanEquippedTitle: String? = nil
+    var humanEquippedBorder: ProfileBorder? = nil
     let onContinue: () -> Void
 
     @State private var headerVisible = false
@@ -90,13 +92,25 @@ struct InterRoundResultsView: View {
                     )
                 Text(player.emoji)
                     .font(.system(size: 18))
+
+                if player.isHuman, let border = humanEquippedBorder {
+                    Circle()
+                        .stroke(border.color, lineWidth: 1.5)
+                }
             }
             .frame(width: 38, height: 38)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(player.name)
-                    .font(.ruleTitle)
-                    .foregroundStyle(player.isHuman ? Color.cardBlush : Color.textPrimary)
+                HStack(spacing: 6) {
+                    Text(player.name)
+                        .font(.ruleTitle)
+                        .foregroundStyle(player.isHuman ? Color.cardBlush : Color.textPrimary)
+                    if player.isHuman, let title = humanEquippedTitle {
+                        Text(title)
+                            .font(.custom("InstrumentSans-Regular", size: 10).weight(.medium).italic())
+                            .foregroundStyle(Color.tycoonMint.opacity(0.8))
+                    }
+                }
                 Text(player.title.displayName)
                     .font(.resultMeta)
                     .foregroundStyle(Color.textTertiary)
