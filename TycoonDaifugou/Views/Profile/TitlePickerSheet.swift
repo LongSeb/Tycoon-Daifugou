@@ -78,7 +78,6 @@ struct TitlePickerSheet: View {
         let isSelected = title == currentTitle
         return Button {
             onSelect(title)
-            dismiss()
         } label: {
             HStack(spacing: 12) {
                 Text(title)

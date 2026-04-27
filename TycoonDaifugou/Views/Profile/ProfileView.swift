@@ -8,6 +8,7 @@ struct ProfileView: View {
     @State private var showingEditor = false
     @State private var showingTitlePicker = false
     @State private var showingSkinPicker = false
+    @State private var motion = MotionManager()
 
     var body: some View {
         ZStack {
@@ -24,6 +25,9 @@ struct ProfileView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .environment(\.motionManager, motion)
+        .onAppear { motion.start() }
+        .onDisappear { motion.stop() }
         .sheet(isPresented: $showingEditor) {
             NavigationStack {
                 ProfileEditorView(
@@ -62,12 +66,7 @@ struct ProfileView: View {
     private var avatarWithBorder: some View {
         ZStack {
             if let border = profile.equippedBorder {
-                borderRing(border: border)
-                    .frame(width: 82, height: 82)
-            } else {
-                Circle()
-                    .fill(Color.tycoonCard)
-                    .frame(width: 80, height: 80)
+                HoloBorderRing(diameter: 86, lineWidth: 5, color: border.color)
             }
 
             Circle()
@@ -75,7 +74,7 @@ struct ProfileView: View {
                 .frame(width: 76, height: 76)
                 .overlay(
                     Text(profile.emoji)
-                        .font(.system(size: 32))
+                        .font(.system(size: 44))
                 )
 
             if profile.hasPrestigeBadge {
@@ -85,36 +84,7 @@ struct ProfileView: View {
                     .offset(x: -29, y: 29)
             }
         }
-        .frame(width: 82, height: 82)
-        .onAppear {
-            guard profile.equippedBorder?.isAnimated == true else { return }
-            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
-                borderRotation = 360
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func borderRing(border: ProfileBorder) -> some View {
-        if border.isAnimated {
-            Circle()
-                .stroke(
-                    AngularGradient(
-                        colors: [
-                            Color(hex: "#C9A84C"),
-                            Color(hex: "#FFD700"),
-                            Color(hex: "#FFF8DC"),
-                            Color(hex: "#C9A84C"),
-                        ],
-                        center: .center
-                    ),
-                    lineWidth: 3
-                )
-                .rotationEffect(.degrees(borderRotation))
-        } else {
-            Circle()
-                .stroke(border.color, lineWidth: 3)
-        }
+        .frame(width: 86, height: 86)
     }
 
     // MARK: - Top Bar
@@ -142,8 +112,6 @@ struct ProfileView: View {
         .padding(.top, 16)
         .padding(.bottom, 20)
     }
-
-    @State private var borderRotation: Double = 0
 
     // MARK: - Profile Hero
 

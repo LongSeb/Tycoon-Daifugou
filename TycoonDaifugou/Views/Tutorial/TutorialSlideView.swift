@@ -21,7 +21,7 @@ extension TutorialStep {
     var body: String {
         switch self {
         case .welcome:
-            return "Tycoon is a card shedding game for 2–8 players. Be the first to play all your cards and claim the top rank. The last player left holding cards becomes the Beggar."
+            return "Tycoon is a card shedding game for 3–8 players. Be the first to play all your cards and claim the top spot! The last player left holding cards becomes the Beggar."
         case .cardStrength:
             return "Cards rank from 3 (weakest) up through King, Ace, 2, and finally the Joker as the strongest card of all. Suits don't matter — only rank."
         case .howATurnWorks:
@@ -35,7 +35,7 @@ extension TutorialStep {
         case .revolution:
             return "Play four cards of the same rank to trigger a Revolution — card strength flips completely. Now 3 is the strongest and 2 is the weakest. A second four-of-a-kind triggers a Counter-Revolution, restoring normal order."
         case .specialCards:
-            return "These are house rules available in Custom Game mode. 8-Stop clears the table and gives you the lead. The Joker is the strongest card but can be countered by the 3 of Spades when played alone."
+            return "These house rules are available to be toggled on or off in Custom Mode! 8-Stop clears the table and gives you the lead. The Joker is the strongest card but can be countered by the 3 of Spades when played alone."
         case .strategyTip:
             return "Tycoon rewards patience. Don't burn your strongest cards too early. Track what's been played and time your big moves."
         case .youreReady:

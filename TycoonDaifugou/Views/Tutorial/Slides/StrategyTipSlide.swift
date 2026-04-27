@@ -18,9 +18,6 @@ struct StrategyTipSlide: View {
             Text(text)
                 .font(.system(size: 14))
                 .foregroundStyle(Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer()
         }
-        .padding(.horizontal, 4)
     }
 }

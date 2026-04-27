@@ -78,7 +78,6 @@ struct BorderPickerSheet: View {
         let isSelected = currentBorderID == nil
         return Button {
             onSelect(nil)
-            dismiss()
         } label: {
             VStack(spacing: 8) {
                 ZStack {
@@ -114,7 +113,6 @@ struct BorderPickerSheet: View {
         let isSelected = border.id == currentBorderID
         return Button {
             onSelect(border.id)
-            dismiss()
         } label: {
             VStack(spacing: 8) {
                 ZStack {
@@ -122,26 +120,12 @@ struct BorderPickerSheet: View {
                         .fill(Color.tycoonCard)
                         .frame(width: 64, height: 64)
 
-                    if border.isAnimated {
-                        Circle()
-                            .stroke(
-                                AngularGradient(
-                                    colors: [border.color, border.color.opacity(0.3), border.color],
-                                    center: .center
-                                ),
-                                lineWidth: 3
-                            )
-                            .frame(width: 70, height: 70)
-                    } else {
-                        Circle()
-                            .strokeBorder(border.color, lineWidth: 3)
-                            .frame(width: 70, height: 70)
-                    }
+                    HoloBorderRing(diameter: 74, lineWidth: 5, color: border.color)
 
                     if isSelected {
                         Circle()
                             .strokeBorder(Color.tycoonMint, lineWidth: 2)
-                            .frame(width: 76, height: 76)
+                            .frame(width: 82, height: 82)
                     }
                 }
                 .shadow(

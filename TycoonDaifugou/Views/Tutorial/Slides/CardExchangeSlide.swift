@@ -41,8 +41,6 @@ struct CardExchangeSlide: View {
                     }
                 }
             }
-            Spacer()
         }
-        .padding(.horizontal, 8)
     }
 }

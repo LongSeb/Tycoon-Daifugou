@@ -17,9 +17,6 @@ struct SpecialCardsSlide: View {
             Text(label)
                 .font(.system(size: 14))
                 .foregroundStyle(Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer()
         }
-        .padding(.horizontal, 4)
     }
 }

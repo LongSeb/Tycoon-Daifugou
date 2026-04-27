@@ -3,7 +3,7 @@ import SwiftUI
 struct WelcomeSlide: View {
     var body: some View {
         VStack(spacing: 10) {
-            rankBadge(emoji: "👑", name: "Millionaire", color: Color.cardGold)
+            rankBadge(emoji: "👑", name: "Tycoon", color: Color.cardGold)
             rankBadge(emoji: "🤑", name: "Rich",        color: Color.tycoonMint)
             rankBadge(emoji: "😟", name: "Poor",        color: Color.textSecondary)
             rankBadge(emoji: "🥺", name: "Beggar",      color: Color.textTertiary)

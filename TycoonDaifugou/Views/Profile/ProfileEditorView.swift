@@ -73,6 +73,7 @@ struct ProfileEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var emoji: String
     @State private var username: String
+    @State private var selectedBorderID: String?
     @State private var emojiKeyboardActive = false
     @State private var showBorderPicker = false
     @State private var showBorderLockedAlert = false
@@ -96,6 +97,7 @@ struct ProfileEditorView: View {
         self.onBorderSelect = onBorderSelect
         _emoji = State(initialValue: initialEmoji)
         _username = State(initialValue: initialUsername)
+        _selectedBorderID = State(initialValue: currentBorderID)
     }
 
     private var trimmedUsername: String {
@@ -151,13 +153,18 @@ struct ProfileEditorView: View {
                     emojiKeyboardActive = true
                 } label: {
                     ZStack {
+                        if let id = selectedBorderID,
+                           let border = unlockedBorders.first(where: { $0.id == id }) {
+                            HoloBorderRing(diameter: 106, lineWidth: 5, color: border.color)
+                        }
+
                         Circle()
                             .fill(Color.tycoonSurface)
                             .overlay(Circle().strokeBorder(Color.tycoonBorder, lineWidth: 1))
                             .frame(width: 96, height: 96)
 
                         Text(emoji)
-                            .font(.system(size: 48))
+                            .font(.system(size: 64))
                     }
                 }
                 .buttonStyle(.plain)
@@ -214,7 +221,10 @@ struct ProfileEditorView: View {
                 currentLevel: currentLevel,
                 unlockedBorders: unlockedBorders,
                 currentBorderID: currentBorderID,
-                onSelect: onBorderSelect
+                onSelect: { id in
+                            selectedBorderID = id
+                            onBorderSelect(id)
+                        }
             )
         }
     }
