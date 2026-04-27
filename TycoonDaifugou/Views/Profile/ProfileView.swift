@@ -29,6 +29,10 @@ struct ProfileView: View {
                 ProfileEditorView(
                     initialEmoji: profile.emoji,
                     initialUsername: profile.username,
+                    currentLevel: profile.currentLevel,
+                    unlockedBorders: profile.unlockedBorders,
+                    currentBorderID: profile.equippedBorder?.id,
+                    onBorderSelect: { store?.updateEquippedBorder($0) },
                     onSave: { emoji, username in
                         store?.updateProfile(emoji: emoji, username: username)
                     }
@@ -326,26 +330,26 @@ struct ProfileView: View {
                     sub: "Personal best"
                 )
                 ProfileStatCell(
-                    value: "\(profile.totalRevolutions)",
-                    label: "Revolutions",
-                    sub: "Across all games",
+                    value: profile.avgFinishPlace,
+                    label: "Avg Finish",
+                    sub: "1 = Best · 4 = Worst",
                     valueColor: .cardLavender
                 )
                 ProfileStatCell(
-                    value: profile.avgGameTime,
-                    label: "Avg game time",
-                    sub: "Per round"
+                    value: profile.totalTimePlayed,
+                    label: "Time played",
+                    sub: "In-game total"
                 )
             }
             .background(Color.white.opacity(0.06))
+
+            RankBreakdownSection(rankStats: profile.rankStats)
 
             if profile.isExtendedStatsUnlocked {
                 extendedStatsSection
             } else {
                 lockedExtendedStatsCard
             }
-
-            RankBreakdownSection(rankStats: profile.rankStats)
 
             SpecialPlaysSection(plays: profile.specialPlays)
         }
@@ -386,24 +390,12 @@ struct ProfileView: View {
     }
 
     private var extendedStatsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Rectangle()
-                .fill(Color.white.opacity(0.05))
-                .frame(height: 1)
-
-            HStack {
-                Text("EXTENDED STATS")
-                    .font(.sectionLabel)
-                    .foregroundStyle(Color.white.opacity(0.25))
-                    .tracking(2)
-                Spacer()
-                Text("Coming soon")
-                    .font(.ruleCaption)
-                    .foregroundStyle(Color.textTertiary)
+        Group {
+            if let stats = profile.extendedStats {
+                ExtendedStatsView(stats: stats)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 11)
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: profile.isExtendedStatsUnlocked)
     }
 
     // MARK: - Helpers

@@ -65,16 +65,35 @@ struct EmojiTextField: UIViewRepresentable {
 
 struct ProfileEditorView: View {
     let onSave: (String, String) -> Void
+    let currentLevel: Int
+    let unlockedBorders: [ProfileBorder]
+    let currentBorderID: String?
+    let onBorderSelect: (String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var emoji: String
     @State private var username: String
     @State private var emojiKeyboardActive = false
+    @State private var showBorderPicker = false
+    @State private var showBorderLockedAlert = false
 
     private let maxLength = 20
+    private let borderUnlockLevel = 7
 
-    init(initialEmoji: String, initialUsername: String, onSave: @escaping (String, String) -> Void) {
+    init(
+        initialEmoji: String,
+        initialUsername: String,
+        currentLevel: Int = 1,
+        unlockedBorders: [ProfileBorder] = [],
+        currentBorderID: String? = nil,
+        onBorderSelect: @escaping (String?) -> Void = { _ in },
+        onSave: @escaping (String, String) -> Void
+    ) {
         self.onSave = onSave
+        self.currentLevel = currentLevel
+        self.unlockedBorders = unlockedBorders
+        self.currentBorderID = currentBorderID
+        self.onBorderSelect = onBorderSelect
         _emoji = State(initialValue: initialEmoji)
         _username = State(initialValue: initialUsername)
     }
@@ -123,7 +142,7 @@ struct ProfileEditorView: View {
     // MARK: - Avatar Section
 
     private var avatarSection: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             ZStack {
                 EmojiTextField(emoji: $emoji, isActive: $emojiKeyboardActive)
                     .frame(width: 0, height: 0)
@@ -147,6 +166,56 @@ struct ProfileEditorView: View {
             Text("Tap to change avatar")
                 .font(.ruleCaption)
                 .foregroundStyle(Color.textSecondary)
+
+            changeBorderButton
+        }
+    }
+
+    // MARK: - Change Border Button
+
+    private var changeBorderButton: some View {
+        let isLocked = currentLevel < borderUnlockLevel
+
+        return Button {
+            if isLocked {
+                showBorderLockedAlert = true
+            } else {
+                showBorderPicker = true
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: isLocked ? "lock.fill" : "circle.dashed")
+                    .font(.system(size: 11, weight: .medium))
+                Text("Change Border")
+                    .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
+                    .tracking(0.2)
+            }
+            .foregroundStyle(isLocked ? Color.textTertiary : Color.textSecondary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color.tycoonCard)
+            .overlay(
+                Capsule()
+                    .strokeBorder(
+                        isLocked ? Color.white.opacity(0.08) : Color.white.opacity(0.12),
+                        lineWidth: 1
+                    )
+            )
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .alert("Border Locked", isPresented: $showBorderLockedAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Reach Level \(borderUnlockLevel) to unlock profile borders.")
+        }
+        .sheet(isPresented: $showBorderPicker) {
+            BorderPickerSheet(
+                currentLevel: currentLevel,
+                unlockedBorders: unlockedBorders,
+                currentBorderID: currentBorderID,
+                onSelect: onBorderSelect
+            )
         }
     }
 
