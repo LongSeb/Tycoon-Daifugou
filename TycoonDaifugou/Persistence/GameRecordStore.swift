@@ -34,6 +34,11 @@ final class GameRecordStore {
         try? context.save()
     }
 
+    func updateEquippedBorder(_ borderID: String?) {
+        profile.equippedBorderID = borderID
+        try? context.save()
+    }
+
     // MARK: - Save
 
     private(set) var pendingLevelUpUnlocks: [UnlockDefinition]? = nil
@@ -93,6 +98,30 @@ final class GameRecordStore {
             pendingLevelUpUnlocks = nil
         }
 
+        // Extended stats accumulation
+        profile.jokersPlayed += controller.jokerPlayCount
+        profile.jokersWonTrick += controller.jokersWonTrickCount
+        profile.roundFinishPositions += controller.roundFinishPositions
+        profile.comebackCount += controller.comebackCountThisGame
+        profile.comebackOpportunities += controller.comebackOpportunitiesThisGame
+        profile.tricksLed += controller.tricksLedCount
+        profile.tricksWon += controller.tricksWonCount
+        profile.totalPasses += controller.totalPassesCount
+        profile.totalTurns += controller.totalTurnsCount
+        profile.revolutionsTriggered += controller.revolutionCount
+        profile.eightStopsTotal += controller.eightStopCount
+        profile.threeSpadesTotal += controller.threeSpadeCount
+        profile.gamesPlayedCount += 1
+        profile.totalDuration += controller.gameDuration
+        profile.totalRoundsPlayed += result.roundsPlayed
+        if isWin(record) { profile.gamesWonCount += 1 }
+        if controller.maxRounds > 1 {
+            profile.multiRoundGamesPlayed += 1
+            if controller.roundsWon == controller.maxRounds {
+                profile.sweepsAchieved += 1
+            }
+        }
+
         try? context.save()
         records = Self.fetchAllRecords(context: context)
     }
@@ -119,6 +148,12 @@ final class GameRecordStore {
         let winRate = totalGames > 0 ? Int(Double(wins) / Double(totalGames) * 100) : 0
 
         let totalRevolutions = records.reduce(0) { $0 + $1.revolutionCount }
+
+        let avgFinishPlaceStr: String = {
+            guard !profile.roundFinishPositions.isEmpty else { return "—" }
+            let avg = Double(profile.roundFinishPositions.reduce(0, +)) / Double(profile.roundFinishPositions.count)
+            return String(format: "%.1f", avg)
+        }()
         let currentLevel = profile.currentLevel
         let levelStart = LevelCalculator.cumulativeXP(forLevel: currentLevel)
         let xpForNext = currentLevel < LevelCalculator.maxLevel
@@ -178,6 +213,27 @@ final class GameRecordStore {
             )
         }
 
+        let extendedStats: ExtendedStatsData? = profile.isExtendedStatsUnlocked
+            ? ExtendedStatsData(
+                totalGamesPlayed: profile.gamesPlayedCount,
+                passRate: profile.passRate,
+                earlyFinisherRate: profile.earlyFinisherRate,
+                comebackRate: profile.comebackRate,
+                sweepRate: profile.sweepRate,
+                cardHoardingIndex: profile.cardHoardingIndex,
+                trickWinRate: profile.trickWinRate,
+                jokerEfficiency: profile.jokerEfficiency,
+                avgRevolutionsPerGame: profile.avgRevolutionsPerGame,
+                aggressionAxis: profile.aggressionAxis,
+                earlyAxis: profile.earlyAxis,
+                riskAxis: profile.riskAxis,
+                consistencyAxis: profile.consistencyAxis,
+                archetype: profile.archetype,
+                archetypeEmoji: profile.archetypeEmoji,
+                archetypeDescription: profile.archetypeDescription
+            )
+            : nil
+
         return ProfileData(
             emoji: profile.emoji,
             username: profile.username,
@@ -190,8 +246,8 @@ final class GameRecordStore {
             xpForNextLevel: xpForNext,
             levelStartXP: levelStart,
             winStreak: currentWinStreak,
-            totalRevolutions: totalRevolutions,
-            avgGameTime: averageGameTime,
+            avgFinishPlace: avgFinishPlaceStr,
+            totalTimePlayed: totalTimePlayedString,
             nextUnlock: nextUnlock,
             upcomingUnlocks: upcomingUnlocks,
             rankStats: rankStats,
@@ -199,8 +255,10 @@ final class GameRecordStore {
             equippedTitle: profile.equippedTitleID,
             equippedSkinID: profile.equippedSkinID,
             equippedBorder: profile.equippedBorder,
+            unlockedBorders: profile.unlockedBorders,
             hasPrestigeBadge: profile.hasPrestigeBadge,
             isExtendedStatsUnlocked: profile.isExtendedStatsUnlocked,
+            extendedStats: extendedStats,
             unlockedTitles: profile.unlockedTitles,
             lockedTitles: {
                 let unlockedSet = Set(profile.unlockedTitles)
@@ -238,6 +296,16 @@ final class GameRecordStore {
             if isWin(record) { streak += 1 } else { break }
         }
         return streak
+    }
+
+    private var totalTimePlayedString: String {
+        let total = Int(profile.totalDuration)
+        guard total > 0 else { return "—" }
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+        if h > 0 { return "\(h)h \(m)m" }
+        return m > 0 ? "\(m)m \(s)s" : "\(s)s"
     }
 
     private var averageGameTime: String {

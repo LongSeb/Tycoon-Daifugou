@@ -14,12 +14,10 @@ struct SettingsView: View {
         ZStack(alignment: .bottom) {
             Color.tycoonBlack.ignoresSafeArea()
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    topBar
-                    settingsCard
-                }
-                .padding(.bottom, 40)
+            VStack(alignment: .leading, spacing: 0) {
+                topBar
+                settingsCard
+                Spacer()
             }
 
             RulesDrawer(isPresented: $showRules)

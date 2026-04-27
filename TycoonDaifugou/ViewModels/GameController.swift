@@ -76,6 +76,20 @@ final class GameController {
     private(set) var wasShutOut: Bool = false
     private(set) var comebackRoundsCount: Int = 0
 
+    // Extended stats tracking — accumulated per game, flushed to PlayerProfile on save
+    private(set) var jokersWonTrickCount: Int = 0
+    private(set) var roundFinishPositions: [Int] = []
+    private(set) var comebackCountThisGame: Int = 0
+    private(set) var comebackOpportunitiesThisGame: Int = 0
+    private(set) var tricksLedCount: Int = 0
+    private(set) var tricksWonCount: Int = 0
+    private(set) var totalPassesCount: Int = 0
+    private(set) var totalTurnsCount: Int = 0
+
+    // Intra-trick flags (reset per trick, not exposed externally)
+    private var humanLeadingCurrentTrick: Bool = false
+    private var humanPlayedJokerOnPile: Bool = false
+
     private var countedRounds: Set<Int> = []
     // Title the human carried INTO the current round (nil = first round, no prior title).
     private var roundStartTitle: Title? = nil
@@ -308,7 +322,7 @@ final class GameController {
                         humanMillionaireRounds += 1
                     }
 
-                    // Comeback: started the round as Beggar, finished Millionaire or Rich.
+                    // Comeback: started the round as Beggar, finished Millionaire or Rich (XP).
                     if roundStartTitle == .beggar && (humanTitle == .millionaire || humanTitle == .rich) {
                         comebackRoundsCount += 1
                     }
@@ -316,6 +330,24 @@ final class GameController {
                     if humanTitle == .millionaire || humanTitle == .rich {
                         roundsWon += 1
                     }
+
+                    // Extended stats: comeback tracking (Poor and Beggar both count)
+                    if roundStartTitle == .poor || roundStartTitle == .beggar {
+                        comebackOpportunitiesThisGame += 1
+                        if humanTitle == .millionaire || humanTitle == .rich {
+                            comebackCountThisGame += 1
+                        }
+                    }
+
+                    // Extended stats: finish position (1=Tycoon, 2=Rich, 3=Poor/Commoner, 4=Beggar)
+                    let position: Int
+                    switch humanTitle {
+                    case .millionaire:         position = 1
+                    case .rich:                position = 2
+                    case .poor, .commoner:     position = 3
+                    default:                   position = 4
+                    }
+                    roundFinishPositions.append(position)
 
                     // The title earned this round becomes the start title for the next.
                     roundStartTitle = humanTitle
@@ -458,6 +490,18 @@ final class GameController {
                 if isReversal { threeSpadeCount += 1 }
                 if isEightStop { eightStopCount += 1 }
 
+                totalTurnsCount += 1
+
+                // Trick lead: human played onto an empty pile
+                if priorTrick.isEmpty {
+                    tricksLedCount += 1
+                    humanLeadingCurrentTrick = true
+                }
+                // Joker on pile tracking
+                if cards.contains(where: { $0.isJoker }) {
+                    humanPlayedJokerOnPile = true
+                }
+
                 // Shutout: human just emptied their hand while others have 3+ cards remaining.
                 if priorHumanHandCount > 0 && humanHand.isEmpty && !wasShutOut {
                     let otherMin = state.players
@@ -468,7 +512,16 @@ final class GameController {
                         wasShutOut = true
                     }
                 }
+            } else {
+                // Non-human play: human's lead is overbeaten
+                humanLeadingCurrentTrick = false
+                humanPlayedJokerOnPile = false
             }
+        }
+
+        if case .pass(let byPlayerID) = move, byPlayerID == humanPlayerID {
+            totalTurnsCount += 1
+            totalPassesCount += 1
         }
 
         if state.isRevolutionActive != priorRevolution {
@@ -505,7 +558,16 @@ final class GameController {
                 trickResetExitHands = priorTrick
             }
             let idx = state.currentPlayerIndex
-            trickWinnerID = idx < state.players.count ? state.players[idx].id : nil
+            let winnerID = idx < state.players.count ? state.players[idx].id : nil
+            trickWinnerID = winnerID
+
+            // Extended stats: track led-trick wins and joker efficiency
+            if winnerID == humanPlayerID {
+                if humanLeadingCurrentTrick { tricksWonCount += 1 }
+                if humanPlayedJokerOnPile { jokersWonTrickCount += 1 }
+            }
+            humanLeadingCurrentTrick = false
+            humanPlayedJokerOnPile = false
         }
 
         if case .play(_, let byPlayerID) = move, byPlayerID != humanPlayerID {
