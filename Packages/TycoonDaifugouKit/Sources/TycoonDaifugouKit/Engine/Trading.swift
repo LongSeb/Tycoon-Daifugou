@@ -62,8 +62,8 @@ extension GameState {
 
         let startIndex: Int
         if newPhase == .playing {
-            let threeDiamonds = Card.regular(.three, .diamonds)
-            startIndex = dealtPlayers.firstIndex { $0.hand.contains(threeDiamonds) } ?? 0
+            // Rounds 2+: Beggar leads. Fall back to seat 0 if titles aren't set (shouldn't happen).
+            startIndex = dealtPlayers.firstIndex { $0.currentTitle == .beggar } ?? 0
         } else {
             startIndex = 0
         }
@@ -175,14 +175,14 @@ extension GameState {
         newPending.remove(at: tradeIndex)
 
         if newPending.isEmpty {
+            // Beggar leads after trading; find them before titles are cleared.
+            let startIndex = newPlayers.firstIndex { $0.currentTitle == .beggar } ?? 0
             let cleared = newPlayers.map {
                 Player(
                     id: $0.id, displayName: $0.displayName, hand: $0.hand,
                     currentTitle: nil, previousTitle: $0.previousTitle
                 )
             }
-            let threeDiamonds = Card.regular(.three, .diamonds)
-            let startIndex = cleared.firstIndex { $0.hand.contains(threeDiamonds) } ?? 0
             return GameState(
                 players: cleared,
                 deck: deck,

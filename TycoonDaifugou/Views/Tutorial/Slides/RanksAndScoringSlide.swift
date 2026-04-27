@@ -3,7 +3,7 @@ import SwiftUI
 struct RanksAndScoringSlide: View {
     var body: some View {
         VStack(spacing: 8) {
-            rankScoreRow(emoji: "👑", name: "Millionaire", pts: "30 pts", color: Color.cardGold)
+            rankScoreRow(emoji: "👑", name: "Tycoon", pts: "30 pts", color: Color.cardGold)
             rankScoreRow(emoji: "🤑", name: "Rich",        pts: "20 pts", color: Color.tycoonMint)
             rankScoreRow(emoji: "😟", name: "Poor",        pts: "10 pts", color: Color.textSecondary)
             rankScoreRow(emoji: "🥺", name: "Beggar",      pts: "0 pts",  color: Color.textTertiary)

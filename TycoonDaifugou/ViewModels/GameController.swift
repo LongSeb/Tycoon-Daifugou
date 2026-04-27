@@ -232,6 +232,7 @@ final class GameController {
     func fastForwardRound() {
         guard humanHasFinishedRound, !isFastForwarding else { return }
         isFastForwarding = true
+        HapticManager.isSuppressed = true
         Task {
             while state.phase == .playing {
                 let current = activePlayer
@@ -256,6 +257,7 @@ final class GameController {
                 guard moveSucceeded else { break }
             }
             isFastForwarding = false
+            HapticManager.isSuppressed = false
             await resolveAITurnsIfNeeded()
         }
     }

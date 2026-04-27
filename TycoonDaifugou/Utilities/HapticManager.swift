@@ -1,8 +1,10 @@
 import UIKit
 
 enum HapticManager {
+    static var isSuppressed: Bool = false
+
     private static var isEnabled: Bool {
-        UserDefaults.standard.object(forKey: AppSettings.Key.hapticsEnabled) as? Bool ?? true
+        !isSuppressed && (UserDefaults.standard.object(forKey: AppSettings.Key.hapticsEnabled) as? Bool ?? true)
     }
 
     static func cardTap() {

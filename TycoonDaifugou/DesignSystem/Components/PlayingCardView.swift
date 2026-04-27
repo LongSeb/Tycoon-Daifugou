@@ -105,10 +105,11 @@ struct PlayingCardView: View {
 
     @ViewBuilder
     private func motionFoilOverlay(motion: MotionManager) -> some View {
-        // gravity.x/z are 0 when phone is upright → shimmer centers naturally.
-        // Scale by 1.5 so ~40° tilt sweeps the full card width.
+        // gravity.z = -sin(θ) where θ is tilt from vertical. Adding sin(55.5°) ≈ 0.824
+        // shifts the shimmer center to the typical ~55.5° hold angle rather than true upright.
+        let pitchOffset = CGFloat(sin(55.5 * .pi / 180))
         let x = CGFloat(min(max(motion.roll * 1.5, -1), 1)) * 0.5 + 0.5
-        let y = CGFloat(min(max(motion.pitch * 1.5, -1), 1)) * 0.5 + 0.5
+        let y = CGFloat(min(max((motion.pitch + pitchOffset) * 1.5, -1), 1)) * 0.5 + 0.5
 
         if skin?.id == "shiny_black" {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)

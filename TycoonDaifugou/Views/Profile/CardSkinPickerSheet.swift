@@ -64,7 +64,6 @@ struct CardSkinPickerSheet: View {
         let isSelected = skin.id == currentSkinID
         return Button {
             onSelect(skin)
-            dismiss()
         } label: {
             VStack(spacing: 8) {
                 CardBackView(skin: skin, cornerRadius: 8, width: 58, height: 82)
@@ -80,11 +79,24 @@ struct CardSkinPickerSheet: View {
                         radius: 8
                     )
 
-                Text(skin.name)
-                    .font(.custom("InstrumentSans-Regular", size: 11).weight(.medium))
-                    .foregroundStyle(isSelected ? Color.tycoonMint : Color.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                HStack(spacing: 4) {
+                    Text(skin.name)
+                        .font(.custom("InstrumentSans-Regular", size: 11).weight(.medium))
+                        .foregroundStyle(isSelected ? Color.tycoonMint : Color.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+
+                    if isSelected {
+                        ZStack {
+                            Circle()
+                                .fill(Color.tycoonCard)
+                                .frame(width: 15, height: 15)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(Color.tycoonMint)
+                        }
+                    }
+                }
             }
         }
         .buttonStyle(.plain)
