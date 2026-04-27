@@ -1005,6 +1005,12 @@ struct GameView: View {
                     .rotationEffect(.degrees(Double(angle)))
                     .zIndex(isSelected ? 20 : Double(i))
                     .onTapGesture { toggle(card) }
+                    .gesture(
+                        DragGesture(minimumDistance: 12)
+                            .onEnded { value in
+                                handleSwipe(card, translation: value.translation)
+                            }
+                    )
                 }
             }
             .frame(width: geo.size.width, height: cardH + lift + 16)
@@ -1066,6 +1072,17 @@ struct GameView: View {
             } else {
                 selected.insert(card)
             }
+        }
+    }
+
+    private func handleSwipe(_ card: Card, translation: CGSize) {
+        let threshold: CGFloat = 30
+        let dy = translation.height
+        let isSelected = selected.contains(card)
+        if dy < -threshold && !isSelected {
+            toggle(card)
+        } else if dy > threshold && isSelected {
+            toggle(card)
         }
     }
 
