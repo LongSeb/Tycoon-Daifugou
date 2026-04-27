@@ -18,6 +18,17 @@ struct ProfileData {
     let upcomingUnlocks: [UnlockItem]
     let rankStats: [RankStat]
     let specialPlays: [SpecialPlayStat]
+    // Equip state
+    let equippedTitle: String
+    let equippedSkinID: String
+    let equippedBorder: ProfileBorder?
+    let hasPrestigeBadge: Bool
+    let isExtendedStatsUnlocked: Bool
+    // Available unlock lists for pickers
+    let unlockedTitles: [String]
+    let lockedTitles: [String]
+    let unlockedSkins: [CardSkin]
+    let lockedSkins: [CardSkin]
 }
 
 struct UnlockItem: Identifiable {

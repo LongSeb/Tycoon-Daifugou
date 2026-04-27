@@ -78,9 +78,10 @@ final class NavigationCoordinator {
     }
 
     func showResults(for controller: GameController) {
-        let result = Self.buildResult(from: controller, profile: store?.profile)
-        lastResult = result
+        var result = Self.buildResult(from: controller, profile: store?.profile)
         store?.save(controller: controller, result: result, ruleSet: currentRuleSet)
+        result.levelUpUnlocks = store?.pendingLevelUpUnlocks
+        lastResult = result
         path.append(.results)
     }
 

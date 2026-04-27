@@ -24,7 +24,23 @@ final class GameRecordStore {
         try? context.save()
     }
 
+    func updateEquippedTitle(_ titleID: String) {
+        profile.equippedTitleID = titleID
+        try? context.save()
+    }
+
+    func updateEquippedSkin(_ skinID: String) {
+        profile.equippedSkinID = skinID
+        try? context.save()
+    }
+
     // MARK: - Save
+
+    private(set) var pendingLevelUpUnlocks: [UnlockDefinition]? = nil
+
+    func clearLevelUpUnlocks() {
+        pendingLevelUpUnlocks = nil
+    }
 
     func save(controller: GameController, result: GameResultData, ruleSet: RuleSet) {
         let opponentRecords = result.players
@@ -54,8 +70,28 @@ final class GameRecordStore {
         )
 
         context.insert(record)
+
+        let levelBefore = profile.currentLevel
         profile.totalXP += result.xpGained
         profile.currentLevel = LevelCalculator.level(forTotalXP: profile.totalXP)
+
+        // Hard mode wins
+        if controller.difficulty == .hard && result.playerFinishRank == "Tycoon" {
+            profile.hardModeWins += 1
+        }
+
+        // Prestige badge
+        if profile.currentLevel >= 50 {
+            profile.hasPrestigeBadge = true
+        }
+
+        // Level-up unlock notification
+        if profile.currentLevel > levelBefore {
+            let unlocks = UnlockRegistry.unlocks(forLevel: profile.currentLevel)
+            pendingLevelUpUnlocks = unlocks.isEmpty ? nil : unlocks
+        } else {
+            pendingLevelUpUnlocks = nil
+        }
 
         try? context.save()
         records = Self.fetchAllRecords(context: context)
@@ -67,7 +103,12 @@ final class GameRecordStore {
         let wins = records.filter { isWin($0) }.count
         let last = records.first.map { makeLastGameData($0) }
         let recent = Array(records.prefix(5).dropFirst()).map { makeRecentGameData($0) }
-        return HomeViewState(totalGamesWon: wins, lastGame: last, recentGames: recent)
+        return HomeViewState(
+            totalGamesWon: wins,
+            lastGame: last,
+            recentGames: recent,
+            isExpertUnlocked: profile.isExpertDifficultyUnlocked
+        )
     }
 
     // MARK: - ProfileData
@@ -107,6 +148,36 @@ final class GameRecordStore {
         formatter.dateFormat = "MMMM yyyy"
         let memberSince = formatter.string(from: profile.memberSince)
 
+        let futureUnlocks = UnlockRegistry.all
+            .filter { $0.level > currentLevel }
+            .prefix(4)
+
+        let nextUnlock: UnlockItem
+        if let first = futureUnlocks.first {
+            nextUnlock = UnlockItem(
+                name: first.displayName,
+                description: "Unlocks at Level \(first.level)",
+                level: first.level,
+                icon: iconForUnlock(first)
+            )
+        } else {
+            nextUnlock = UnlockItem(
+                name: "Max level reached",
+                description: "All unlocks earned",
+                level: currentLevel,
+                icon: .badge
+            )
+        }
+
+        let upcomingUnlocks = Array(futureUnlocks.dropFirst()).map { def in
+            UnlockItem(
+                name: def.displayName,
+                description: "Unlocks at Level \(def.level)",
+                level: def.level,
+                icon: iconForUnlock(def)
+            )
+        }
+
         return ProfileData(
             emoji: profile.emoji,
             username: profile.username,
@@ -121,19 +192,31 @@ final class GameRecordStore {
             winStreak: currentWinStreak,
             totalRevolutions: totalRevolutions,
             avgGameTime: averageGameTime,
-            nextUnlock: UnlockItem(
-                name: "Custom avatar frame",
-                description: "Unlocks at Level \(currentLevel + 1)",
-                level: currentLevel + 1,
-                icon: .star
-            ),
-            upcomingUnlocks: [
-                UnlockItem(name: "Card back skin", description: "Dark Lavender · exclusive pattern", level: currentLevel + 2, icon: .lock),
-                UnlockItem(name: "Extended stats", description: "Session history + trends", level: currentLevel + 3, icon: .chart),
-                UnlockItem(name: "Prestige badge", description: "Cream star · profile display", level: currentLevel + 4, icon: .badge),
-            ],
+            nextUnlock: nextUnlock,
+            upcomingUnlocks: upcomingUnlocks,
             rankStats: rankStats,
-            specialPlays: specialPlays
+            specialPlays: specialPlays,
+            equippedTitle: profile.equippedTitleID,
+            equippedSkinID: profile.equippedSkinID,
+            equippedBorder: profile.equippedBorder,
+            hasPrestigeBadge: profile.hasPrestigeBadge,
+            isExtendedStatsUnlocked: profile.isExtendedStatsUnlocked,
+            unlockedTitles: profile.unlockedTitles,
+            lockedTitles: {
+                let unlockedSet = Set(profile.unlockedTitles)
+                return UnlockRegistry.all.compactMap {
+                    if case .title(let t) = $0.type, !unlockedSet.contains(t) { return t }
+                    return nil
+                }
+            }(),
+            unlockedSkins: profile.unlockedSkins,
+            lockedSkins: {
+                let unlockedIDs = Set(profile.unlockedSkins.map(\.id))
+                return UnlockRegistry.all.compactMap {
+                    if case .cardSkin(let skin) = $0.type, !unlockedIDs.contains(skin.id) { return skin }
+                    return nil
+                }
+            }()
         )
     }
 
@@ -222,6 +305,16 @@ final class GameRecordStore {
         if diff < 86400 { return "\(Int(diff / 3600))h ago" }
         if diff < 172800 { return "Yesterday" }
         return "\(Int(diff / 86400))d ago"
+    }
+
+    private func iconForUnlock(_ def: UnlockDefinition) -> UnlockIcon {
+        switch def.type {
+        case .title:         return .star
+        case .cardSkin:      return .lock
+        case .profileBorder: return .star
+        case .featureGate:   return .chart
+        case .prestigeBadge: return .badge
+        }
     }
 
     private static func fetchOrCreateProfile(context: ModelContext) -> PlayerProfile {

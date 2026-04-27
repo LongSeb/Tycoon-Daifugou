@@ -11,6 +11,10 @@ struct PlayingCardView: View {
     var style: Style = .hand
     var isSelected: Bool = false
     var playable: Bool = true
+    var skin: CardSkin? = nil
+
+    @Environment(\.motionManager) private var motion
+    @State private var shimmerPhase: CGFloat = -1
 
     var body: some View {
         ZStack {
@@ -58,11 +62,16 @@ struct PlayingCardView: View {
                 Text(card.displaySuit)
                     .font(.system(size: centerSuitFontSize))
                     .foregroundStyle(inkColor)
+                    .darkOutline(darkOutlined)
+            }
+
+            if skin?.isFoil == true {
+                foilOverlay
             }
 
             if isSelected {
                 Circle()
-                    .fill(Color.cardSelectAccent)
+                    .fill(skin?.isDark == true ? Color.white.opacity(0.6) : Color.cardSelectAccent)
                     .frame(width: selectionDotSize, height: selectionDotSize)
                     .offset(y: selectionDotOffset)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -71,16 +80,116 @@ struct PlayingCardView: View {
         .frame(width: width, height: height)
         .colorMultiply(playable ? .white : Color(white: 0.55))
         .allowsHitTesting(playable)
+        .onAppear {
+            guard skin?.isFoil == true else { return }
+            withAnimation(
+                skin?.id == "shiny_black"
+                    ? .linear(duration: 2).repeatForever(autoreverses: false)
+                    : .easeInOut(duration: 1.4).repeatForever(autoreverses: true)
+            ) {
+                shimmerPhase = skin?.id == "shiny_black" ? 2 : 1
+            }
+        }
     }
+
+    // MARK: - Foil
+
+    @ViewBuilder
+    private var foilOverlay: some View {
+        if let motion, motion.isActive {
+            motionFoilOverlay(motion: motion)
+        } else {
+            animatedFoilOverlay
+        }
+    }
+
+    @ViewBuilder
+    private func motionFoilOverlay(motion: MotionManager) -> some View {
+        // gravity.x/z are 0 when phone is upright → shimmer centers naturally.
+        // Scale by 1.5 so ~40° tilt sweeps the full card width.
+        let x = CGFloat(min(max(motion.roll * 1.5, -1), 1)) * 0.5 + 0.5
+        let y = CGFloat(min(max(motion.pitch * 1.5, -1), 1)) * 0.5 + 0.5
+
+        if skin?.id == "shiny_black" {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(hex: "#FF6B6B").opacity(0.25), location: 0.0),
+                            .init(color: Color(hex: "#FFD700").opacity(0.25), location: 0.2),
+                            .init(color: Color(hex: "#7FFF00").opacity(0.25), location: 0.4),
+                            .init(color: Color(hex: "#00BFFF").opacity(0.25), location: 0.6),
+                            .init(color: Color(hex: "#8A2BE2").opacity(0.25), location: 0.8),
+                            .init(color: Color(hex: "#FF6B6B").opacity(0.25), location: 1.0),
+                        ],
+                        startPoint: UnitPoint(x: x - 1, y: 0),
+                        endPoint: UnitPoint(x: x, y: 1)
+                    )
+                )
+        } else {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    RadialGradient(
+                        stops: [
+                            .init(color: Color.white.opacity(0.38), location: 0),
+                            .init(color: Color.white.opacity(0), location: 1),
+                        ],
+                        center: UnitPoint(x: x, y: y),
+                        startRadius: 0,
+                        endRadius: 55
+                    )
+                )
+        }
+    }
+
+    @ViewBuilder
+    private var animatedFoilOverlay: some View {
+        if skin?.id == "shiny_black" {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(hex: "#FF6B6B").opacity(0.18), location: 0.0),
+                            .init(color: Color(hex: "#FFD700").opacity(0.18), location: 0.2),
+                            .init(color: Color(hex: "#7FFF00").opacity(0.18), location: 0.4),
+                            .init(color: Color(hex: "#00BFFF").opacity(0.18), location: 0.6),
+                            .init(color: Color(hex: "#8A2BE2").opacity(0.18), location: 0.8),
+                            .init(color: Color(hex: "#FF6B6B").opacity(0.18), location: 1.0),
+                        ],
+                        startPoint: UnitPoint(x: shimmerPhase - 1, y: 0),
+                        endPoint: UnitPoint(x: shimmerPhase, y: 1)
+                    )
+                )
+        } else {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0),
+                            Color.white.opacity(0.22),
+                            Color.white.opacity(0),
+                        ],
+                        startPoint: UnitPoint(x: shimmerPhase - 0.5, y: 0),
+                        endPoint: UnitPoint(x: shimmerPhase + 0.5, y: 1)
+                    )
+                )
+        }
+    }
+
+    // MARK: - Helpers
+
+    private var darkOutlined: Bool { skin?.isDark == true && isSelected }
 
     private var cornerLabel: some View {
         VStack(spacing: 1) {
             Text(card.displayValue)
                 .font(.custom("Fraunces-9ptBlackItalic", size: cornerFontSize))
-                .foregroundStyle(card.suitColor)
+                .foregroundStyle(inkColor)
+                .darkOutline(darkOutlined)
             Text(card.displaySuit)
                 .font(.system(size: cornerSuitFontSize))
-                .foregroundStyle(card.suitColor)
+                .foregroundStyle(inkColor)
+                .darkOutline(darkOutlined)
         }
     }
 
@@ -99,30 +208,49 @@ struct PlayingCardView: View {
         return Color.cardSuitRed
     }
     private var inkColor: Color {
-        guard playable else { return .black }
+        guard playable else { return skin?.isDark == true ? .white.opacity(0.4) : .black }
+        if skin?.isDark == true { return .white }
         return card.isJoker ? jokerColor : card.suitColor
     }
     private var selectionDotSize: CGFloat { style == .hand ? 5 : 6 }
     private var selectionDotOffset: CGFloat { style == .hand ? -9 : -11 }
 
     private var fillColor: Color {
+        let base: Color = skin?.color ?? .cardCream
         switch style {
         case .hand:
-            return isSelected ? .cardSelectFill : .cardCream
+            if isSelected {
+                if let skin, skin.isDark { return skin.color }
+                return .cardSelectFill
+            }
+            return base
         case .pile:
-            return .cardCream
+            return base
         }
     }
 
     private var borderColor: Color {
+        let isRoyalRed = skin?.id == "royal_red"
         switch style {
         case .hand:
-            return isSelected
-                ? Color.cardSelectAccent.opacity(0.7)
-                : Color.black.opacity(0.08)
+            if isSelected {
+                return skin?.isDark == true ? Color.white.opacity(0.4) : Color.cardSelectAccent.opacity(0.7)
+            }
+            return isRoyalRed ? Color.black.opacity(0.55) : Color.black.opacity(0.08)
         case .pile:
-            return Color.black.opacity(0.08)
+            return isRoyalRed ? Color.black.opacity(0.55) : Color.black.opacity(0.08)
         }
+    }
+}
+
+private extension View {
+    func darkOutline(_ active: Bool) -> some View {
+        let c: Color = active ? .black : .clear
+        return self
+            .shadow(color: c, radius: 0, x:  0.5, y:    0)
+            .shadow(color: c, radius: 0, x: -0.5, y:    0)
+            .shadow(color: c, radius: 0, x:    0, y:  0.5)
+            .shadow(color: c, radius: 0, x:    0, y: -0.5)
     }
 }
 

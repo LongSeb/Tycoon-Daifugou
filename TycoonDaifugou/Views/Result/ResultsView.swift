@@ -7,6 +7,7 @@ struct ResultsView: View {
 
     @State private var heroVisible = false
     @State private var rowsVisible = false
+    @State private var showLevelUp = false
 
     var body: some View {
         ZStack {
@@ -20,6 +21,16 @@ struct ResultsView: View {
                 actionButtons
             }
             .padding(.bottom, 40)
+
+            if showLevelUp, let unlocks = result.levelUpUnlocks {
+                LevelUpOverlay(
+                    level: result.currentLevel,
+                    unlocks: unlocks,
+                    onDismiss: { showLevelUp = false }
+                )
+                .transition(.opacity)
+                .zIndex(50)
+            }
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -29,7 +40,14 @@ struct ResultsView: View {
             withAnimation {
                 rowsVisible = true
             }
+            if result.levelUpUnlocks != nil {
+                Task {
+                    try? await Task.sleep(nanoseconds: 1_200_000_000)
+                    withAnimation(.easeIn(duration: 0.3)) { showLevelUp = true }
+                }
+            }
         }
+        .animation(.easeInOut(duration: 0.3), value: showLevelUp)
     }
 
     // MARK: Top Bar

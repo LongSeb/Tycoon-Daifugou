@@ -6,6 +6,8 @@ struct ProfileView: View {
     var onSettingsTapped: () -> Void = {}
 
     @State private var showingEditor = false
+    @State private var showingTitlePicker = false
+    @State private var showingSkinPicker = false
 
     var body: some View {
         ZStack {
@@ -32,6 +34,82 @@ struct ProfileView: View {
                     }
                 )
             }
+        }
+        .sheet(isPresented: $showingTitlePicker) {
+            TitlePickerSheet(
+                titles: profile.unlockedTitles,
+                lockedTitles: profile.lockedTitles,
+                currentTitle: profile.equippedTitle,
+                onSelect: { store?.updateEquippedTitle($0) }
+            )
+        }
+        .sheet(isPresented: $showingSkinPicker) {
+            CardSkinPickerSheet(
+                skins: profile.unlockedSkins,
+                lockedSkins: profile.lockedSkins,
+                currentSkinID: profile.equippedSkinID,
+                onSelect: { store?.updateEquippedSkin($0.id) }
+            )
+        }
+    }
+
+    // MARK: - Avatar with Border
+
+    private var avatarWithBorder: some View {
+        ZStack {
+            if let border = profile.equippedBorder {
+                borderRing(border: border)
+                    .frame(width: 82, height: 82)
+            } else {
+                Circle()
+                    .fill(Color.tycoonCard)
+                    .frame(width: 80, height: 80)
+            }
+
+            Circle()
+                .fill(Color.tycoonCard)
+                .frame(width: 76, height: 76)
+                .overlay(
+                    Text(profile.emoji)
+                        .font(.system(size: 32))
+                )
+
+            if profile.hasPrestigeBadge {
+                Text("⭐")
+                    .font(.system(size: 12))
+                    .shadow(color: Color.yellow.opacity(0.6), radius: 6)
+                    .offset(x: -29, y: 29)
+            }
+        }
+        .frame(width: 82, height: 82)
+        .onAppear {
+            guard profile.equippedBorder?.isAnimated == true else { return }
+            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+                borderRotation = 360
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func borderRing(border: ProfileBorder) -> some View {
+        if border.isAnimated {
+            Circle()
+                .stroke(
+                    AngularGradient(
+                        colors: [
+                            Color(hex: "#C9A84C"),
+                            Color(hex: "#FFD700"),
+                            Color(hex: "#FFF8DC"),
+                            Color(hex: "#C9A84C"),
+                        ],
+                        center: .center
+                    ),
+                    lineWidth: 3
+                )
+                .rotationEffect(.degrees(borderRotation))
+        } else {
+            Circle()
+                .stroke(border.color, lineWidth: 3)
         }
     }
 
@@ -61,23 +139,14 @@ struct ProfileView: View {
         .padding(.bottom, 20)
     }
 
+    @State private var borderRotation: Double = 0
+
     // MARK: - Profile Hero
 
     private var profileHero: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .bottomTrailing) {
-                Circle()
-                    .fill(Color.cardBlush)
-                    .frame(width: 80, height: 80)
-                    .overlay(
-                        Circle()
-                            .fill(Color.tycoonCard)
-                            .frame(width: 76, height: 76)
-                            .overlay(
-                                Text(profile.emoji)
-                                    .font(.system(size: 32))
-                            )
-                    )
+                avatarWithBorder
 
                 Button(action: { showingEditor = true }) {
                     ZStack {
@@ -91,19 +160,40 @@ struct ProfileView: View {
                             .foregroundStyle(Color.cardBlush)
                     }
                 }
+                .offset(x: 2, y: 2)
             }
             .padding(.bottom, 12)
+            .contextMenu {
+                if profile.hasPrestigeBadge {
+                    Text("⭐ Level 50 — Prestige")
+                }
+            }
 
             Text(profile.username)
                 .font(.cardTitle)
                 .foregroundStyle(Color.textPrimary)
                 .tracking(-0.5)
+                .padding(.bottom, 2)
+
+            Text(profile.equippedTitle)
+                .font(.custom("InstrumentSans-Regular", size: 13).weight(.medium).italic())
+                .foregroundStyle(Color.tycoonMint)
                 .padding(.bottom, 3)
 
             Text("Member since \(profile.memberSince)")
                 .font(.ruleCaption)
                 .foregroundStyle(Color.white.opacity(0.28))
                 .padding(.bottom, 14)
+
+            HStack(spacing: 8) {
+                customizeButton(icon: "paintpalette", label: "Card Skin") {
+                    showingSkinPicker = true
+                }
+                customizeButton(icon: "sparkles", label: "Title") {
+                    showingTitlePicker = true
+                }
+            }
+            .padding(.bottom, 16)
 
             HStack(spacing: 8) {
                 ProfileStatPill(value: "\(profile.wins)", label: "Wins")
@@ -113,6 +203,28 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.bottom, 22)
+    }
+
+    private func customizeButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .medium))
+                Text(label)
+                    .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
+                    .tracking(0.2)
+            }
+            .foregroundStyle(Color.textSecondary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color.tycoonCard)
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+            )
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Level Card
@@ -227,6 +339,12 @@ struct ProfileView: View {
             }
             .background(Color.white.opacity(0.06))
 
+            if profile.isExtendedStatsUnlocked {
+                extendedStatsSection
+            } else {
+                lockedExtendedStatsCard
+            }
+
             RankBreakdownSection(rankStats: profile.rankStats)
 
             SpecialPlaysSection(plays: profile.specialPlays)
@@ -239,6 +357,53 @@ struct ProfileView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
+    }
+
+    private var lockedExtendedStatsCard: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(Color.textTertiary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Extended Stats")
+                    .font(.ruleTitle)
+                    .foregroundStyle(Color.textSecondary)
+                Text("Unlock at Level 5")
+                    .font(.ruleCaption)
+                    .foregroundStyle(Color.textTertiary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
+        .background(Color.tycoonSurface)
+        .overlay(
+            Rectangle()
+                .fill(Color.white.opacity(0.05))
+                .frame(height: 1),
+            alignment: .top
+        )
+    }
+
+    private var extendedStatsSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Rectangle()
+                .fill(Color.white.opacity(0.05))
+                .frame(height: 1)
+
+            HStack {
+                Text("EXTENDED STATS")
+                    .font(.sectionLabel)
+                    .foregroundStyle(Color.white.opacity(0.25))
+                    .tracking(2)
+                Spacer()
+                Text("Coming soon")
+                    .font(.ruleCaption)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+        }
     }
 
     // MARK: - Helpers
