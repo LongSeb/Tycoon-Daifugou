@@ -90,6 +90,7 @@ struct RootView: View {
                     humanEquippedBorder: coordinator.store?.profile.equippedBorder,
                     humanEquippedSkin: coordinator.store?.profile.equippedSkin
                 )
+                .id(ObjectIdentifier(controller))
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationBarBackButtonHidden(true)
             }

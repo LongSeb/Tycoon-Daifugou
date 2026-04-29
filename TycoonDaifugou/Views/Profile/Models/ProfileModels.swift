@@ -50,6 +50,8 @@ struct ExtendedStatsData {
     let earlyAxis: Double
     let riskAxis: Double
     let consistencyAxis: Double
+    let calculatedAxis: Double
+    let dominantAxis: Double
     // Archetype
     let archetype: PlayingStyleArchetype
     let archetypeEmoji: String

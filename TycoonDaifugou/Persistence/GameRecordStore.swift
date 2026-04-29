@@ -228,6 +228,8 @@ final class GameRecordStore {
                 earlyAxis: profile.earlyAxis,
                 riskAxis: profile.riskAxis,
                 consistencyAxis: profile.consistencyAxis,
+                calculatedAxis: profile.calculatedAxis,
+                dominantAxis: profile.dominantAxis,
                 archetype: profile.archetype,
                 archetypeEmoji: profile.archetypeEmoji,
                 archetypeDescription: profile.archetypeDescription

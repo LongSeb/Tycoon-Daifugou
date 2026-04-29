@@ -7,6 +7,8 @@ enum PlayingStyleArchetype: String {
     case gambler   = "The Gambler"
     case hoarder   = "The Hoarder"
     case wildcard  = "The Wildcard"
+    case mogul     = "The Mogul"
+    case hustler   = "The Hustler"
 }
 
 @Model
@@ -183,23 +185,39 @@ final class PlayerProfile {
         return max(0, min(1, 1.0 - sqrt(variance) / 1.5))
     }
 
+    var calculatedAxis: Double {
+        // Slower avg round pace + consistent outcomes = higher calculated score.
+        guard totalRoundsPlayed > 0 else { return 0.5 }
+        // 180s/round is treated as a "fully deliberate" pace
+        let timeNorm = min(avgTimePerRound / 180.0, 1.0)
+        return max(0, min(1, timeNorm * 0.5 + consistencyAxis * 0.5))
+    }
+
+    var dominantAxis: Double {
+        // High trick-lead rate + revolution starts + early finishes = drives action.
+        guard totalTurns > 0 else { return 0.5 }
+        // Multiply by 3 to normalise: in a 3-opponent game you lead ~1/3 of tricks at baseline
+        let initiativeRate = min(Double(tricksLed) / Double(totalTurns) * 3.0, 1.0)
+        let revNorm = min(avgRevolutionsPerGame / 2.0, 1.0)
+        return max(0, min(1, (initiativeRate + revNorm + earlyFinisherRate) / 3.0))
+    }
+
     // MARK: - Playing Style Archetype
 
     var archetype: PlayingStyleArchetype {
-        let a = aggressionAxis
-        let e = earlyAxis
-        let r = riskAxis
-        let c = consistencyAxis
-        // Nearest archetype by Euclidean distance in 4D axis space
-        let profiles: [(PlayingStyleArchetype, Double, Double, Double, Double)] = [
-            (.tycoon,   1.0, 1.0, 0.0, 1.0),
-            (.gambler,  1.0, 1.0, 1.0, 0.0),
-            (.hoarder,  0.0, 0.0, 0.0, 1.0),
-            (.wildcard, 0.0, 0.0, 1.0, 0.0),
+        let axes = [aggressionAxis, earlyAxis, riskAxis, consistencyAxis, calculatedAxis, dominantAxis]
+        // Profile vectors: [aggression, early, risk, consistency, calculated, dominant]
+        let profiles: [(PlayingStyleArchetype, [Double])] = [
+            (.tycoon,   [1.0, 1.0, 0.0, 1.0, 1.0, 0.5]),
+            (.gambler,  [1.0, 1.0, 1.0, 0.0, 0.0, 1.0]),
+            (.hoarder,  [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]),
+            (.wildcard, [0.0, 0.0, 1.0, 0.0, 0.0, 0.5]),
+            (.mogul,    [0.5, 0.5, 0.0, 1.0, 1.0, 1.0]),
+            (.hustler,  [0.5, 0.5, 1.0, 0.0, 0.0, 1.0]),
         ]
         return profiles.min { lhs, rhs in
-            let d1 = pow(a - lhs.1, 2) + pow(e - lhs.2, 2) + pow(r - lhs.3, 2) + pow(c - lhs.4, 2)
-            let d2 = pow(a - rhs.1, 2) + pow(e - rhs.2, 2) + pow(r - rhs.3, 2) + pow(c - rhs.4, 2)
+            let d1 = zip(axes, lhs.1).reduce(0.0) { $0 + pow($1.0 - $1.1, 2) }
+            let d2 = zip(axes, rhs.1).reduce(0.0) { $0 + pow($1.0 - $1.1, 2) }
             return d1 < d2
         }!.0
     }
@@ -207,22 +225,28 @@ final class PlayerProfile {
     var archetypeEmoji: String {
         switch archetype {
         case .tycoon:   return "👑"
-        case .gambler:  return "🎭"
-        case .hoarder:  return "🐢"
-        case .wildcard: return "⚡"
+        case .gambler:  return "🎲"
+        case .hoarder:  return "🐌"
+        case .wildcard: return "🎰"
+        case .mogul:    return "👩🏼‍💼"
+        case .hustler:  return "🏃🏼‍♀️"
         }
     }
 
     var archetypeDescription: String {
         switch archetype {
         case .tycoon:
-            return "Methodical and consistent. You play efficiently, shed cards early, and rarely take unnecessary risks."
+            return "Methodical and consistent. You play efficiently, rip cards early, and don't take risks."
         case .gambler:
-            return "High energy and unpredictable. You play aggressively and love a revolution, but results can vary wildly."
+            return "High energy and unpredictable. You play aggressively, love a revolution and hope it pays off."
         case .hoarder:
-            return "Patient and calculated. You wait for the perfect moment, hold strong cards, and rarely show your hand."
+            return "Patient and calculated. You wait for the perfect moment to pounce and rarely show your hand."
         case .wildcard:
-            return "Chaotic and hard to read. You hold back but strike with high-risk plays that keep opponents guessing."
+            return "Chaotic and hard to read. You hold back but strike with risky plays that keep everyone on their toes."
+        case .mogul:
+            return "Cold and methodical. You control the table's tempo, make intentional moves, and force players to your rhythm."
+        case .hustler:
+            return "Dominant on instinct. You force the table, win on pressure and reads, and thrive when others can't keep up."
         }
     }
 }

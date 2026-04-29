@@ -4,6 +4,7 @@ struct ExtendedStatsView: View {
     let stats: ExtendedStatsData
 
     @State private var showArchetypeGuide = false
+    @State private var expandedCardTitle: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -39,11 +40,12 @@ struct ExtendedStatsView: View {
     // MARK: - Playing Style Section
 
     private var playingStyleSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 4) {
             sectionHeader("PLAYING STYLE")
 
             PlayStyleRadarChart(stats: stats)
                 .padding(.horizontal, 14)
+                .padding(.top, -8)
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
@@ -80,8 +82,20 @@ struct ExtendedStatsView: View {
     // MARK: - Stat Cards Section
 
     private var statCardsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("STAT CARDS")
+        VStack(alignment: .leading, spacing: 0) {
+            // Section header — updated design language
+            Text("STAT CARDS")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Color(hex: "444444"))
+                .tracking(1.2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.top, 11)
+                .padding(.bottom, 12)
+                .overlay(
+                    Rectangle().fill(Color.white.opacity(0.05)).frame(height: 1),
+                    alignment: .top
+                )
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 StatCardView(
@@ -89,56 +103,79 @@ struct ExtendedStatsView: View {
                     value: "\(Int(stats.passRate * 100))%",
                     tooltip: "How often you pass instead of playing on your turn. High pass rate means you're selective or waiting for the right moment.",
                     segmentLabels: ["Active", "Balanced", "Moderate", "Passive", "Hoarder"],
-                    activeSegment: passRateSegment(stats.passRate)
+                    activeSegment: passRateSegment(stats.passRate),
+                    accentColor: Color(hex: "c8a84b"),
+                    rawFraction: CGFloat(stats.passRate),
+                    expandedTitle: $expandedCardTitle
                 )
                 StatCardView(
                     title: "Revolution Rate",
                     value: String(format: "%.1f", stats.avgRevolutionsPerGame),
                     tooltip: "How often you trigger a revolution per game. Higher means you play four-of-a-kinds frequently and embrace chaos.",
                     segmentLabels: ["Never", "Rare", "Balanced", "Often", "Revolutionary"],
-                    activeSegment: revRateSegment(stats.avgRevolutionsPerGame)
+                    activeSegment: revRateSegment(stats.avgRevolutionsPerGame),
+                    accentColor: Color(hex: "5a8fd4"),
+                    expandedTitle: $expandedCardTitle
                 )
                 StatCardView(
                     title: "Early Finisher",
                     value: "\(Int(stats.earlyFinisherRate * 100))%",
                     tooltip: "How often you finish in 1st or 2nd place in a round. The most direct measure of overall performance.",
                     segmentLabels: ["Beggar", "Struggling", "Balanced", "Contender", "Tycoon"],
-                    activeSegment: earlyFinisherSegment(stats.earlyFinisherRate)
+                    activeSegment: earlyFinisherSegment(stats.earlyFinisherRate),
+                    accentColor: Color(hex: "7ab87a"),
+                    rawFraction: CGFloat(stats.earlyFinisherRate),
+                    expandedTitle: $expandedCardTitle
                 )
                 StatCardView(
                     title: "Comeback Rate",
                     value: "\(Int(stats.comebackRate * 100))%",
                     tooltip: "How often you recover from starting a round as Poor or Beggar to finish as Rich or Millionaire.",
                     segmentLabels: ["Rare", "Occasional", "Balanced", "Frequent", "Legend"],
-                    activeSegment: comebackSegment(stats.comebackRate)
+                    activeSegment: comebackSegment(stats.comebackRate),
+                    accentColor: Color(hex: "c47ab8"),
+                    rawFraction: CGFloat(stats.comebackRate),
+                    expandedTitle: $expandedCardTitle
                 )
                 StatCardView(
                     title: "Joker Efficiency",
                     value: "\(Int(stats.jokerEfficiency * 100))%",
                     tooltip: "How often your Joker plays actually win the trick. A low score means Jokers are being used defensively or wasted.",
                     segmentLabels: ["Wasted", "Poor", "Decent", "Sharp", "Deadly"],
-                    activeSegment: rateSegment(stats.jokerEfficiency)
+                    activeSegment: rateSegment(stats.jokerEfficiency),
+                    accentColor: Color(hex: "d4765a"),
+                    rawFraction: CGFloat(stats.jokerEfficiency),
+                    expandedTitle: $expandedCardTitle
                 )
                 StatCardView(
                     title: "Sweep Rate",
                     value: "\(Int(stats.sweepRate * 100))%",
                     tooltip: "How often you win all 3 rounds in a single game. Rare even for strong players.",
                     segmentLabels: ["Never", "Rare", "Occasional", "Frequent", "Dominant"],
-                    activeSegment: sweepSegment(stats.sweepRate)
+                    activeSegment: sweepSegment(stats.sweepRate),
+                    accentColor: Color(hex: "7ab8b8"),
+                    rawFraction: CGFloat(stats.sweepRate),
+                    expandedTitle: $expandedCardTitle
                 )
                 StatCardView(
                     title: "Card Hoarding",
                     value: "\(Int(stats.cardHoardingIndex * 100))%",
                     tooltip: "How long you hold onto cards relative to your results. High means you play slowly and wait for perfect moments.",
                     segmentLabels: ["Shedder", "Balanced", "Patient", "Hoarder", "Vault"],
-                    activeSegment: rateSegment(stats.cardHoardingIndex)
+                    activeSegment: rateSegment(stats.cardHoardingIndex),
+                    accentColor: Color(hex: "a08fd4"),
+                    rawFraction: CGFloat(stats.cardHoardingIndex),
+                    expandedTitle: $expandedCardTitle
                 )
                 StatCardView(
                     title: "Trick Win Rate",
                     value: "\(Int(stats.trickWinRate * 100))%",
                     tooltip: "When you lead a trick, how often do you win it? High means you time your leads well.",
                     segmentLabels: ["Leaky", "Below Avg", "Balanced", "Sharp", "Dominant"],
-                    activeSegment: trickWinSegment(stats.trickWinRate)
+                    activeSegment: trickWinSegment(stats.trickWinRate),
+                    accentColor: Color(hex: "d4a85a"),
+                    rawFraction: CGFloat(stats.trickWinRate),
+                    expandedTitle: $expandedCardTitle
                 )
             }
             .padding(.horizontal, 12)

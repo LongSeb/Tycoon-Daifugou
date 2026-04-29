@@ -63,9 +63,11 @@ extension ProfileData {
             earlyAxis: 0.61,
             riskAxis: 0.22,
             consistencyAxis: 0.74,
+            calculatedAxis: 0.68,
+            dominantAxis: 0.52,
             archetype: .tycoon,
             archetypeEmoji: "👑",
-            archetypeDescription: "Methodical and consistent. You play efficiently, shed cards early, and rarely take unnecessary risks."
+            archetypeDescription: "Methodical and consistent. You play efficiently, rip cards early, and don't take risks."
         ),
         unlockedTitles: ["Commoner", "The Joker", "Flower Queen", "Card Shark"],
         lockedTitles: ["All The Primes", "Lady Amagi", "Kissing Kings", "Truth Seeker", "Kingpin of Steel", "The High Roller", "Chad", "Tycoon"],
