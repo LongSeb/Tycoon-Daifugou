@@ -17,9 +17,11 @@ private func makeTycoonStats() -> ExtendedStatsData {
         earlyAxis: 0.72,
         riskAxis: 0.18,
         consistencyAxis: 0.85,
+        calculatedAxis: 0.72,
+        dominantAxis: 0.48,
         archetype: .tycoon,
         archetypeEmoji: "👑",
-        archetypeDescription: "Methodical and consistent. You play efficiently, shed cards early, and rarely take unnecessary risks."
+        archetypeDescription: "Methodical and consistent. You play efficiently, rip cards early, and don't take risks."
     )
 }
 
@@ -38,9 +40,11 @@ private func makeGamblerStats() -> ExtendedStatsData {
         earlyAxis: 0.61,
         riskAxis: 0.74,
         consistencyAxis: 0.28,
+        calculatedAxis: 0.22,
+        dominantAxis: 0.78,
         archetype: .gambler,
-        archetypeEmoji: "🎭",
-        archetypeDescription: "High energy and unpredictable. You play aggressively and love a revolution, but results can vary wildly."
+        archetypeEmoji: "🎲",
+        archetypeDescription: "High energy and unpredictable. You play aggressively, love a revolution and hope it pays off."
     )
 }
 
@@ -51,7 +55,8 @@ private func makeInsufficientStats() -> ExtendedStatsData {
         sweepRate: 0, cardHoardingIndex: 0, trickWinRate: 0,
         jokerEfficiency: 0, avgRevolutionsPerGame: 0,
         aggressionAxis: 0, earlyAxis: 0, riskAxis: 0, consistencyAxis: 0.5,
-        archetype: .hoarder, archetypeEmoji: "🐢",
+        calculatedAxis: 0.5, dominantAxis: 0.5,
+        archetype: .hoarder, archetypeEmoji: "🐌",
         archetypeDescription: ""
     )
 }

@@ -3,34 +3,53 @@ import SwiftUI
 private struct ArchetypeInfo {
     let archetype: PlayingStyleArchetype
     let emoji: String
-    let axes: String        // short axis summary
+    let axes: String
     let description: String
+    let accentColor: Color
 }
 
 private let allArchetypes: [ArchetypeInfo] = [
     ArchetypeInfo(
         archetype: .tycoon,
         emoji: "👑",
-        axes: "High aggression · High early · Low risk · High consistency",
-        description: "Methodical and consistent. You play efficiently, shed cards early, and rarely take unnecessary risks."
+        axes: "Super aggressive • Low Risk • Consistent",
+        description: "Methodical and consistent. You play efficiently, rip cards early, and don't take risks.",
+        accentColor: .cardGold
     ),
     ArchetypeInfo(
         archetype: .gambler,
-        emoji: "🎭",
-        axes: "High aggression · High early · High risk · Low consistency",
-        description: "High energy and unpredictable. You play aggressively and love a revolution, but results can vary wildly."
+        emoji: "🎲",
+        axes: "Super aggressive • High Risk • High Reward",
+        description: "High energy and unpredictable. You play aggressively, love a revolution and hope it pays off.",
+        accentColor: .cardRed
     ),
     ArchetypeInfo(
         archetype: .hoarder,
-        emoji: "🐢",
-        axes: "Low aggression · Low early · Low risk · High consistency",
-        description: "Patient and calculated. You wait for the perfect moment, hold strong cards, and rarely show your hand."
+        emoji: "🐌",
+        axes: "Calm • Patient • Calculated",
+        description: "Patient and calculated. You wait for the perfect moment to pounce and rarely show your hand.",
+        accentColor: .cardLavender
     ),
     ArchetypeInfo(
         archetype: .wildcard,
-        emoji: "⚡",
-        axes: "Low aggression · Low early · High risk · Low consistency",
-        description: "Chaotic and hard to read. You hold back but strike with high-risk plays that keep opponents guessing."
+        emoji: "🎰",
+        axes: "Calm • Unplanned • Spotty",
+        description: "Chaotic and hard to read. You hold back but strike with risky plays that keep everyone on their toes.",
+        accentColor: .tycoonMint
+    ),
+    ArchetypeInfo(
+        archetype: .mogul,
+        emoji: "👩🏼‍💼",
+        axes: "Assertive • Sets Pace • Calculated",
+        description: "Cold and methodical. You control the table's tempo, make intentional moves, and force players to your rhythm.",
+        accentColor: .cardSky
+    ),
+    ArchetypeInfo(
+        archetype: .hustler,
+        emoji: "🏃🏼‍♀️",
+        axes: "Assertive • Unplanned • High Reward",
+        description: "Dominant on instinct. You force the table, win on pressure and reads, and thrive when others can't keep up.",
+        accentColor: .cardPeach
     ),
 ]
 
@@ -41,27 +60,41 @@ struct ArchetypeGuideSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.tycoonSheet.ignoresSafeArea()
+                Color(hex: "111111").ignoresSafeArea()
 
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 10) {
-                        ForEach(allArchetypes, id: \.archetype.rawValue) { info in
-                            archetypeCard(info)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Playing Styles")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(Color.textPrimary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 20)
+                            .padding(.bottom, 16)
+
+                        VStack(spacing: 10) {
+                            ForEach(allArchetypes, id: \.archetype.rawValue) { info in
+                                archetypeCard(info)
+                            }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 24)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 20)
                 }
             }
-            .navigationTitle("Playing Styles")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.tycoonSheet, for: .navigationBar)
+            .toolbarBackground(Color(hex: "111111"), for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
-                        .font(.ruleTitle)
-                        .foregroundStyle(Color.tycoonMint)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Color.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Color(hex: "2a2a2a"))
+                        .clipShape(Capsule())
                 }
             }
         }
@@ -74,15 +107,16 @@ struct ArchetypeGuideSheet: View {
         let isCurrent = info.archetype == currentArchetype
 
         return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
                 Text(info.emoji)
-                    .font(.system(size: 28))
+                    .font(.system(size: 32))
+                    .frame(width: 40, alignment: .center)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(info.archetype.rawValue)
                             .font(.custom("Fraunces-9ptBlackItalic", size: 21))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(info.accentColor)
 
                         if isCurrent {
                             Text("YOU")
@@ -99,7 +133,7 @@ struct ArchetypeGuideSheet: View {
                     Text(info.axes)
                         .font(.system(size: 11))
                         .foregroundStyle(Color.textTertiary)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -111,18 +145,18 @@ struct ArchetypeGuideSheet: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.tycoonCard)
+        .background(Color(hex: "1c1c1e"))
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(
-                    isCurrent ? Color.tycoonMint.opacity(0.5) : Color.tycoonBorder,
-                    lineWidth: isCurrent ? 1.5 : 1
+                    isCurrent ? info.accentColor.opacity(0.6) : Color.white.opacity(0.08),
+                    lineWidth: isCurrent ? 1.5 : 0.5
                 )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 
 #Preview {
-    ArchetypeGuideSheet(currentArchetype: .gambler)
+    ArchetypeGuideSheet(currentArchetype: .mogul)
 }

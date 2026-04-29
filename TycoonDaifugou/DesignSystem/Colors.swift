@@ -16,6 +16,8 @@ extension Color {
     static let cardMint = Color(ds: 0xD4FFE5)
     static let cardGold = Color(ds: 0xFFE9A3)
     static let cardRed = Color(ds: 0xFFB3B3)
+    static let cardSky = Color(ds: 0xA8D8FF)    // Calculated axis
+    static let cardPeach = Color(ds: 0xFFCDAA)  // Dominant axis
 
     // Classic playing-card rank/suit colors — used on light card faces
     static let cardSuitRed = Color(ds: 0xEB3D42)
