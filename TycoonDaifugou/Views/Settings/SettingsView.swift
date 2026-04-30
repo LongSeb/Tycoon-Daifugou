@@ -6,6 +6,7 @@ struct SettingsView: View {
 
     @AppStorage(AppSettings.Key.soundEffectsEnabled) private var soundEffectsEnabled: Bool = true
     @AppStorage(AppSettings.Key.hapticsEnabled) private var hapticsEnabled: Bool = true
+    @AppStorage(AppSettings.Key.foilEffectsEnabled) private var foilEffectsEnabled: Bool = true
 
     @State private var showRules = false
     @State private var showTutorial = false
@@ -74,6 +75,12 @@ struct SettingsView: View {
                 title: "Haptics",
                 subtitle: "Tactile feedback on taps and game events.",
                 isOn: $hapticsEnabled
+            )
+            divider
+            toggleRow(
+                title: "Card effects",
+                subtitle: "Toggle the holographic effects for some cards.",
+                isOn: $foilEffectsEnabled
             )
             divider
             Link(destination: URL(string: "mailto:tycoon@tothecosmos.com")!) {

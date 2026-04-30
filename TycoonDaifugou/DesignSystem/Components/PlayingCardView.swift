@@ -14,6 +14,7 @@ struct PlayingCardView: View {
     var skin: CardSkin? = nil
 
     @Environment(\.motionManager) private var motion
+    @AppStorage(AppSettings.Key.foilEffectsEnabled) private var foilEffectsEnabled: Bool = true
     @State private var shimmerPhase: CGFloat = -1
 
     var body: some View {
@@ -27,33 +28,32 @@ struct PlayingCardView: View {
 
             if card.isJoker {
                 Text("JKR")
-                    .font(.custom("Fraunces-9ptBlackItalic", size: jokerCornerFontSize))
+                    .font(numberFont(size: jokerCornerFontSize))
                     .foregroundStyle(inkColor)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow)
                     .padding(.leading, cornerPadding)
                     .padding(.top, cornerPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 Text("JKR")
-                    .font(.custom("Fraunces-9ptBlackItalic", size: jokerCornerFontSize))
+                    .font(numberFont(size: jokerCornerFontSize))
                     .foregroundStyle(inkColor)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow)
                     .rotationEffect(.degrees(180))
                     .padding(.trailing, cornerPadding)
                     .padding(.bottom, cornerPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
 
-                Image("JokerCard")
-                    .resizable()
-                    .renderingMode(.template)
-                    .foregroundStyle(inkColor)
-                    .aspectRatio(268.0 / 360.0, contentMode: .fit)
-                    .padding(2)
+                jokerCenterImage
             } else {
                 cornerLabel
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow)
                     .padding(.leading, cornerPadding)
                     .padding(.top, cornerPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 cornerLabel
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow)
                     .rotationEffect(.degrees(180))
                     .padding(.trailing, cornerPadding)
                     .padding(.bottom, cornerPadding)
@@ -63,25 +63,36 @@ struct PlayingCardView: View {
                     .font(.system(size: centerSuitFontSize))
                     .foregroundStyle(inkColor)
                     .darkOutline(darkOutlined)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow)
             }
 
-            if skin?.isFoil == true {
+            if skin?.isFoil == true && foilEffectsEnabled {
                 foilOverlay
             }
 
             if isSelected {
                 Circle()
-                    .fill(skin?.isDark == true ? Color.white.opacity(0.6) : Color.cardSelectAccent)
+                    .fill(skin?.isDark == true ? Color.white.opacity(0.6) : (skin?.selectionColor ?? Color.cardSelectAccent))
                     .frame(width: selectionDotSize, height: selectionDotSize)
                     .offset(y: selectionDotOffset)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+
+            if let overlayName = skin?.overlayImageName {
+                Image(overlayName)
+                    .resizable()
+                    .renderingMode(.original)
+                    .scaledToFill()
+                    .frame(width: width, height: height)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                    .allowsHitTesting(false)
             }
         }
         .frame(width: width, height: height)
         .colorMultiply(playable ? .white : Color(white: 0.55))
         .allowsHitTesting(playable)
         .onAppear {
-            guard skin?.isFoil == true else { return }
+            guard skin?.isFoil == true && foilEffectsEnabled else { return }
             withAnimation(
                 skin?.id == "shiny_black"
                     ? .linear(duration: 2).repeatForever(autoreverses: false)
@@ -127,6 +138,22 @@ struct PlayingCardView: View {
                         endPoint: UnitPoint(x: x, y: 1)
                     )
                 )
+        } else if let foilColor = skin?.foilColor {
+            let diagPos = 0.5 + CGFloat(min(max(motion.roll * 1.5, -1), 1)) * 0.35
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: foilColor.opacity(0),    location: 0.0),
+                            .init(color: foilColor.opacity(0),    location: max(0, diagPos - 0.25)),
+                            .init(color: foilColor.opacity(0.55), location: diagPos),
+                            .init(color: foilColor.opacity(0),    location: min(1, diagPos + 0.25)),
+                            .init(color: foilColor.opacity(0),    location: 1.0),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         } else {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(
@@ -161,6 +188,21 @@ struct PlayingCardView: View {
                         endPoint: UnitPoint(x: shimmerPhase, y: 1)
                     )
                 )
+        } else if let foilColor = skin?.foilColor {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: foilColor.opacity(0),    location: 0.0),
+                            .init(color: foilColor.opacity(0),    location: max(0, shimmerPhase - 0.25)),
+                            .init(color: foilColor.opacity(0.55), location: shimmerPhase),
+                            .init(color: foilColor.opacity(0),    location: min(1, shimmerPhase + 0.25)),
+                            .init(color: foilColor.opacity(0),    location: 1.0),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         } else {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(
@@ -179,12 +221,39 @@ struct PlayingCardView: View {
 
     // MARK: - Helpers
 
-    private var darkOutlined: Bool { skin?.isDark == true && isSelected }
+    @ViewBuilder
+    private var jokerCenterImage: some View {
+        let imageName = skin?.jokerImageName ?? "JokerCard"
+        if imageName == "JokerCard" {
+            Image(imageName)
+                .resizable()
+                .renderingMode(.template)
+                .foregroundStyle(inkColor)
+                .aspectRatio(268.0 / 360.0, contentMode: .fit)
+                .padding(2)
+        } else if skin?.jokerImageUseTemplate == true {
+            Image(imageName)
+                .resizable()
+                .renderingMode(.template)
+                .foregroundStyle(inkColor)
+                .scaledToFit()
+                .padding(skin?.jokerImagePadding ?? 2)
+        } else {
+            Image(imageName)
+                .resizable()
+                .renderingMode(.original)
+                .scaledToFit()
+                .padding(skin?.jokerImagePadding ?? 2)
+        }
+    }
+
+    private var darkOutlined: Bool { (skin?.isDark == true && isSelected) || skin?.showTextOutline == true }
+    private var strongShadow: Bool { skin?.strongTextShadow == true }
 
     private var cornerLabel: some View {
-        VStack(spacing: 1) {
+        VStack(spacing: skin?.cornerLabelSpacing ?? 1) {
             Text(card.displayValue)
-                .font(.custom("Fraunces-9ptBlackItalic", size: cornerFontSize))
+                .font(numberFont(size: cornerFontSize))
                 .foregroundStyle(inkColor)
                 .darkOutline(darkOutlined)
             Text(card.displaySuit)
@@ -194,13 +263,22 @@ struct PlayingCardView: View {
         }
     }
 
+    private func numberFont(size: CGFloat) -> Font {
+        Font.custom(skin?.numberFontName ?? "Fraunces-9ptBlackItalic", size: size)
+    }
+
     private var width: CGFloat { style == .hand ? 68 : 96 }
     private var height: CGFloat { style == .hand ? 100 : 136 }
     private var cornerRadius: CGFloat { style == .hand ? 10 : 14 }
     private var cornerFontSize: CGFloat { style == .hand ? 13 : 17 }
     private var cornerSuitFontSize: CGFloat { style == .hand ? 11 : 14 }
     private var centerSuitFontSize: CGFloat { style == .hand ? 34 : 52 }
-    private var cornerPadding: CGFloat { style == .hand ? 6 : 10 }
+    private var cornerPadding: CGFloat {
+        if let override = skin?.cornerPaddingOverride {
+            return style == .hand ? override : override * (10.0 / 6.0)
+        }
+        return style == .hand ? 6 : 10
+    }
     private var jokerCornerFontSize: CGFloat { style == .hand ? 11 : 15 }
     private var jokerColor: Color {
         if case .joker(let index) = card {
@@ -209,7 +287,11 @@ struct PlayingCardView: View {
         return Color.cardSuitRed
     }
     private var inkColor: Color {
-        guard playable else { return skin?.isDark == true ? .white.opacity(0.4) : .black }
+        guard playable else {
+            if let override = skin?.inkColorOverride { return override.opacity(0.4) }
+            return skin?.isDark == true ? .white.opacity(0.4) : .black
+        }
+        if let override = skin?.inkColorOverride { return override }
         if skin?.isDark == true { return .white }
         return card.isJoker ? jokerColor : card.suitColor
     }
@@ -222,7 +304,7 @@ struct PlayingCardView: View {
         case .hand:
             if isSelected {
                 if let skin, skin.isDark { return skin.color }
-                return .cardSelectFill
+                return skin?.selectionColor ?? .cardSelectFill
             }
             return base
         case .pile:
@@ -231,11 +313,12 @@ struct PlayingCardView: View {
     }
 
     private var borderColor: Color {
+        guard skin?.showBorder != false else { return .clear }
         let isRoyalRed = skin?.id == "royal_red"
         switch style {
         case .hand:
             if isSelected {
-                return skin?.isDark == true ? Color.white.opacity(0.4) : Color.cardSelectAccent.opacity(0.7)
+                return skin?.isDark == true ? Color.white.opacity(0.4) : (skin?.selectionColor ?? Color.cardSelectAccent).opacity(0.7)
             }
             return isRoyalRed ? Color.black.opacity(0.55) : Color.black.opacity(0.08)
         case .pile:
@@ -252,6 +335,12 @@ private extension View {
             .shadow(color: c, radius: 0, x: -0.5, y:    0)
             .shadow(color: c, radius: 0, x:    0, y:  0.5)
             .shadow(color: c, radius: 0, x:    0, y: -0.5)
+    }
+
+    func textDropShadow(_ active: Bool, strong: Bool = false) -> some View {
+        self
+            .shadow(color: active ? .black.opacity(strong ? 0.45 : 0.22) : .clear, radius: strong ? 3 : 2, x: 0, y: strong ? 1.5 : 1)
+            .shadow(color: (active && strong) ? .black.opacity(0.2) : .clear, radius: 1, x: 0, y: 0.5)
     }
 }
 

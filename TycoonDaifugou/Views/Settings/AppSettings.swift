@@ -10,6 +10,7 @@ enum AppSettings {
         static let roundsPerGame = "settings.roundsPerGame"
         static let soundEffectsEnabled = "settings.soundEffectsEnabled"
         static let hapticsEnabled = "settings.hapticsEnabled"
+        static let foilEffectsEnabled = "settings.foilEffectsEnabled"
         static let difficulty = "settings.difficulty"
     }
 
