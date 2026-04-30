@@ -20,6 +20,20 @@ struct CardSkin: Identifiable, Hashable {
     let color: Color
     let isFoil: Bool
     var isDark: Bool = false
+    var jokerImageName: String = "JokerCard"
+    var jokerImagePadding: CGFloat = 2
+    var numberFontName: String = "Fraunces-9ptBlackItalic"
+    var selectionColor: Color? = nil
+    var overlayImageName: String? = nil
+    var inkColorOverride: Color? = nil
+    var showBorder: Bool = true
+    var showTextShadow: Bool = false
+    var foilColor: Color? = nil
+    var jokerImageUseTemplate: Bool = false
+    var cornerPaddingOverride: CGFloat? = nil
+    var cornerLabelSpacing: CGFloat? = nil
+    var showTextOutline: Bool = false
+    var strongTextShadow: Bool = false
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: CardSkin, rhs: CardSkin) -> Bool { lhs.id == rhs.id }

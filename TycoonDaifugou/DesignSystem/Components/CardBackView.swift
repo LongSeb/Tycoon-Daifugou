@@ -8,6 +8,7 @@ struct CardBackView: View {
     var width: CGFloat = 68
     var height: CGFloat = 100
 
+    @AppStorage(AppSettings.Key.foilEffectsEnabled) private var foilEffectsEnabled: Bool = true
     @State private var shimmerPhase: CGFloat = -1
 
     var body: some View {
@@ -16,15 +17,26 @@ struct CardBackView: View {
                 .fill(skin.color)
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(Color.black.opacity(0.12), lineWidth: 1)
+                        .strokeBorder(skin.showBorder ? Color.black.opacity(0.12) : Color.clear, lineWidth: 1)
                 )
 
-            if skin.isFoil {
+            if let overlayName = skin.overlayImageName {
+                Image(overlayName)
+                    .resizable()
+                    .renderingMode(.original)
+                    .scaledToFill()
+                    .frame(width: width, height: height)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                    .allowsHitTesting(false)
+            }
+
+            if skin.isFoil && foilEffectsEnabled {
                 foilOverlay
             }
         }
         .frame(width: width, height: height)
         .onAppear {
+            guard skin.isFoil && foilEffectsEnabled else { return }
             withAnimation(
                 skin.id == "shiny_black"
                     ? .linear(duration: 2).repeatForever(autoreverses: false)
@@ -51,6 +63,21 @@ struct CardBackView: View {
                         ],
                         startPoint: UnitPoint(x: shimmerPhase - 1, y: 0),
                         endPoint: UnitPoint(x: shimmerPhase, y: 1)
+                    )
+                )
+        } else if let foilColor = skin.foilColor {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: foilColor.opacity(0),    location: 0.0),
+                            .init(color: foilColor.opacity(0),    location: max(0, shimmerPhase - 0.25)),
+                            .init(color: foilColor.opacity(0.55), location: shimmerPhase),
+                            .init(color: foilColor.opacity(0),    location: min(1, shimmerPhase + 0.25)),
+                            .init(color: foilColor.opacity(0),    location: 1.0),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
                 )
         } else {
