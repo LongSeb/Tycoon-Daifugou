@@ -5,10 +5,16 @@ struct ProfileView: View {
     var store: GameRecordStore?
     var onSettingsTapped: () -> Void = {}
 
+    @Environment(AuthService.self) private var authService
+    @AppStorage("auth.guestModeEnabled") private var guestModeEnabled: Bool = false
     @State private var showingEditor = false
     @State private var showingTitlePicker = false
     @State private var showingSkinPicker = false
+    @State private var showingGuestPrompt = false
+    @State private var showingSignIn = false
     @State private var motion = MotionManager()
+
+    private var isGuest: Bool { !authService.isAuthenticated }
 
     var body: some View {
         ZStack {
@@ -58,6 +64,24 @@ struct ProfileView: View {
                 currentSkinID: profile.equippedSkinID,
                 onSelect: { store?.updateEquippedSkin($0.id) }
             )
+        }
+        .alert("Sign in to customize", isPresented: $showingGuestPrompt) {
+            Button("Sign in") { showingSignIn = true }
+            Button("Not now", role: .cancel) {}
+        } message: {
+            Text("Profile customization is available once you sign in.")
+        }
+        .fullScreenCover(isPresented: $showingSignIn) {
+            SignInView(
+                onContinueAsGuest: { showingSignIn = false },
+                requiresGuestConfirm: false
+            )
+        }
+        .onChange(of: authService.isAuthenticated) { _, isAuthed in
+            if isAuthed {
+                guestModeEnabled = false
+                showingSignIn = false
+            }
         }
     }
 
@@ -120,16 +144,27 @@ struct ProfileView: View {
             ZStack(alignment: .bottomTrailing) {
                 avatarWithBorder
 
-                Button(action: { showingEditor = true }) {
+                Button(action: {
+                    if isGuest {
+                        showingGuestPrompt = true
+                    } else {
+                        showingEditor = true
+                    }
+                }) {
                     ZStack {
                         Circle()
                             .fill(Color.tycoonCard)
-                            .overlay(Circle().strokeBorder(Color.cardBlush, lineWidth: 1.5))
+                            .overlay(
+                                Circle().strokeBorder(
+                                    isGuest ? Color.textTertiary : Color.cardBlush,
+                                    lineWidth: 1.5
+                                )
+                            )
                             .frame(width: 22, height: 22)
 
-                        Image(systemName: "pencil")
+                        Image(systemName: isGuest ? "lock.fill" : "pencil")
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(Color.cardBlush)
+                            .foregroundStyle(isGuest ? Color.textTertiary : Color.cardBlush)
                     }
                 }
                 .offset(x: 2, y: 2)
@@ -155,14 +190,19 @@ struct ProfileView: View {
             Text("Member since \(profile.memberSince)")
                 .font(.ruleCaption)
                 .foregroundStyle(Color.white.opacity(0.28))
-                .padding(.bottom, 14)
+                .padding(.bottom, isGuest ? 8 : 14)
+
+            if isGuest {
+                guestModePill
+                    .padding(.bottom, 14)
+            }
 
             HStack(spacing: 8) {
                 customizeButton(icon: "paintpalette", label: "Card Skin") {
-                    showingSkinPicker = true
+                    if isGuest { showingGuestPrompt = true } else { showingSkinPicker = true }
                 }
                 customizeButton(icon: "sparkles", label: "Title") {
-                    showingTitlePicker = true
+                    if isGuest { showingGuestPrompt = true } else { showingTitlePicker = true }
                 }
             }
             .padding(.bottom, 16)
@@ -180,19 +220,41 @@ struct ProfileView: View {
     private func customizeButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 5) {
-                Image(systemName: icon)
+                Image(systemName: isGuest ? "lock.fill" : icon)
                     .font(.system(size: 11, weight: .medium))
                 Text(label)
                     .font(.custom("InstrumentSans-Regular", size: 12).weight(.semibold))
                     .tracking(0.2)
             }
-            .foregroundStyle(Color.textSecondary)
+            .foregroundStyle(isGuest ? Color.textTertiary : Color.textSecondary)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(Color.tycoonCard)
             .overlay(
                 Capsule()
                     .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+            )
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var guestModePill: some View {
+        Button(action: { showingSignIn = true }) {
+            HStack(spacing: 6) {
+                Image(systemName: "person.crop.circle.badge.questionmark")
+                    .font(.system(size: 11, weight: .medium))
+                Text("Guest mode · Sign in to customize")
+                    .font(.custom("InstrumentSans-Regular", size: 11).weight(.semibold))
+                    .tracking(0.2)
+            }
+            .foregroundStyle(Color.cardLavender)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color.cardLavender.opacity(0.08))
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.cardLavender.opacity(0.35), lineWidth: 1)
             )
             .clipShape(Capsule())
         }

@@ -3,13 +3,19 @@ import TycoonDaifugouKit
 
 struct SettingsView: View {
     let onBack: () -> Void
+    var store: GameRecordStore?
 
     @AppStorage(AppSettings.Key.soundEffectsEnabled) private var soundEffectsEnabled: Bool = true
     @AppStorage(AppSettings.Key.hapticsEnabled) private var hapticsEnabled: Bool = true
     @AppStorage(AppSettings.Key.foilEffectsEnabled) private var foilEffectsEnabled: Bool = true
+    @AppStorage("auth.guestModeEnabled") private var guestModeEnabled: Bool = false
+
+    @Environment(AuthService.self) private var authService
 
     @State private var showRules = false
     @State private var showTutorial = false
+    @State private var showSignOutConfirm = false
+    @State private var showDeleteAccountConfirm = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -28,6 +34,29 @@ struct SettingsView: View {
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showTutorial) {
             TutorialView(isReplay: true)
+        }
+        .alert("Sign out?", isPresented: $showSignOutConfirm) {
+            Button("Sign out", role: .destructive) {
+                authService.signOut()
+                guestModeEnabled = false
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You'll be returned to the sign-in screen.")
+        }
+        .alert("Delete account?", isPresented: $showDeleteAccountConfirm) {
+            Button("Delete", role: .destructive) {
+                Task {
+                    await authService.deleteAccount()
+                    if !authService.isAuthenticated {
+                        store?.wipeAllLocalData()
+                        guestModeEnabled = false
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes your account and all save data — stats, history, unlocks, and titles. This can't be undone.")
         }
     }
 
@@ -169,6 +198,87 @@ struct SettingsView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 16)
                 .contentShape(Rectangle())
+            }
+            if authService.isAuthenticated {
+                divider
+                Button(action: { showSignOutConfirm = true }) {
+                    HStack(alignment: .center) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Sign out")
+                                .font(.settingsRowTitle)
+                                .foregroundStyle(Color.cardRed)
+
+                            if let email = authService.currentUserEmail {
+                                Text(email)
+                                    .font(.settingsRowSubtitle)
+                                    .foregroundStyle(Color.textTertiary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.cardRed.opacity(0.7))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 16)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                divider
+                Button(action: { showDeleteAccountConfirm = true }) {
+                    HStack(alignment: .center) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Delete account")
+                                .font(.settingsRowTitle)
+                                .foregroundStyle(Color.cardRed)
+
+                            Text("Permanently erase account and save data.")
+                                .font(.settingsRowSubtitle)
+                                .foregroundStyle(Color.textTertiary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "trash")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.cardRed.opacity(0.7))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 16)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } else if guestModeEnabled {
+                divider
+                Button(action: { guestModeEnabled = false }) {
+                    HStack(alignment: .center) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Sign in")
+                                .font(.settingsRowTitle)
+                                .foregroundStyle(Color.cardLavender)
+
+                            Text("Sync stats and unlock multiplayer.")
+                                .font(.settingsRowSubtitle)
+                                .foregroundStyle(Color.textTertiary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "person.crop.circle.badge.plus")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.cardLavender.opacity(0.7))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 16)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
             divider
             HStack {

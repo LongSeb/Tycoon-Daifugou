@@ -39,6 +39,16 @@ final class GameRecordStore {
         try? context.save()
     }
 
+    func wipeAllLocalData() {
+        for record in records {
+            context.delete(record)
+        }
+        context.delete(profile)
+        try? context.save()
+        profile = Self.fetchOrCreateProfile(context: context)
+        records = Self.fetchAllRecords(context: context)
+    }
+
     // MARK: - Save
 
     private(set) var pendingLevelUpUnlocks: [UnlockDefinition]? = nil
@@ -390,10 +400,14 @@ final class GameRecordStore {
     private static func fetchOrCreateProfile(context: ModelContext) -> PlayerProfile {
         let descriptor = FetchDescriptor<PlayerProfile>()
         let existing = (try? context.fetch(descriptor)) ?? []
-        if let first = existing.first { return first }
-        let profile = PlayerProfile()
-        context.insert(profile)
-        try? context.save()
+        let profile: PlayerProfile
+        if let first = existing.first {
+            profile = first
+        } else {
+            profile = PlayerProfile()
+            context.insert(profile)
+            try? context.save()
+        }
         return profile
     }
 

@@ -89,4 +89,5 @@ extension ProfileData {
 
 #Preview {
     ProfileView(profile: .preview)
+        .environment(AuthService())
 }
