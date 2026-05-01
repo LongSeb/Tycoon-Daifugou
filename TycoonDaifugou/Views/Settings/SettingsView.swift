@@ -11,6 +11,7 @@ struct SettingsView: View {
     @AppStorage("auth.guestModeEnabled") private var guestModeEnabled: Bool = false
 
     @Environment(AuthService.self) private var authService
+    @Environment(SyncManager.self) private var syncManager
 
     @State private var showRules = false
     @State private var showTutorial = false
@@ -47,6 +48,9 @@ struct SettingsView: View {
         .alert("Delete account?", isPresented: $showDeleteAccountConfirm) {
             Button("Delete", role: .destructive) {
                 Task {
+                    // Order matters: wipe cloud while still authed (rules require it),
+                    // then delete the auth user, then clear local SwiftData.
+                    try? await syncManager.deleteCloudData()
                     await authService.deleteAccount()
                     if !authService.isAuthenticated {
                         store?.wipeAllLocalData()

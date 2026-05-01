@@ -5,6 +5,8 @@ struct RootView: View {
     @State private var coordinator = NavigationCoordinator()
     @State private var selectedTab: AppTab = .home
     @Environment(\.modelContext) private var modelContext
+    @Environment(SyncManager.self) private var syncManager
+    @Environment(AuthService.self) private var authService
 
     var body: some View {
         @Bindable var coordinator = coordinator
@@ -27,7 +29,15 @@ struct RootView: View {
         }
         .onAppear {
             if coordinator.store == nil {
-                coordinator.store = GameRecordStore(context: modelContext)
+                let store = GameRecordStore(context: modelContext)
+                let manager = syncManager
+                store.profileDidChange = { manager.pushProfile() }
+                manager.attach(store: store)
+                coordinator.store = store
+                coordinator.syncManager = manager
+                if authService.isAuthenticated {
+                    Task { await manager.syncOnSignIn() }
+                }
             }
         }
     }
@@ -110,4 +120,6 @@ struct RootView: View {
 
 #Preview {
     RootView()
+        .environment(AuthService())
+        .environment(SyncManager())
 }
