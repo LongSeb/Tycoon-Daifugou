@@ -98,7 +98,10 @@ struct RootView: View {
                 .navigationBarBackButtonHidden(true)
             }
         case .settings:
-            SettingsView(onBack: { coordinator.popSettings() })
+            SettingsView(
+                onBack: { coordinator.popSettings() },
+                store: coordinator.store
+            )
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationBarBackButtonHidden(true)
         }

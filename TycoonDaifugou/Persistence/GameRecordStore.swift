@@ -39,6 +39,16 @@ final class GameRecordStore {
         try? context.save()
     }
 
+    func wipeAllLocalData() {
+        for record in records {
+            context.delete(record)
+        }
+        context.delete(profile)
+        try? context.save()
+        profile = Self.fetchOrCreateProfile(context: context)
+        records = Self.fetchAllRecords(context: context)
+    }
+
     // MARK: - Save
 
     private(set) var pendingLevelUpUnlocks: [UnlockDefinition]? = nil
