@@ -16,6 +16,7 @@ final class NavigationCoordinator {
     private(set) var lastResult: GameResultData?
     private(set) var currentRuleSet: RuleSet = .baseOnly
     var store: GameRecordStore?
+    var syncManager: SyncManager?
 
     var showingQuitConfirm = false
 
@@ -79,7 +80,9 @@ final class NavigationCoordinator {
 
     func showResults(for controller: GameController) {
         var result = Self.buildResult(from: controller, profile: store?.profile)
-        store?.save(controller: controller, result: result, ruleSet: currentRuleSet)
+        if let saved = store?.save(controller: controller, result: result, ruleSet: currentRuleSet) {
+            syncManager?.didSaveGameLocally(saved)
+        }
         result.levelUpUnlocks = store?.pendingLevelUpUnlocks
         lastResult = result
         path.append(.results)

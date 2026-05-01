@@ -10,6 +10,10 @@ final class GameRecordStore {
     private(set) var records: [GameRecord] = []
     private(set) var profile: PlayerProfile
 
+    /// Notified after any local profile mutation (equip changes, post-game stats,
+    /// editor saves). SyncManager attaches here so it can push to Firestore.
+    var profileDidChange: (() -> Void)?
+
     init(context: ModelContext) {
         self.context = context
         self.profile = Self.fetchOrCreateProfile(context: context)
@@ -22,21 +26,25 @@ final class GameRecordStore {
         profile.emoji = emoji
         profile.username = username
         try? context.save()
+        profileDidChange?()
     }
 
     func updateEquippedTitle(_ titleID: String) {
         profile.equippedTitleID = titleID
         try? context.save()
+        profileDidChange?()
     }
 
     func updateEquippedSkin(_ skinID: String) {
         profile.equippedSkinID = skinID
         try? context.save()
+        profileDidChange?()
     }
 
     func updateEquippedBorder(_ borderID: String?) {
         profile.equippedBorderID = borderID
         try? context.save()
+        profileDidChange?()
     }
 
     func wipeAllLocalData() {
@@ -49,6 +57,75 @@ final class GameRecordStore {
         records = Self.fetchAllRecords(context: context)
     }
 
+    // MARK: - Sync ingestion
+
+    var localRecordIDs: Set<UUID> { Set(records.map(\.id)) }
+
+    /// Replace the in-memory profile's persisted state with cloud values. Computed
+    /// derivations (axes, archetype, win rate) re-derive automatically.
+    func applyCloudProfile(_ snapshot: CloudPlayerSnapshot) {
+        profile.username = snapshot.username
+        profile.emoji = snapshot.emoji
+        profile.totalXP = snapshot.totalXP
+        profile.currentLevel = snapshot.currentLevel
+        profile.memberSince = snapshot.memberSince
+        profile.equippedTitleID = snapshot.equippedTitleID
+        profile.equippedSkinID = snapshot.equippedSkinID
+        profile.equippedBorderID = snapshot.equippedBorderID
+        profile.hasPrestigeBadge = snapshot.hasPrestigeBadge
+        profile.hardModeWins = snapshot.hardModeWins
+        profile.jokersPlayed = snapshot.jokersPlayed
+        profile.jokersWonTrick = snapshot.jokersWonTrick
+        profile.roundFinishPositions = snapshot.roundFinishPositions
+        profile.comebackCount = snapshot.comebackCount
+        profile.comebackOpportunities = snapshot.comebackOpportunities
+        profile.sweepsAchieved = snapshot.sweepsAchieved
+        profile.multiRoundGamesPlayed = snapshot.multiRoundGamesPlayed
+        profile.tricksLed = snapshot.tricksLed
+        profile.tricksWon = snapshot.tricksWon
+        profile.totalPasses = snapshot.totalPasses
+        profile.totalTurns = snapshot.totalTurns
+        profile.revolutionsTriggered = snapshot.revolutionsTriggered
+        profile.eightStopsTotal = snapshot.eightStopsTotal
+        profile.threeSpadesTotal = snapshot.threeSpadesTotal
+        profile.gamesPlayedCount = snapshot.gamesPlayedCount
+        profile.gamesWonCount = snapshot.gamesWonCount
+        profile.totalDuration = snapshot.totalDuration
+        profile.totalRoundsPlayed = snapshot.totalRoundsPlayed
+        try? context.save()
+    }
+
+    /// Insert a cloud-only game into SwiftData. Caller is responsible for skipping
+    /// records whose UUID already exists locally (use `localRecordIDs` to filter).
+    func importCloudGame(_ snapshot: CloudGameSnapshot) {
+        let opponents = snapshot.opponents.map {
+            OpponentRecord(name: $0.name, emoji: $0.emoji, finishRank: $0.finishRank, xpEarned: $0.xpEarned)
+        }
+        let record = GameRecord(
+            id: snapshot.id,
+            date: snapshot.date,
+            finishRank: snapshot.finishRank,
+            xpEarned: snapshot.xpEarned,
+            roundsPlayed: snapshot.roundsPlayed,
+            roundsWon: snapshot.roundsWon,
+            cardsPlayed: snapshot.cardsPlayed,
+            duration: snapshot.duration,
+            highlight: snapshot.highlight,
+            ruleSetUsed: snapshot.ruleSetUsed,
+            revolutionCount: snapshot.revolutionCount,
+            eightStopCount: snapshot.eightStopCount,
+            jokerPlayCount: snapshot.jokerPlayCount,
+            threeSpadeCount: snapshot.threeSpadeCount,
+            opponents: opponents,
+            roundPointsTotal: snapshot.roundPointsTotal,
+            opponentBestPoints: snapshot.opponentBestPoints,
+            difficulty: snapshot.difficulty
+        )
+        context.insert(record)
+        try? context.save()
+        records = Self.fetchAllRecords(context: context)
+    }
+
     // MARK: - Save
 
     private(set) var pendingLevelUpUnlocks: [UnlockDefinition]? = nil
@@ -57,7 +134,8 @@ final class GameRecordStore {
         pendingLevelUpUnlocks = nil
     }
 
-    func save(controller: GameController, result: GameResultData, ruleSet: RuleSet) {
+    @discardableResult
+    func save(controller: GameController, result: GameResultData, ruleSet: RuleSet) -> GameRecord {
         let opponentRecords = result.players
             .filter { !$0.isPlayer }
             .map { OpponentRecord(name: $0.name, emoji: $0.emoji, finishRank: $0.rank, xpEarned: $0.xpGained) }
@@ -81,7 +159,8 @@ final class GameRecordStore {
             threeSpadeCount: controller.threeSpadeCount,
             opponents: opponentRecords,
             roundPointsTotal: controller.humanRoundPointsTotal,
-            opponentBestPoints: controller.opponentBestPoints
+            opponentBestPoints: controller.opponentBestPoints,
+            difficulty: controller.difficulty.rawValue
         )
 
         context.insert(record)
@@ -134,6 +213,7 @@ final class GameRecordStore {
 
         try? context.save()
         records = Self.fetchAllRecords(context: context)
+        return record
     }
 
     // MARK: - HomeViewState
