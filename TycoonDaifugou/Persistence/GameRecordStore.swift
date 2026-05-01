@@ -390,10 +390,14 @@ final class GameRecordStore {
     private static func fetchOrCreateProfile(context: ModelContext) -> PlayerProfile {
         let descriptor = FetchDescriptor<PlayerProfile>()
         let existing = (try? context.fetch(descriptor)) ?? []
-        if let first = existing.first { return first }
-        let profile = PlayerProfile()
-        context.insert(profile)
-        try? context.save()
+        let profile: PlayerProfile
+        if let first = existing.first {
+            profile = first
+        } else {
+            profile = PlayerProfile()
+            context.insert(profile)
+            try? context.save()
+        }
         return profile
     }
 
