@@ -14,6 +14,10 @@ struct UnlockDefinition {
     let displayName: String
 }
 
+enum CardSkinCustomAnimation {
+    case subway
+}
+
 struct CardSkin: Identifiable, Hashable {
     let id: String
     let name: String
@@ -34,6 +38,8 @@ struct CardSkin: Identifiable, Hashable {
     var cornerLabelSpacing: CGFloat? = nil
     var showTextOutline: Bool = false
     var strongTextShadow: Bool = false
+    var textShadowColor: Color = .black
+    var customAnimation: CardSkinCustomAnimation? = nil
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: CardSkin, rhs: CardSkin) -> Bool { lhs.id == rhs.id }

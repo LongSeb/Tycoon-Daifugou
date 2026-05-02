@@ -14,7 +14,7 @@ struct ProfileView: View {
     @State private var showingSignIn = false
     @State private var motion = MotionManager()
 
-    private var isGuest: Bool { !authService.isAuthenticated }
+    private var isGuest: Bool { false }
 
     var body: some View {
         ZStack {
@@ -43,6 +43,7 @@ struct ProfileView: View {
                     unlockedBorders: profile.unlockedBorders,
                     currentBorderID: profile.equippedBorder?.id,
                     onBorderSelect: { store?.updateEquippedBorder($0) },
+                    isUsernameEditable: authService.isAuthenticated,
                     onSave: { emoji, username in
                         store?.updateProfile(emoji: emoji, username: username)
                     }

@@ -47,6 +47,18 @@ final class GameRecordStore {
         profileDidChange?()
     }
 
+#if DEBUG
+    func debugSetLevel(_ level: Int) {
+        let clamped = max(1, min(LevelCalculator.maxLevel, level))
+        profile.totalXP = LevelCalculator.cumulativeXP(forLevel: clamped)
+        profile.currentLevel = clamped
+        profile.hardModeWins = 10
+        if clamped >= 50 { profile.hasPrestigeBadge = true }
+        try? context.save()
+        profileDidChange?()
+    }
+#endif
+
     func wipeAllLocalData() {
         for record in records {
             context.delete(record)

@@ -48,7 +48,7 @@ final class PlayerProfile {
     var totalRoundsPlayed: Int = 0
 
     init(
-        username: String = "Player",
+        username: String = "TycoonPlayer",
         emoji: String = "😎",
         totalXP: Int = 0,
         currentLevel: Int = 1,
