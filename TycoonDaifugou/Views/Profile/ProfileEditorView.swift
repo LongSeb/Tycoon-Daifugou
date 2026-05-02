@@ -69,6 +69,7 @@ struct ProfileEditorView: View {
     let unlockedBorders: [ProfileBorder]
     let currentBorderID: String?
     let onBorderSelect: (String?) -> Void
+    var isUsernameEditable: Bool = true
 
     @Environment(\.dismiss) private var dismiss
     @State private var emoji: String
@@ -88,6 +89,7 @@ struct ProfileEditorView: View {
         unlockedBorders: [ProfileBorder] = [],
         currentBorderID: String? = nil,
         onBorderSelect: @escaping (String?) -> Void = { _ in },
+        isUsernameEditable: Bool = true,
         onSave: @escaping (String, String) -> Void
     ) {
         self.onSave = onSave
@@ -95,6 +97,7 @@ struct ProfileEditorView: View {
         self.unlockedBorders = unlockedBorders
         self.currentBorderID = currentBorderID
         self.onBorderSelect = onBorderSelect
+        self.isUsernameEditable = isUsernameEditable
         _emoji = State(initialValue: initialEmoji)
         _username = State(initialValue: initialUsername)
         _selectedBorderID = State(initialValue: currentBorderID)
@@ -233,34 +236,50 @@ struct ProfileEditorView: View {
 
     private var usernameSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("USERNAME")
-                .font(.sectionLabel)
-                .foregroundStyle(Color.textTertiary)
-                .tracking(2)
-
-            TextField("Player", text: $username)
-                .font(.tycoonBody)
-                .foregroundStyle(Color.textPrimary)
-                .tint(Color.tycoonMint)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(Color.tycoonSurface)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color.tycoonBorder, lineWidth: 1)
-                )
-                .onChange(of: username) { _, new in
-                    if new.count > maxLength {
-                        username = String(new.prefix(maxLength))
-                    }
-                }
-
             HStack {
-                Spacer()
-                Text("\(username.count) / \(maxLength)")
+                Text("USERNAME")
+                    .font(.sectionLabel)
+                    .foregroundStyle(Color.textTertiary)
+                    .tracking(2)
+                if !isUsernameEditable {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Color.textTertiary)
+                }
+            }
+
+            ZStack(alignment: .trailing) {
+                TextField("TycoonPlayer", text: $username)
+                    .font(.tycoonBody)
+                    .foregroundStyle(isUsernameEditable ? Color.textPrimary : Color.textTertiary)
+                    .tint(Color.tycoonMint)
+                    .disabled(!isUsernameEditable)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(Color.tycoonSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(Color.tycoonBorder, lineWidth: 1)
+                    )
+                    .onChange(of: username) { _, new in
+                        if new.count > maxLength {
+                            username = String(new.prefix(maxLength))
+                        }
+                    }
+            }
+
+            if !isUsernameEditable {
+                Text("Sign in to change your username.")
                     .font(.ruleCaption)
                     .foregroundStyle(Color.textTertiary)
+            } else {
+                HStack {
+                    Spacer()
+                    Text("\(username.count) / \(maxLength)")
+                        .font(.ruleCaption)
+                        .foregroundStyle(Color.textTertiary)
+                }
             }
         }
     }

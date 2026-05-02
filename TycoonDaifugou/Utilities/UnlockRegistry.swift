@@ -75,6 +75,18 @@ enum UnlockRegistry {
             id: "plum_purple", name: "Plum Purple",
             color: Color(hex: "#545B77"), isFoil: false, isDark: true)),  displayName: "Card Skin: Plum Purple"),
         .init(level: 25, type: .title("Tycoon"),           displayName: "Title: Tycoon"),
+        .init(level: 28, type: .cardSkin(.init(
+            id: "subway", name: "Subway",
+            color: Color(hex: "#DEDEDE"), isFoil: false,
+            jokerImageName: "SubwayJoker",
+            jokerImagePadding: 8,
+            numberFontName: "Helvetica-Bold",
+            inkColorOverride: Color(hex: "#1A1A1A"),
+            showBorder: true,
+            showTextShadow: true,
+            strongTextShadow: true,
+            textShadowColor: .white,
+            customAnimation: .subway)),                     displayName: "Card Skin: Subway"),
         .init(level: 50, type: .prestigeBadge,             displayName: "Prestige Badge"),
         .init(level: 50, type: .cardSkin(.init(
             id: "shiny_black", name: "Shiny Black",

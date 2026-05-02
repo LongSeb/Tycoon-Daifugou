@@ -26,11 +26,16 @@ struct PlayingCardView: View {
                         .strokeBorder(borderColor, lineWidth: 1)
                 )
 
+            if skin?.customAnimation == .subway {
+                SubwayMapOverlay(cornerRadius: cornerRadius, width: width, height: height, animateStations: foilEffectsEnabled)
+                    .allowsHitTesting(false)
+            }
+
             if card.isJoker {
                 Text("JKR")
                     .font(numberFont(size: jokerCornerFontSize))
                     .foregroundStyle(inkColor)
-                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor)
                     .padding(.leading, cornerPadding)
                     .padding(.top, cornerPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -38,7 +43,7 @@ struct PlayingCardView: View {
                 Text("JKR")
                     .font(numberFont(size: jokerCornerFontSize))
                     .foregroundStyle(inkColor)
-                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor)
                     .rotationEffect(.degrees(180))
                     .padding(.trailing, cornerPadding)
                     .padding(.bottom, cornerPadding)
@@ -47,13 +52,13 @@ struct PlayingCardView: View {
                 jokerCenterImage
             } else {
                 cornerLabel
-                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor)
                     .padding(.leading, cornerPadding)
                     .padding(.top, cornerPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 cornerLabel
-                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor)
                     .rotationEffect(.degrees(180))
                     .padding(.trailing, cornerPadding)
                     .padding(.bottom, cornerPadding)
@@ -63,7 +68,7 @@ struct PlayingCardView: View {
                     .font(.system(size: centerSuitFontSize))
                     .foregroundStyle(inkColor)
                     .darkOutline(darkOutlined)
-                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor)
             }
 
             if skin?.isFoil == true && foilEffectsEnabled {
@@ -247,6 +252,7 @@ struct PlayingCardView: View {
         }
     }
 
+    private var shadowColor: Color { skin?.textShadowColor ?? .black }
     private var darkOutlined: Bool { (skin?.isDark == true && isSelected) || skin?.showTextOutline == true }
     private var strongShadow: Bool { skin?.strongTextShadow == true }
 
@@ -337,10 +343,11 @@ private extension View {
             .shadow(color: c, radius: 0, x:    0, y: -0.5)
     }
 
-    func textDropShadow(_ active: Bool, strong: Bool = false) -> some View {
+    func textDropShadow(_ active: Bool, strong: Bool = false, color: Color = .black) -> some View {
         self
-            .shadow(color: active ? .black.opacity(strong ? 0.45 : 0.22) : .clear, radius: strong ? 3 : 2, x: 0, y: strong ? 1.5 : 1)
-            .shadow(color: (active && strong) ? .black.opacity(0.2) : .clear, radius: 1, x: 0, y: 0.5)
+            .shadow(color: active ? color.opacity(strong ? 0.95 : 0.22) : .clear, radius: strong ? 4 : 2, x: 0, y: strong ? 2 : 1)
+            .shadow(color: (active && strong) ? color.opacity(0.80) : .clear, radius: 2, x: 0, y: 1)
+            .shadow(color: (active && strong) ? color.opacity(0.60) : .clear, radius: 6, x: 0, y: 3)
     }
 }
 

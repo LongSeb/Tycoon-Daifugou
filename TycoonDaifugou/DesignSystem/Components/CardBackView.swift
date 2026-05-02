@@ -20,7 +20,10 @@ struct CardBackView: View {
                         .strokeBorder(skin.showBorder ? Color.black.opacity(0.12) : Color.clear, lineWidth: 1)
                 )
 
-            if let overlayName = skin.overlayImageName {
+            if skin.customAnimation == .subway {
+                SubwayMapOverlay(cornerRadius: cornerRadius, width: width, height: height)
+                    .allowsHitTesting(false)
+            } else if let overlayName = skin.overlayImageName {
                 Image(overlayName)
                     .resizable()
                     .renderingMode(.original)
@@ -107,6 +110,13 @@ struct CardBackView: View {
         )
         CardBackView(
             skin: CardSkin(id: "shiny_black", name: "Shiny Black", color: Color(hex: "#171616"), isFoil: true)
+        )
+        CardBackView(
+            skin: CardSkin(
+                id: "subway", name: "Subway",
+                color: Color(hex: "#F5F0E8"), isFoil: false,
+                customAnimation: .subway),
+            cornerRadius: 10, width: 68, height: 100
         )
     }
     .padding(24)
