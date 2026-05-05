@@ -284,30 +284,6 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
             }
-            #if DEBUG
-            divider
-            Button(action: { store?.debugSetLevel(50) }) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Set Level 50 — Prestige Test")
-                            .font(.settingsRowTitle)
-                            .foregroundStyle(Color.cardGold)
-
-                        Text("DEBUG — caps XP and fires the prestige prompt.")
-                            .font(.settingsRowSubtitle)
-                            .foregroundStyle(Color.textTertiary)
-                    }
-                    Spacer()
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.cardGold.opacity(0.7))
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 16)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            #endif
             divider
             HStack {
                 Text("Version")
