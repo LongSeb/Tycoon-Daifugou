@@ -20,6 +20,8 @@ struct CloudPlayerSnapshot: Codable, Sendable {
     var equippedBorderID: String?
     var hasPrestigeBadge: Bool
     var hardModeWins: Int
+    var prestigeLevel: Int
+    var prestigeXP: Int
 
     var jokersPlayed: Int
     var jokersWonTrick: Int

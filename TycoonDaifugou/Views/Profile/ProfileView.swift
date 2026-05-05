@@ -4,6 +4,7 @@ struct ProfileView: View {
     let profile: ProfileData
     var store: GameRecordStore?
     var onSettingsTapped: () -> Void = {}
+    var onPrestigeActivate: () -> Void = {}
 
     @Environment(AuthService.self) private var authService
     @AppStorage("auth.guestModeEnabled") private var guestModeEnabled: Bool = false
@@ -15,6 +16,10 @@ struct ProfileView: View {
     @State private var motion = MotionManager()
 
     private var isGuest: Bool { false }
+
+    // True when the player has activated prestige and is earning toward the next prestige level.
+    private var isPrestigeMode: Bool { profile.prestigeLevel > 0 && profile.prestigeLevel < 10 }
+    private var isMaxPrestige: Bool { profile.prestigeLevel >= 10 }
 
     var body: some View {
         ZStack {
@@ -103,10 +108,20 @@ struct ProfileView: View {
                 )
 
             if profile.hasPrestigeBadge {
-                Text("⭐")
-                    .font(.system(size: 12))
-                    .shadow(color: Color.yellow.opacity(0.6), radius: 6)
-                    .offset(x: -29, y: 29)
+                HStack(spacing: 3) {
+                    Text("\(profile.prestigeLevel)")
+                        .font(.custom("Fraunces-9ptBlackItalic", size: 15))
+                        .foregroundStyle(Color(hex: "#F5D060"))
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color(hex: "#F5D060"))
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(Color.black.opacity(0.75))
+                .clipShape(Capsule())
+                .shadow(color: Color(hex: "#F5D060").opacity(0.85), radius: 8)
+                .offset(x: -18, y: 34)
             }
         }
         .frame(width: 86, height: 86)
@@ -173,7 +188,7 @@ struct ProfileView: View {
             .padding(.bottom, 12)
             .contextMenu {
                 if profile.hasPrestigeBadge {
-                    Text("⭐ Level 50 — Prestige")
+                    Text("\(profile.prestigeLevel) ★ Prestige \(profile.prestigeLevel)")
                 }
             }
 
@@ -268,7 +283,13 @@ struct ProfileView: View {
         VStack(spacing: 0) {
             cardHeader(
                 title: "LEVEL PROGRESSION",
-                badge: "Lvl \(profile.currentLevel) → \(profile.currentLevel + 1)"
+                badge: isMaxPrestige
+                    ? "Prestige 10 · MAX"
+                    : isPrestigeMode
+                        ? "Prestige \(profile.prestigeLevel) → \(profile.prestigeLevel + 1)"
+                        : profile.isAtMaxLevel
+                            ? "Lvl \(profile.currentLevel)"
+                            : "Lvl \(profile.currentLevel) → \(profile.currentLevel + 1)"
             )
 
             VStack(alignment: .leading, spacing: 0) {
@@ -284,51 +305,91 @@ struct ProfileView: View {
                                 .font(.sectionLabel)
                                 .foregroundStyle(Color.textTertiary)
                                 .tracking(1)
+
+                            if profile.prestigeLevel > 0 {
+                                Text("· Prestige \(profile.prestigeLevel)")
+                                    .font(.sectionLabel)
+                                    .foregroundStyle(Color.cardLavender.opacity(0.8))
+                                    .tracking(1)
+                            }
                         }
 
-                        Text("\(profile.currentXP.formatted()) XP total")
-                            .font(.ruleCaption)
-                            .foregroundStyle(Color.textTertiary)
+                        Text(isPrestigeMode || isMaxPrestige
+                            ? "\(profile.prestigeXP.formatted()) Prestige XP"
+                            : "\(profile.currentXP.formatted()) XP total"
+                        )
+                        .font(.ruleCaption)
+                        .foregroundStyle(Color.textTertiary)
                     }
 
                     Spacer()
 
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text("\(profile.xpForNextLevel - profile.currentXP) XP to go")
-                            .font(.ruleCaption)
-                            .foregroundStyle(Color.cardBlush.opacity(0.7))
+                    if isPrestigeMode {
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text("\(LevelCalculator.prestigeXPPerLevel - profile.prestigeXP) XP to go")
+                                .font(.ruleCaption)
+                                .foregroundStyle(Color.cardLavender.opacity(0.8))
 
-                        Text("Until level \(profile.currentLevel + 1)")
-                            .font(.ruleCaption)
-                            .foregroundStyle(Color.white.opacity(0.25))
+                            Text("Until Prestige \(profile.prestigeLevel + 1)")
+                                .font(.ruleCaption)
+                                .foregroundStyle(Color.white.opacity(0.25))
+                        }
+                    } else if !profile.isAtMaxLevel && !isMaxPrestige {
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text("\(profile.xpForNextLevel - profile.currentXP) XP to go")
+                                .font(.ruleCaption)
+                                .foregroundStyle(Color.cardBlush.opacity(0.7))
+
+                            Text("Until level \(profile.currentLevel + 1)")
+                                .font(.ruleCaption)
+                                .foregroundStyle(Color.white.opacity(0.25))
+                        }
                     }
                 }
                 .padding(.bottom, 10)
 
                 XPProgressBar(
-                    currentXP: profile.currentXP,
-                    levelStartXP: profile.levelStartXP,
-                    xpForNextLevel: profile.xpForNextLevel
+                    currentXP: isPrestigeMode || isMaxPrestige ? profile.prestigeXP : profile.currentXP,
+                    levelStartXP: isPrestigeMode || isMaxPrestige ? 0 : profile.levelStartXP,
+                    xpForNextLevel: isPrestigeMode || isMaxPrestige
+                        ? LevelCalculator.prestigeXPPerLevel
+                        : profile.xpForNextLevel
                 )
                 .frame(height: 5)
                 .padding(.bottom, 6)
 
                 HStack {
-                    Text("Level \(profile.currentLevel)")
-                        .font(.ruleCaption)
-                        .foregroundStyle(Color.textTertiary)
+                    Text(isPrestigeMode || isMaxPrestige
+                        ? "Prestige \(profile.prestigeLevel)"
+                        : "Level \(profile.currentLevel)"
+                    )
+                    .font(.ruleCaption)
+                    .foregroundStyle(Color.textTertiary)
 
                     Spacer()
 
-                    Text("\(profile.currentXP.formatted()) / \(profile.xpForNextLevel.formatted()) XP")
-                        .font(.ruleCaption)
-                        .foregroundStyle(Color.cardBlush.opacity(0.7))
+                    Text(isPrestigeMode || isMaxPrestige
+                        ? "\(profile.prestigeXP.formatted()) / \(LevelCalculator.prestigeXPPerLevel.formatted()) XP"
+                        : "\(profile.currentXP.formatted()) / \(profile.xpForNextLevel.formatted()) XP"
+                    )
+                    .font(.ruleCaption)
+                    .foregroundStyle(
+                        isPrestigeMode || isMaxPrestige
+                            ? Color.cardLavender.opacity(0.7)
+                            : Color.cardBlush.opacity(0.7)
+                    )
                 }
                 .padding(.bottom, 12)
 
-                NextUnlockRow(item: profile.nextUnlock)
+                if profile.canPrestige {
+                    prestigeAvailableRow
+                }
 
-                UpcomingUnlocksSection(unlocks: profile.upcomingUnlocks)
+                if !profile.isAtMaxLevel && !isPrestigeMode && !isMaxPrestige {
+                    NextUnlockRow(item: profile.nextUnlock)
+
+                    UpcomingUnlocksSection(unlocks: profile.upcomingUnlocks)
+                }
             }
             .padding(12)
         }
@@ -339,6 +400,38 @@ struct ProfileView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(.horizontal, 16)
+        .padding(.bottom, 12)
+    }
+
+    // MARK: - Prestige Affordance
+
+    private var prestigeAvailableRow: some View {
+        Button(action: onPrestigeActivate) {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(Color.cardBlush)
+                    .frame(width: 8, height: 8)
+
+                Text("Prestige available — tap to activate")
+                    .font(.tycoonCaption)
+                    .foregroundStyle(Color.cardBlush)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color.cardBlush.opacity(0.6))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color.cardBlush.opacity(0.08))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Color.cardBlush.opacity(0.2), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
         .padding(.bottom, 12)
     }
 

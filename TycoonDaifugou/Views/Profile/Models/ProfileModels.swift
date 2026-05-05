@@ -24,6 +24,10 @@ struct ProfileData {
     let equippedBorder: ProfileBorder?
     let unlockedBorders: [ProfileBorder]
     let hasPrestigeBadge: Bool
+    let prestigeLevel: Int
+    let prestigeXP: Int
+    let canPrestige: Bool     // eligible for prestige right now (XP capped, below max prestige)
+    let isAtMaxLevel: Bool   // true when currentLevel == 50, regardless of prestige state
     let isExtendedStatsUnlocked: Bool
     let extendedStats: ExtendedStatsData?
     // Available unlock lists for pickers

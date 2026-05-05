@@ -146,6 +146,8 @@ final class SyncManager {
             equippedBorderID: p.equippedBorderID,
             hasPrestigeBadge: p.hasPrestigeBadge,
             hardModeWins: p.hardModeWins,
+            prestigeLevel: p.prestigeLevel,
+            prestigeXP: p.prestigeXP,
             jokersPlayed: p.jokersPlayed,
             jokersWonTrick: p.jokersWonTrick,
             roundFinishPositions: p.roundFinishPositions,

@@ -10,6 +10,7 @@ import TycoonDaifugouKit
 struct CardExchangeView: View {
     let exchange: CardExchangeState
     let humanHand: [Card]
+    var skin: CardSkin? = nil
     let onConfirm: ([Card]) -> Void
 
     @State private var selectedCards: Set<Card> = []
@@ -101,7 +102,7 @@ struct CardExchangeView: View {
                         ForEach(sortedHand, id: \.self) { card in
                             let isSelected = selectedCards.contains(card)
                             let isFull = !isSelected && selectedCards.count >= exchange.requiredGiveCount
-                            PlayingCardView(card: card, style: .hand, isSelected: isSelected)
+                            PlayingCardView(card: card, style: .hand, isSelected: isSelected, skin: skin)
                                 .opacity(isFull ? 0.3 : 1.0)
                                 .animation(.easeOut(duration: 0.12), value: isFull)
                                 .onTapGesture {
@@ -122,7 +123,7 @@ struct CardExchangeView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
                             ForEach(exchange.cardsToGive, id: \.self) { card in
-                                PlayingCardView(card: card, style: .hand)
+                                PlayingCardView(card: card, style: .hand, skin: skin)
                                     .scaleEffect(1.2)
                                     .frame(width: 82, height: 120)
                             }
@@ -150,7 +151,7 @@ struct CardExchangeView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(exchange.cardsReceived, id: \.self) { card in
-                        PlayingCardView(card: card, style: .hand)
+                        PlayingCardView(card: card, style: .hand, skin: skin)
                             .scaleEffect(1.2)
                             .frame(width: 82, height: 120)
                             .overlay(

@@ -2,6 +2,26 @@ import Foundation
 
 struct LevelCalculator {
     static let maxLevel = 50
+    static let maxPrestigeLevel = 10
+    static let prestigeXPPerLevel = 5_000
+
+    /// XP a player must accumulate to unlock the prestige option.
+    /// Equals the XP to *reach* Level 50 plus the full cost of Level 50 itself,
+    /// so the player has genuinely "completed" Level 50, not merely arrived there.
+    static var prestigeThresholdXP: Int {
+        cumulativeXP(forLevel: maxLevel) + xpPerLevel(at: maxLevel)
+    }
+
+    /// 0.0–1.0 progress within the current prestige level.
+    static func prestigeProgress(prestigeXP: Int) -> Double {
+        guard prestigeXP < prestigeXPPerLevel else { return 1.0 }
+        return Double(prestigeXP) / Double(prestigeXPPerLevel)
+    }
+
+    /// Prestige XP remaining until the next prestige level-up.
+    static func prestigeXPToNextLevel(currentPrestigeXP: Int) -> Int {
+        max(0, prestigeXPPerLevel - currentPrestigeXP)
+    }
 
     // Each entry: level range where that XP cost applies to advance FROM each level.
     // Levels 1–10 each cost 250 to advance (10 transitions), etc.

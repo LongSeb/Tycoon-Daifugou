@@ -48,6 +48,10 @@ extension ProfileData {
             ProfileBorder(id: "silver", name: "Silver", color: Color(hex: "#C0C0C0"), isAnimated: false),
         ],
         hasPrestigeBadge: false,
+        prestigeLevel: 0,
+        prestigeXP: 0,
+        canPrestige: false,
+        isAtMaxLevel: false,
         isExtendedStatsUnlocked: true,
         extendedStats: ExtendedStatsData(
             totalGamesPlayed: 128,

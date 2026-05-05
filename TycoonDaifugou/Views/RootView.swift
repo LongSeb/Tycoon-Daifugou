@@ -64,7 +64,8 @@ struct RootView: View {
                         ProfileView(
                             profile: store.profileData,
                             store: store,
-                            onSettingsTapped: { coordinator.showSettings() }
+                            onSettingsTapped: { coordinator.showSettings() },
+                            onPrestigeActivate: { store.reactivatePrestigePrompt() }
                         )
                     } else {
                         ProfileView(
@@ -75,9 +76,31 @@ struct RootView: View {
                 }
             }
 
-            AppTabBar(selectedTab: $selectedTab)
+            AppTabBar(
+                selectedTab: $selectedTab,
+                showPrestigeBadge: coordinator.store?.isPrestigeAvailable ?? false
+            )
         }
         .toolbar(.hidden, for: .navigationBar)
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { (coordinator.store?.showPrestigePrompt ?? false) && coordinator.path.isEmpty },
+                set: { if !$0 { coordinator.store?.dismissPrestigePrompt() } }
+            )
+        ) {
+            if let store = coordinator.store {
+                PrestigeModal(
+                    currentPrestigeLevel: store.profile.prestigeLevel,
+                    onPrestige: {
+                        store.confirmPrestige()
+                        selectedTab = .home
+                    },
+                    onDismiss: {
+                        store.dismissPrestigePrompt()
+                    }
+                )
+            }
+        }
     }
 
     @ViewBuilder
