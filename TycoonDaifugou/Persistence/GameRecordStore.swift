@@ -60,27 +60,6 @@ final class GameRecordStore {
         profileDidChange?()
     }
 
-#if DEBUG
-    func debugSetLevel(_ level: Int) {
-        let clamped = max(1, min(LevelCalculator.maxLevel, level))
-        // At max level, set XP to the prestige threshold so the prompt fires.
-        profile.totalXP = clamped == LevelCalculator.maxLevel
-            ? LevelCalculator.prestigeThresholdXP
-            : LevelCalculator.cumulativeXP(forLevel: clamped)
-        profile.currentLevel = clamped
-        profile.highestLevelEver = max(profile.highestLevelEver, clamped)
-        profile.hardModeWins = 10
-        if clamped >= 50 { profile.hasPrestigeBadge = true }
-        try? context.save()
-        profileDidChange?()
-        if clamped == LevelCalculator.maxLevel,
-           profile.prestigeLevel < LevelCalculator.maxPrestigeLevel {
-            hasSeenPrestigePromptThisSession = false
-            showPrestigePrompt = true
-        }
-    }
-#endif
-
     func wipeAllLocalData() {
         for record in records {
             context.delete(record)
