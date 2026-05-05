@@ -26,6 +26,14 @@ final class PlayerProfile {
     var hasPrestigeBadge: Bool = false
     var hardModeWins: Int = 0
 
+    // Prestige state
+    var prestigeLevel: Int = 0   // 0 = not yet prestiged; max 10
+    var prestigeXP: Int = 0      // resets to 0 on each prestige level-up
+
+    // Tracks the highest level ever reached across all prestige runs.
+    // Unlocks are gated on this value so they are never lost when prestige resets currentLevel.
+    var highestLevelEver: Int = 1
+
     // MARK: - Extended Stats Tracking Counters (all default to 0)
 
     var jokersPlayed: Int = 0
@@ -63,28 +71,32 @@ final class PlayerProfile {
 
     // MARK: - Computed Unlocks (derived from UnlockRegistry, never persisted)
 
+    // The effective unlock level is the highest level ever reached, not the current level.
+    // This ensures prestige (which resets currentLevel to 1) never strips earned unlocks.
+    private var unlockLevel: Int { max(currentLevel, highestLevelEver) }
+
     var unlockedTitles: [String] {
-        UnlockRegistry.unlocks(upToLevel: currentLevel).compactMap {
+        UnlockRegistry.unlocks(upToLevel: unlockLevel).compactMap {
             if case .title(let t) = $0.type { return t } else { return nil }
         }
     }
 
     var unlockedSkins: [CardSkin] {
         let defaultSkin = CardSkin(id: "default", name: "Cream", color: .cardCream, isFoil: false)
-        let earned = UnlockRegistry.unlocks(upToLevel: currentLevel).compactMap {
+        let earned = UnlockRegistry.unlocks(upToLevel: unlockLevel).compactMap {
             if case .cardSkin(let s) = $0.type { return s } else { return nil }
         }
         return [defaultSkin] + earned
     }
 
     var unlockedBorders: [ProfileBorder] {
-        UnlockRegistry.unlocks(upToLevel: currentLevel).compactMap {
+        UnlockRegistry.unlocks(upToLevel: unlockLevel).compactMap {
             if case .profileBorder(let b) = $0.type { return b } else { return nil }
         }
     }
 
-    var isExtendedStatsUnlocked: Bool { currentLevel >= 5 }
-    var isExpertDifficultyUnlocked: Bool { currentLevel >= 20 && hardModeWins >= 10 }
+    var isExtendedStatsUnlocked: Bool { unlockLevel >= 5 }
+    var isExpertDifficultyUnlocked: Bool { unlockLevel >= 20 && hardModeWins >= 10 }
 
     var equippedBorder: ProfileBorder? {
         guard let id = equippedBorderID else { return nil }

@@ -44,6 +44,7 @@ struct GameView: View {
                     actionArea
                     fanHand
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 RulesDrawer(isPresented: $showRules)
                     .zIndex(10)
@@ -82,7 +83,8 @@ struct GameView: View {
             if let exchange = controller.pendingExchange {
                 CardExchangeView(
                     exchange: exchange,
-                    humanHand: controller.humanHand
+                    humanHand: controller.humanHand,
+                    skin: humanEquippedSkin
                 ) { cards in
                     controller.confirmExchange(selectedCards: cards)
                 }

@@ -14,6 +14,19 @@ final class GameRecordStore {
     /// editor saves). SyncManager attaches here so it can push to Firestore.
     var profileDidChange: (() -> Void)?
 
+    // MARK: - Prestige prompt
+
+    /// True when the prestige modal should be shown on the main menu.
+    /// Resets to false when the player dismisses the prompt or confirms prestige.
+    var showPrestigePrompt = false
+
+    // Session flag — set to true when the player dismisses "Not Yet". Stays true
+    // until the app is relaunched, preventing the modal from re-appearing mid-session.
+    // On next launch the flag resets (it is not persisted), so the prompt returns if
+    // the player is still eligible. This avoids nagging during a single play session
+    // while keeping the feature discoverable across sessions.
+    private var hasSeenPrestigePromptThisSession = false
+
     init(context: ModelContext) {
         self.context = context
         self.profile = Self.fetchOrCreateProfile(context: context)
@@ -50,12 +63,21 @@ final class GameRecordStore {
 #if DEBUG
     func debugSetLevel(_ level: Int) {
         let clamped = max(1, min(LevelCalculator.maxLevel, level))
-        profile.totalXP = LevelCalculator.cumulativeXP(forLevel: clamped)
+        // At max level, set XP to the prestige threshold so the prompt fires.
+        profile.totalXP = clamped == LevelCalculator.maxLevel
+            ? LevelCalculator.prestigeThresholdXP
+            : LevelCalculator.cumulativeXP(forLevel: clamped)
         profile.currentLevel = clamped
+        profile.highestLevelEver = max(profile.highestLevelEver, clamped)
         profile.hardModeWins = 10
         if clamped >= 50 { profile.hasPrestigeBadge = true }
         try? context.save()
         profileDidChange?()
+        if clamped == LevelCalculator.maxLevel,
+           profile.prestigeLevel < LevelCalculator.maxPrestigeLevel {
+            hasSeenPrestigePromptThisSession = false
+            showPrestigePrompt = true
+        }
     }
 #endif
 
@@ -86,6 +108,8 @@ final class GameRecordStore {
         profile.equippedBorderID = snapshot.equippedBorderID
         profile.hasPrestigeBadge = snapshot.hasPrestigeBadge
         profile.hardModeWins = snapshot.hardModeWins
+        profile.prestigeLevel = snapshot.prestigeLevel
+        profile.prestigeXP = snapshot.prestigeXP
         profile.jokersPlayed = snapshot.jokersPlayed
         profile.jokersWonTrick = snapshot.jokersWonTrick
         profile.roundFinishPositions = snapshot.roundFinishPositions
@@ -146,6 +170,43 @@ final class GameRecordStore {
         pendingLevelUpUnlocks = nil
     }
 
+    // MARK: - Prestige
+
+    /// Resets the player to Level 1 / 0 XP and increments their prestige level.
+    /// All unlocks and stats are preserved — only level/XP/prestigeXP are touched.
+    func confirmPrestige() {
+        guard profile.prestigeLevel < LevelCalculator.maxPrestigeLevel else { return }
+        profile.totalXP = 0
+        profile.currentLevel = 1
+        profile.prestigeLevel += 1
+        profile.prestigeXP = 0
+        hasSeenPrestigePromptThisSession = false
+        showPrestigePrompt = false
+        onPrestigeLevelReached(profile.prestigeLevel)
+        try? context.save()
+        profileDidChange?()
+    }
+
+    /// True when the player is eligible to prestige (XP capped, below max prestige).
+    /// Drives the tab badge and level card affordance after the prompt is dismissed.
+    var isPrestigeAvailable: Bool {
+        profile.totalXP >= LevelCalculator.prestigeThresholdXP
+            && profile.prestigeLevel < LevelCalculator.maxPrestigeLevel
+    }
+
+    /// Suppresses the prestige prompt for the rest of this session.
+    func dismissPrestigePrompt() {
+        hasSeenPrestigePromptThisSession = true
+        showPrestigePrompt = false
+    }
+
+    /// Re-shows the prestige modal (called from the Profile level card affordance).
+    func reactivatePrestigePrompt() {
+        guard isPrestigeAvailable else { return }
+        hasSeenPrestigePromptThisSession = false
+        showPrestigePrompt = true
+    }
+
     @discardableResult
     func save(controller: GameController, result: GameResultData, ruleSet: RuleSet) -> GameRecord {
         let opponentRecords = result.players
@@ -179,7 +240,14 @@ final class GameRecordStore {
 
         let levelBefore = profile.currentLevel
         profile.totalXP += result.xpGained
+        // Freeze XP at the prestige threshold until the player prestiges.
+        // XP earned in the game still appears on the results screen (it's
+        // recorded in the GameRecord before this cap applies).
+        if profile.prestigeLevel < LevelCalculator.maxPrestigeLevel {
+            profile.totalXP = min(profile.totalXP, LevelCalculator.prestigeThresholdXP)
+        }
         profile.currentLevel = LevelCalculator.level(forTotalXP: profile.totalXP)
+        profile.highestLevelEver = max(profile.highestLevelEver, profile.currentLevel)
 
         // Hard mode wins
         if controller.difficulty == .hard && result.playerFinishRank == "Tycoon" {
@@ -189,6 +257,33 @@ final class GameRecordStore {
         // Prestige badge
         if profile.currentLevel >= 50 {
             profile.hasPrestigeBadge = true
+        }
+
+        // Prestige XP: XP earned while playing Levels 1–10 post-prestige feeds
+        // directly into Prestige XP at 1:1. We use levelBefore (the level at game
+        // start) as the determinant — if they were in the 1–10 window when the
+        // game began, those gains count toward prestige progression.
+        if profile.prestigeLevel > 0 && (1...10).contains(levelBefore) {
+            profile.prestigeXP += result.xpGained
+            while profile.prestigeXP >= LevelCalculator.prestigeXPPerLevel {
+                if profile.prestigeLevel < LevelCalculator.maxPrestigeLevel {
+                    profile.prestigeXP -= LevelCalculator.prestigeXPPerLevel
+                    profile.prestigeLevel += 1
+                    onPrestigeLevelReached(profile.prestigeLevel)
+                } else {
+                    profile.prestigeXP = LevelCalculator.prestigeXPPerLevel
+                    break
+                }
+            }
+        }
+
+        // Prestige prompt: fires the first time the player hits the XP cap this
+        // session. Suppressed for the remainder of the session once dismissed;
+        // the profile tab badge + level card affordance let them re-trigger it.
+        if profile.totalXP >= LevelCalculator.prestigeThresholdXP
+            && profile.prestigeLevel < LevelCalculator.maxPrestigeLevel
+            && !hasSeenPrestigePromptThisSession {
+            showPrestigePrompt = true
         }
 
         // Level-up unlock notification
@@ -361,6 +456,10 @@ final class GameRecordStore {
             equippedBorder: profile.equippedBorder,
             unlockedBorders: profile.unlockedBorders,
             hasPrestigeBadge: profile.hasPrestigeBadge,
+            prestigeLevel: profile.prestigeLevel,
+            prestigeXP: profile.prestigeXP,
+            canPrestige: isPrestigeAvailable,
+            isAtMaxLevel: currentLevel >= LevelCalculator.maxLevel,
             isExtendedStatsUnlocked: profile.isExtendedStatsUnlocked,
             extendedStats: extendedStats,
             unlockedTitles: profile.unlockedTitles,

@@ -109,14 +109,15 @@ struct StatCardView: View {
     // MARK: - Floating Bar
 
     private var floatingBar: some View {
-        // Single GeometryReader so clampedX is shared by the label/tick and the fill bar —
-        // this prevents the fill from overshooting the tick when values land in the last bucket.
         GeometryReader { geo in
             let barW = geo.size.width
             let labelW: CGFloat = 52
-            let clampedX = max(labelW / 2, min(barW - labelW / 2, barW * fillFraction))
+            // Label position is clamped so it doesn't overflow the card edges
+            let labelX = max(labelW / 2, min(barW - labelW / 2, barW * fillFraction))
+            // Fill width reflects the true fraction — unclamped by label padding
+            let fillW = min(barW, barW * fillFraction)
 
-            // Floating label + tick, centered on clampedX
+            // Floating label + tick
             VStack(spacing: 1) {
                 Text(segmentLabels[max(0, min(activeSegment, segmentLabels.count - 1))])
                     .font(.ruleCaption)
@@ -128,7 +129,7 @@ struct StatCardView: View {
                     .fill(accentColor)
                     .frame(width: 1, height: 5)
             }
-            .position(x: clampedX, y: geo.size.height - 11)
+            .position(x: labelX, y: geo.size.height - 11)
 
             // Track (full width)
             RoundedRectangle(cornerRadius: 1)
@@ -136,11 +137,11 @@ struct StatCardView: View {
                 .frame(width: barW, height: 2)
                 .position(x: barW / 2, y: geo.size.height - 1)
 
-            // Fill — same clampedX width so it never exceeds the tick
+            // Fill — true fraction, independent of label clamping
             RoundedRectangle(cornerRadius: 1)
                 .fill(accentColor)
-                .frame(width: clampedX, height: 2)
-                .position(x: clampedX / 2, y: geo.size.height - 1)
+                .frame(width: fillW, height: 2)
+                .position(x: fillW / 2, y: geo.size.height - 1)
         }
         .frame(height: 24)
     }

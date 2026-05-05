@@ -13,11 +13,16 @@ struct SubwayMapOverlay: View {
     private let svgH: CGFloat = 500
 
     var body: some View {
-        TimelineView(.animation) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            GeometryReader { geo in
-                let sx = geo.size.width / svgW
-                let sy = geo.size.height / svgH
+        // GeometryReader is outside TimelineView so layout only runs when size changes,
+        // not on every animation frame.
+        GeometryReader { geo in
+            let sx = geo.size.width / svgW
+            let sy = geo.size.height / svgH
+
+            // Cap to 30fps — the 1.3s pulse interval is smooth at 30fps and
+            // avoids driving layout at ProMotion 120Hz on first appear.
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+                let t = context.date.timeIntervalSinceReferenceDate
 
                 ZStack(alignment: .topLeading) {
                     Image("SubwayMap")
@@ -35,26 +40,24 @@ struct SubwayMapOverlay: View {
                                     stationIdx: si,
                                     count: line.stations.count
                                 )
-                                if b > 0.001 {
-                                    Circle()
-                                        .fill(Color.black.opacity(b))
-                                        .frame(
-                                            width: station.pulseDiameter * sx,
-                                            height: station.pulseDiameter * sy
-                                        )
-                                        .position(
-                                            x: station.center.x * sx,
-                                            y: station.center.y * sy
-                                        )
-                                }
+                                Circle()
+                                    .fill(Color.black.opacity(b))
+                                    .frame(
+                                        width: station.pulseDiameter * sx,
+                                        height: station.pulseDiameter * sy
+                                    )
+                                    .position(
+                                        x: station.center.x * sx,
+                                        y: station.center.y * sy
+                                    )
                             }
                         }
                     }
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
             }
-            .frame(width: width, height: height)
         }
+        .frame(width: width, height: height)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 
