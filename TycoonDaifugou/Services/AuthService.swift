@@ -2,6 +2,7 @@ import AuthenticationServices
 import CryptoKit
 import FirebaseAuth
 import FirebaseCore
+import FirebaseFirestore
 import Foundation
 import GoogleSignIn
 import UIKit
@@ -16,10 +17,15 @@ final class AuthService {
     var isAuthenticated: Bool { currentUser != nil }
     var currentUserEmail: String? { currentUser?.email }
     var currentUserDisplayName: String? { currentUser?.displayName }
+    var hasAppleProvider: Bool {
+        currentUser?.providerData.contains { $0.providerID == "apple.com" } ?? false
+    }
 
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var currentNonce: String?
     private var appleAuthCode: String?
+    var needsAppleReAuthForDeletion: Bool = false
+    private var appleReAuthContinuation: CheckedContinuation<ASAuthorization, Error>?
 
     init() {
         currentUser = Auth.auth().currentUser
@@ -66,17 +72,90 @@ final class AuthService {
                 rawNonce: nonce,
                 fullName: appleCredential.fullName
             )
-
-            do {
-                try await Auth.auth().signIn(with: credential)
-                authError = nil
-                if let codeData = appleCredential.authorizationCode,
-                   let code = String(data: codeData, encoding: .utf8) {
-                    appleAuthCode = code
-                }
-            } catch {
-                authError = error.localizedDescription
+            let authCode = appleCredential.authorizationCode.flatMap {
+                String(data: $0, encoding: .utf8)
             }
+
+            if let existingUser = Auth.auth().currentUser {
+                // Already signed in with another provider — try to attach Apple to the same account.
+                do {
+                    try await existingUser.link(with: credential)
+                    appleAuthCode = authCode
+                    authError = nil
+                } catch let linkError as NSError
+                    where AuthErrorCode(rawValue: linkError.code) == .credentialAlreadyInUse {
+                    // This Apple ID is already tied to a different Firebase account.
+                    // Sign in as that account and migrate the current account's data over.
+                    let oldUID = existingUser.uid
+                    do {
+                        try await Auth.auth().signIn(with: credential)
+                        appleAuthCode = authCode
+                        authError = nil
+                        if let newUID = Auth.auth().currentUser?.uid, newUID != oldUID {
+                            await migrateFirestoreData(from: oldUID, to: newUID)
+                        }
+                    } catch {
+                        authError = error.localizedDescription
+                    }
+                } catch {
+                    authError = error.localizedDescription
+                }
+            } else {
+                // No existing session — plain sign-in.
+                do {
+                    try await Auth.auth().signIn(with: credential)
+                    appleAuthCode = authCode
+                    authError = nil
+                } catch {
+                    authError = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    // MARK: - Firestore account migration
+
+    /// Copies all Firestore data from `oldUID` to `newUID` after a credential-already-in-use
+    /// merge, then deletes the source documents. Best-effort — sign-in already succeeded.
+    private func migrateFirestoreData(from oldUID: String, to newUID: String) async {
+        let db = Firestore.firestore()
+        let oldPlayer = db.collection("players").document(oldUID)
+        let newPlayer = db.collection("players").document(newUID)
+        let oldGames = oldPlayer.collection("games")
+        let newGames = newPlayer.collection("games")
+
+        do {
+            // Copy the player document only when the destination account has no existing profile.
+            let oldDoc = try await oldPlayer.getDocument()
+            if oldDoc.exists, let data = oldDoc.data() {
+                let newDoc = try await newPlayer.getDocument()
+                if !newDoc.exists {
+                    try await newPlayer.setData(data)
+                }
+            }
+
+            // Copy the games subcollection in 400-document batches (Firestore cap is 500).
+            let gameDocs = try await oldGames.getDocuments()
+            for start in stride(from: 0, to: gameDocs.documents.count, by: 400) {
+                let slice = gameDocs.documents[start..<min(start + 400, gameDocs.documents.count)]
+                let batch = db.batch()
+                for doc in slice {
+                    batch.setData(doc.data(), forDocument: newGames.document(doc.documentID))
+                }
+                try await batch.commit()
+            }
+
+            // Delete the old account's data now that it's safely copied.
+            let toDelete = try await oldGames.getDocuments()
+            for start in stride(from: 0, to: toDelete.documents.count, by: 400) {
+                let slice = toDelete.documents[start..<min(start + 400, toDelete.documents.count)]
+                let batch = db.batch()
+                for doc in slice { batch.deleteDocument(doc.reference) }
+                try await batch.commit()
+            }
+            try await oldPlayer.delete()
+        } catch {
+            // Log but don't surface — the auth state is already correct.
         }
     }
 
@@ -164,23 +243,87 @@ final class AuthService {
         isLoading = true
         defer { isLoading = false }
 
+        let hasApple = user.providerData.contains { $0.providerID == "apple.com" }
+
         do {
-            // Best-effort Apple token revocation when we still hold a fresh authorization code.
-            if let code = appleAuthCode,
-               user.providerData.contains(where: { $0.providerID == "apple.com" }) {
-                try? await Auth.auth().revokeToken(withAuthorizationCode: code)
+            if hasApple {
+                let authorization = try await requestFreshAppleAuthorization()
+                guard
+                    let appleCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                    let nonce = currentNonce,
+                    let tokenData = appleCredential.identityToken,
+                    let idToken = String(data: tokenData, encoding: .utf8),
+                    let codeData = appleCredential.authorizationCode,
+                    let authCode = String(data: codeData, encoding: .utf8)
+                else {
+                    authError = "Could not complete Apple authorization for account deletion."
+                    return
+                }
+                let credential = OAuthProvider.appleCredential(
+                    withIDToken: idToken,
+                    rawNonce: nonce,
+                    fullName: appleCredential.fullName
+                )
+                try await user.reauthenticate(with: credential)
+                try await deleteFirestoreData(for: user.uid)
+                try await Auth.auth().revokeToken(withAuthorizationCode: authCode)
+            } else {
+                try await deleteFirestoreData(for: user.uid)
             }
+
             try await user.delete()
+            // Drive the UI back to SignInView immediately; don't wait for the auth listener's Task dispatch.
+            currentUser = nil
+            try? Auth.auth().signOut()
             GIDSignIn.sharedInstance.signOut()
             appleAuthCode = nil
             authError = nil
         } catch {
+            let nsError = error as NSError
+            if nsError.domain == ASAuthorizationError.errorDomain,
+               nsError.code == ASAuthorizationError.Code.canceled.rawValue {
+                return
+            }
             authError = Self.friendlyMessage(for: error)
         }
     }
 
     func clearError() {
         authError = nil
+    }
+
+    func provideAppleAuthForDeletion(_ result: Result<ASAuthorization, Error>) {
+        needsAppleReAuthForDeletion = false
+        guard let continuation = appleReAuthContinuation else { return }
+        appleReAuthContinuation = nil
+        switch result {
+        case .success(let auth): continuation.resume(returning: auth)
+        case .failure(let error): continuation.resume(throwing: error)
+        }
+    }
+
+    // MARK: - Account deletion helpers
+
+    private func deleteFirestoreData(for uid: String) async throws {
+        let db = Firestore.firestore()
+        let playerRef = db.collection("players").document(uid)
+        let gamesRef = playerRef.collection("games")
+
+        let games = try await gamesRef.getDocuments()
+        for start in stride(from: 0, to: games.documents.count, by: 400) {
+            let slice = games.documents[start..<min(start + 400, games.documents.count)]
+            let batch = db.batch()
+            for doc in slice { batch.deleteDocument(doc.reference) }
+            try await batch.commit()
+        }
+        try await playerRef.delete()
+    }
+
+    private func requestFreshAppleAuthorization() async throws -> ASAuthorization {
+        try await withCheckedThrowingContinuation { continuation in
+            appleReAuthContinuation = continuation
+            needsAppleReAuthForDeletion = true
+        }
     }
 
     // MARK: - Helpers
@@ -234,3 +377,4 @@ final class AuthService {
         return top
     }
 }
+

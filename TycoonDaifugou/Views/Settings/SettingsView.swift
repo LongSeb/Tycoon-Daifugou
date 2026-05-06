@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 import TycoonDaifugouKit
 
@@ -35,6 +36,15 @@ struct SettingsView: View {
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showTutorial) {
             TutorialView(isReplay: true)
+        }
+        .sheet(isPresented: Binding(
+            get: { authService.needsAppleReAuthForDeletion },
+            set: { if !$0 { authService.provideAppleAuthForDeletion(.failure(
+                NSError(domain: ASAuthorizationError.errorDomain,
+                        code: ASAuthorizationError.Code.canceled.rawValue)
+            )) } }
+        )) {
+            appleReAuthSheet
         }
         .alert("Sign out?", isPresented: $showSignOutConfirm) {
             Button("Sign out", role: .destructive) {
@@ -233,7 +243,21 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 divider
-                Button(action: { showDeleteAccountConfirm = true }) {
+                Button(action: {
+                    if authService.hasAppleProvider {
+                        // Re-auth sheet acts as confirmation for Apple accounts.
+                        Task {
+                            try? await syncManager.deleteCloudData()
+                            await authService.deleteAccount()
+                            if !authService.isAuthenticated {
+                                store?.wipeAllLocalData()
+                                guestModeEnabled = false
+                            }
+                        }
+                    } else {
+                        showDeleteAccountConfirm = true
+                    }
+                }) {
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("Delete account")
@@ -371,6 +395,55 @@ struct SettingsView: View {
                 .frame(height: 1),
             alignment: .bottom
         )
+    }
+
+    // MARK: - Apple re-auth sheet
+
+    // MARK: - Apple re-auth sheet
+
+    private var appleReAuthSheet: some View {
+        ZStack {
+            Color.tycoonBlack.ignoresSafeArea()
+            VStack(spacing: 0) {
+                Spacer()
+                VStack(spacing: 12) {
+                    Text("Confirm Identity")
+                        .font(.displayL)
+                        .foregroundStyle(Color.cardCream)
+                    Text("To permanently delete your account,\nconfirm your identity with Apple.")
+                        .font(.tycoonBody)
+                        .foregroundStyle(Color.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                Spacer().frame(height: 40)
+                SignInWithAppleButton(.continue) { request in
+                    request.requestedScopes = []
+                    request.nonce = authService.makeAppleNonce()
+                } onCompletion: { result in
+                    authService.provideAppleAuthForDeletion(result)
+                }
+                .signInWithAppleButtonStyle(.white)
+                .frame(height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(.horizontal, 32)
+                Spacer().frame(height: 16)
+                Button {
+                    authService.provideAppleAuthForDeletion(.failure(
+                        NSError(domain: ASAuthorizationError.errorDomain,
+                                code: ASAuthorizationError.Code.canceled.rawValue)
+                    ))
+                } label: {
+                    Text("Cancel")
+                        .font(.tycoonBody)
+                        .foregroundStyle(Color.textSecondary)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                Spacer()
+            }
+            .padding(.horizontal, 32)
+        }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Helpers
