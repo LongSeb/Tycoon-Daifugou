@@ -7,6 +7,7 @@ struct ProfileView: View {
     var onPrestigeActivate: () -> Void = {}
 
     @Environment(AuthService.self) private var authService
+    @Environment(SyncManager.self) private var syncManager
     @AppStorage("auth.guestModeEnabled") private var guestModeEnabled: Bool = false
     @State private var showingEditor = false
     @State private var showingTitlePicker = false
@@ -49,8 +50,17 @@ struct ProfileView: View {
                     currentBorderID: profile.equippedBorder?.id,
                     onBorderSelect: { store?.updateEquippedBorder($0) },
                     isUsernameEditable: authService.isAuthenticated,
+                    checkAvailability: { username in
+                        guard authService.isAuthenticated else { return true }
+                        return await syncManager.isUsernameAvailable(username)
+                    },
                     onSave: { emoji, username in
-                        store?.updateProfile(emoji: emoji, username: username)
+                        guard let store else { return true }
+                        guard authService.isAuthenticated else {
+                            store.updateProfile(emoji: emoji, username: username)
+                            return true
+                        }
+                        return await syncManager.claimAndUpdateProfile(emoji: emoji, newUsername: username, store: store)
                     }
                 )
             }
@@ -201,12 +211,14 @@ struct ProfileView: View {
             Text(profile.equippedTitle)
                 .font(.custom("InstrumentSans-Regular", size: 13).weight(.medium).italic())
                 .foregroundStyle(Color.tycoonMint)
-                .padding(.bottom, 3)
+                .padding(.bottom, authService.isAuthenticated ? 3 : 14)
 
-            Text("Member since \(profile.memberSince)")
-                .font(.ruleCaption)
-                .foregroundStyle(Color.white.opacity(0.28))
-                .padding(.bottom, isGuest ? 8 : 14)
+            if authService.isAuthenticated {
+                Text("Member since \(profile.memberSince)")
+                    .font(.ruleCaption)
+                    .foregroundStyle(Color.white.opacity(0.28))
+                    .padding(.bottom, 14)
+            }
 
             if isGuest {
                 guestModePill

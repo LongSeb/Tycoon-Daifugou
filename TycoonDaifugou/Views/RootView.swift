@@ -84,6 +84,32 @@ struct RootView: View {
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(
             isPresented: Binding(
+                get: { syncManager.needsUsernameSetup },
+                set: { if !$0 { syncManager.needsUsernameSetup = false } }
+            )
+        ) {
+            NavigationStack {
+                ProfileEditorView(
+                    initialEmoji: coordinator.store?.profile.emoji ?? "😎",
+                    initialUsername: coordinator.store?.profile.username ?? "TycoonPlayer",
+                    currentLevel: coordinator.store?.profile.currentLevel ?? 1,
+                    unlockedBorders: coordinator.store?.profile.unlockedBorders ?? [],
+                    currentBorderID: coordinator.store?.profile.equippedBorder?.id,
+                    onBorderSelect: { coordinator.store?.updateEquippedBorder($0) },
+                    checkAvailability: { username in
+                        await syncManager.isUsernameAvailable(username)
+                    },
+                    onSave: { emoji, username in
+                        guard let store = coordinator.store else { return true }
+                        return await syncManager.claimAndUpdateProfile(emoji: emoji, newUsername: username, store: store)
+                    }
+                )
+                .navigationTitle("Set Your Username")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        }
+        .fullScreenCover(
+            isPresented: Binding(
                 get: { (coordinator.store?.showPrestigePrompt ?? false) && coordinator.path.isEmpty },
                 set: { if !$0 { coordinator.store?.dismissPrestigePrompt() } }
             )

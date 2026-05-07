@@ -42,6 +42,9 @@ struct CloudPlayerSnapshot: Codable, Sendable {
     var totalDuration: Double
     var totalRoundsPlayed: Int
 
+    // Optional for backward compatibility — older documents won't have this field.
+    var highestLevelEver: Int?
+
     var settings: CloudSettings?
 }
 
@@ -159,6 +162,35 @@ final class FirestoreService {
             }
             try await batch.commit()
         }
+    }
+
+    // MARK: Username reservation
+
+    private func usernameDoc(_ username: String) -> DocumentReference {
+        db.collection("usernames").document(username.lowercased())
+    }
+
+    /// Returns true if `username` is free or already owned by `uid`.
+    func isUsernameAvailable(_ username: String, uid: String) async throws -> Bool {
+        let doc = try await usernameDoc(username).getDocument()
+        guard doc.exists, let ownerUID = doc.data()?["uid"] as? String else { return true }
+        return ownerUID == uid
+    }
+
+    /// Reserves a username for `uid`. Returns false (without throwing) if already taken by someone else.
+    func claimUsername(_ username: String, uid: String) async throws -> Bool {
+        let ref = usernameDoc(username)
+        let doc = try await ref.getDocument()
+        if doc.exists, let owner = doc.data()?["uid"] as? String, owner != uid {
+            return false
+        }
+        try await ref.setData(["uid": uid])
+        return true
+    }
+
+    /// Deletes a username reservation. Safe to call even if the document doesn't exist.
+    func releaseUsername(_ username: String) async throws {
+        try await usernameDoc(username).delete()
     }
 
     // MARK: Account deletion

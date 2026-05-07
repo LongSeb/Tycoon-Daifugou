@@ -60,6 +60,11 @@ final class GameRecordStore {
         profileDidChange?()
     }
 
+    func resetForSignOut() {
+        profile.username = "TycoonPlayer"
+        try? context.save()
+    }
+
     func wipeAllLocalData() {
         for record in records {
             context.delete(record)
@@ -107,6 +112,8 @@ final class GameRecordStore {
         profile.gamesWonCount = snapshot.gamesWonCount
         profile.totalDuration = snapshot.totalDuration
         profile.totalRoundsPlayed = snapshot.totalRoundsPlayed
+        // Fall back to the cloud's currentLevel when the field is absent (old documents).
+        profile.highestLevelEver = snapshot.highestLevelEver ?? snapshot.currentLevel
         try? context.save()
     }
 
@@ -305,7 +312,7 @@ final class GameRecordStore {
     // MARK: - HomeViewState
 
     var homeViewState: HomeViewState {
-        let wins = records.filter { isWin($0) }.count
+        let wins = profile.gamesWonCount
         let last = records.first.map { makeLastGameData($0) }
         let recent = Array(records.prefix(5).dropFirst()).map { makeRecentGameData($0) }
         return HomeViewState(
@@ -319,8 +326,8 @@ final class GameRecordStore {
     // MARK: - ProfileData
 
     var profileData: ProfileData {
-        let wins = records.filter { isWin($0) }.count
-        let totalGames = records.count
+        let wins = profile.gamesWonCount
+        let totalGames = profile.gamesPlayedCount
         let winRate = totalGames > 0 ? Int(Double(wins) / Double(totalGames) * 100) : 0
 
         let totalRevolutions = records.reduce(0) { $0 + $1.revolutionCount }
@@ -344,7 +351,7 @@ final class GameRecordStore {
         ]
         let rankStats = ["Tycoon", "Rich", "Poor", "Beggar"].map { rank in
             let count = records.filter { $0.finishRank == rank }.count
-            let fraction: CGFloat = totalGames > 0 ? CGFloat(count) / CGFloat(totalGames) : 0
+            let fraction: CGFloat = records.count > 0 ? CGFloat(count) / CGFloat(records.count) : 0
             return RankStat(rank: rank, count: count, fraction: fraction, color: rankColors[rank] ?? .white.opacity(0.2))
         }
 
@@ -356,7 +363,7 @@ final class GameRecordStore {
         ]
 
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
+        formatter.dateFormat = "MMMM d, yyyy"
         let memberSince = formatter.string(from: profile.memberSince)
 
         let futureUnlocks = UnlockRegistry.all
@@ -503,19 +510,34 @@ final class GameRecordStore {
             rank: record.finishRank,
             emoji: rankEmoji(for: record.finishRank),
             xp: "+\(record.xpEarned)",
-            rounds: record.roundsPlayed,
-            roundsWon: record.roundsWon,
-            cardsPlayed: record.cardsPlayed,
+            points: record.roundPointsTotal,
             duration: formatDuration(record.duration),
             ago: timeAgo(record.date),
-            highlight: record.highlight
+            highlight: highlightFromRecord(record)
         )
+    }
+
+    private func highlightFromRecord(_ record: GameRecord) -> String {
+        if record.threeSpadeCount > 0 {
+            return record.threeSpadeCount == 1 ? "3♠ Reversal" : "\(record.threeSpadeCount)× 3♠ Reversal"
+        }
+        if record.revolutionCount > 0 {
+            return record.revolutionCount == 1 ? "Revolution!" : "\(record.revolutionCount)× Revolution"
+        }
+        if record.eightStopCount > 0 {
+            return record.eightStopCount == 1 ? "8-Stop" : "\(record.eightStopCount)× 8-Stop"
+        }
+        if record.jokerPlayCount > 0 {
+            return record.jokerPlayCount == 1 ? "Joker played" : "\(record.jokerPlayCount)× Joker"
+        }
+        return record.highlight
     }
 
     private func makeRecentGameData(_ record: GameRecord) -> RecentGameRowData {
         RecentGameRowData(
             rank: record.finishRank,
             xp: "+\(record.xpEarned)",
+            points: record.roundPointsTotal,
             ago: timeAgo(record.date),
             medal: rankMedal(for: record.finishRank),
             avatarEmoji: profile.emoji

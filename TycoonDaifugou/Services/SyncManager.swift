@@ -24,6 +24,8 @@ final class SyncManager {
     }
 
     private(set) var state: SyncState = .idle
+    /// Set to true after sign-in when the profile username is still the default "TycoonPlayer".
+    var needsUsernameSetup = false
 
     private let firestore: FirestoreService
     private weak var store: GameRecordStore?
@@ -87,6 +89,15 @@ final class SyncManager {
                 )
             }
 
+            needsUsernameSetup = store.profile.username == "TycoonPlayer"
+
+            // Backfill: register the current username in the usernames collection so
+            // uniqueness checks work for accounts that existed before this system was added.
+            let currentUsername = store.profile.username
+            if !currentUsername.isEmpty && currentUsername.lowercased() != "tycoonplayer" {
+                try? await firestore.claimUsername(currentUsername, uid: uid)
+            }
+
             state = .synced(Date())
         } catch {
             state = .failed(error.localizedDescription)
@@ -132,6 +143,49 @@ final class SyncManager {
         }
     }
 
+    // MARK: - Username
+
+    /// Returns true if `username` is unclaimed or already owned by the current user.
+    func isUsernameAvailable(_ username: String) async -> Bool {
+        guard let uid = Auth.auth().currentUser?.uid else { return true }
+        let trimmed = username.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, trimmed.lowercased() != "tycoonplayer" else { return true }
+        return (try? await firestore.isUsernameAvailable(trimmed, uid: uid)) ?? true
+    }
+
+    /// Claims `newUsername` in Firestore, releases the old one, and persists the profile.
+    /// Returns false if the username is already taken — caller should show an error.
+    func claimAndUpdateProfile(emoji: String, newUsername: String, store: GameRecordStore) async -> Bool {
+        let trimmed = newUsername.trimmingCharacters(in: .whitespaces)
+        let old = store.profile.username
+        let isDefault = trimmed.lowercased() == "tycoonplayer"
+        let unchanged = trimmed.lowercased() == old.lowercased()
+
+        guard let uid = Auth.auth().currentUser?.uid else {
+            store.updateProfile(emoji: emoji, username: trimmed.isEmpty ? old : trimmed)
+            return true
+        }
+
+        guard UsernameValidator.isAppropriate(trimmed) else { return false }
+
+        if isDefault || unchanged {
+            store.updateProfile(emoji: emoji, username: trimmed.isEmpty ? old : trimmed)
+            return true
+        }
+
+        guard let claimed = try? await firestore.claimUsername(trimmed, uid: uid), claimed else {
+            return false
+        }
+
+        if !old.isEmpty && old.lowercased() != "tycoonplayer" {
+            try? await firestore.releaseUsername(old)
+        }
+
+        store.updateProfile(emoji: emoji, username: trimmed)
+        needsUsernameSetup = false
+        return true
+    }
+
     // MARK: - Snapshot mapping
 
     private func makePlayerSnapshot(from p: PlayerProfile) -> CloudPlayerSnapshot {
@@ -166,6 +220,7 @@ final class SyncManager {
             gamesWonCount: p.gamesWonCount,
             totalDuration: p.totalDuration,
             totalRoundsPlayed: p.totalRoundsPlayed,
+            highestLevelEver: p.highestLevelEver,
             settings: Self.currentSettingsSnapshot()
         )
     }

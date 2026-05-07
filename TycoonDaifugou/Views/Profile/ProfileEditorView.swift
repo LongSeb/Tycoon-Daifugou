@@ -63,13 +63,16 @@ struct EmojiTextField: UIViewRepresentable {
 
 // MARK: - ProfileEditorView
 
+private enum UsernameCheckStatus { case idle, checking, available, taken, inappropriate }
+
 struct ProfileEditorView: View {
-    let onSave: (String, String) -> Void
+    let onSave: (String, String) async -> Bool
     let currentLevel: Int
     let unlockedBorders: [ProfileBorder]
     let currentBorderID: String?
     let onBorderSelect: (String?) -> Void
     var isUsernameEditable: Bool = true
+    var checkAvailability: ((String) async -> Bool)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var emoji: String
@@ -78,7 +81,11 @@ struct ProfileEditorView: View {
     @State private var emojiKeyboardActive = false
     @State private var showBorderPicker = false
     @State private var showBorderLockedAlert = false
+    @State private var usernameStatus: UsernameCheckStatus = .idle
+    @State private var isSaving = false
+    @State private var checkTask: Task<Void, Never>? = nil
 
+    private let initialUsername: String
     private let maxLength = 20
     private let borderUnlockLevel = 7
 
@@ -90,7 +97,8 @@ struct ProfileEditorView: View {
         currentBorderID: String? = nil,
         onBorderSelect: @escaping (String?) -> Void = { _ in },
         isUsernameEditable: Bool = true,
-        onSave: @escaping (String, String) -> Void
+        checkAvailability: ((String) async -> Bool)? = nil,
+        onSave: @escaping (String, String) async -> Bool
     ) {
         self.onSave = onSave
         self.currentLevel = currentLevel
@@ -98,6 +106,8 @@ struct ProfileEditorView: View {
         self.currentBorderID = currentBorderID
         self.onBorderSelect = onBorderSelect
         self.isUsernameEditable = isUsernameEditable
+        self.checkAvailability = checkAvailability
+        self.initialUsername = initialUsername
         _emoji = State(initialValue: initialEmoji)
         _username = State(initialValue: initialUsername)
         _selectedBorderID = State(initialValue: currentBorderID)
@@ -131,13 +141,21 @@ struct ProfileEditorView: View {
                     .foregroundStyle(Color.textSecondary)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    onSave(emoji, trimmedUsername)
-                    dismiss()
+                if isSaving {
+                    ProgressView().tint(Color.tycoonMint)
+                } else {
+                    Button("Done") {
+                        isSaving = true
+                        let e = emoji; let u = trimmedUsername
+                        Task {
+                            let success = await onSave(e, u)
+                            if success { dismiss() } else { usernameStatus = .taken; isSaving = false }
+                        }
+                    }
+                    .font(.tycoonBody.weight(.semibold))
+                    .foregroundStyle(doneEnabled ? Color.tycoonMint : Color.tycoonMint.opacity(0.4))
+                    .disabled(!doneEnabled)
                 }
-                .font(.tycoonBody.weight(.semibold))
-                .foregroundStyle(trimmedUsername.isEmpty ? Color.tycoonMint.opacity(0.4) : Color.tycoonMint)
-                .disabled(trimmedUsername.isEmpty)
             }
         }
         .toolbarBackground(Color.tycoonBlack, for: .navigationBar)
@@ -234,6 +252,13 @@ struct ProfileEditorView: View {
 
     // MARK: - Username Section
 
+    private var doneEnabled: Bool {
+        !trimmedUsername.isEmpty
+            && usernameStatus != .taken
+            && usernameStatus != .inappropriate
+            && !isSaving
+    }
+
     private var usernameSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -256,6 +281,7 @@ struct ProfileEditorView: View {
                     .disabled(!isUsernameEditable)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
+                    .padding(.trailing, isUsernameEditable ? 36 : 0)
                     .background(Color.tycoonSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .overlay(
@@ -263,10 +289,17 @@ struct ProfileEditorView: View {
                             .strokeBorder(Color.tycoonBorder, lineWidth: 1)
                     )
                     .onChange(of: username) { _, new in
-                        if new.count > maxLength {
-                            username = String(new.prefix(maxLength))
-                        }
+                        let filtered = String(
+                            new.filter { $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" }
+                               .prefix(maxLength)
+                        )
+                        if filtered != new { username = filtered; return }
+                        scheduleAvailabilityCheck(for: new)
                     }
+
+                if isUsernameEditable {
+                    availabilityIcon.padding(.trailing, 12)
+                }
             }
 
             if !isUsernameEditable {
@@ -275,12 +308,66 @@ struct ProfileEditorView: View {
                     .foregroundStyle(Color.textTertiary)
             } else {
                 HStack {
+                    switch usernameStatus {
+                    case .taken:
+                        Text("Username already taken.")
+                            .font(.ruleCaption)
+                            .foregroundStyle(Color.cardRed)
+                    case .inappropriate:
+                        Text("Username not allowed.")
+                            .font(.ruleCaption)
+                            .foregroundStyle(Color.cardRed)
+                    default:
+                        Text("Letters, numbers, _ and - only.")
+                            .font(.ruleCaption)
+                            .foregroundStyle(Color.textTertiary)
+                    }
                     Spacer()
                     Text("\(username.count) / \(maxLength)")
                         .font(.ruleCaption)
                         .foregroundStyle(Color.textTertiary)
                 }
             }
+        }
+    }
+
+    @ViewBuilder private var availabilityIcon: some View {
+        switch usernameStatus {
+        case .checking:
+            ProgressView().scaleEffect(0.75).tint(Color.textTertiary)
+        case .available:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 16)).foregroundStyle(Color.tycoonMint)
+        case .taken, .inappropriate:
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 16)).foregroundStyle(Color.cardRed)
+        case .idle:
+            EmptyView()
+        }
+    }
+
+    private func scheduleAvailabilityCheck(for newUsername: String) {
+        checkTask?.cancel()
+        checkTask = nil
+        let trimmed = newUsername.trimmingCharacters(in: .whitespaces)
+        guard isUsernameEditable,
+              checkAvailability != nil,
+              !trimmed.isEmpty,
+              trimmed.lowercased() != initialUsername.lowercased() else {
+            usernameStatus = .idle
+            return
+        }
+        usernameStatus = .checking
+        checkTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            guard UsernameValidator.isAppropriate(trimmed) else {
+                usernameStatus = .inappropriate
+                return
+            }
+            guard let checker = checkAvailability else { return }
+            let available = await checker(trimmed)
+            usernameStatus = available ? .available : .taken
         }
     }
 }
