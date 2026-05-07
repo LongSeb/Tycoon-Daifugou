@@ -1,0 +1,20 @@
+{
+  "name": "username-filter",
+  "version": "1.0.0",
+  "description": "Two-layer profanity/username filter: normalization+dictionary and phonetic matching",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "natural": "^8.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.0.0"
+  }
+}
