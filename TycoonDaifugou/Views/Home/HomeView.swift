@@ -15,9 +15,7 @@ struct LastGameData {
     let rank: String
     let emoji: String
     let xp: String
-    let rounds: Int
-    let roundsWon: Int
-    let cardsPlayed: Int
+    let points: Int
     let duration: String
     let ago: String
     let highlight: String
@@ -226,24 +224,30 @@ struct HomeView: View {
             .padding(.bottom, 20)
 
             HStack(spacing: 1) {
-                StatCell(label: "Rounds", value: "\(game.roundsWon)/\(game.rounds)")
-                StatCell(label: "Cards",  value: "\(game.cardsPlayed)")
+                StatCell(label: "Points", value: "\(game.points)")
+                VStack(spacing: 3) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.cardBlush.opacity(0.7))
+                        Text(game.highlight)
+                            .font(.statFigure)
+                            .foregroundStyle(Color.textPrimary)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.75)
+                    }
+                    Text("HIGHLIGHT")
+                        .font(.tycoonCaption)
+                        .foregroundStyle(Color.textTertiary)
+                        .tracking(1.3)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.white.opacity(0.05))
                 StatCell(label: "Time",   value: game.duration)
             }
             .background(Color.white.opacity(0.06))
             .clipShape(RoundedRectangle(cornerRadius: 14))
-            .padding(.bottom, 16)
-
-            HStack(spacing: 8) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.cardBlush.opacity(0.7))
-
-                Text(game.highlight)
-                    .font(.tycoonCaption)
-                    .italic()
-                    .foregroundStyle(Color.textTertiary)
-            }
         }
         .padding(20)
         .background(Color.white.opacity(0.04))

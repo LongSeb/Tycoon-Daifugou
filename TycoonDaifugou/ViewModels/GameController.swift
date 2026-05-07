@@ -117,7 +117,7 @@ final class GameController {
             return revolutionCount == 1 ? "Revolution!" : "\(revolutionCount) Revolutions"
         }
         if eightStopCount > 0 {
-            return eightStopCount == 1 ? "8-Stop" : "\(eightStopCount) 8-Stops"
+            return eightStopCount == 1 ? "8-Stop" : "\(eightStopCount)× 8-Stop"
         }
         if jokerPlayCount > 0 {
             return jokerPlayCount == 1 ? "Joker played" : "\(jokerPlayCount) Jokers played"

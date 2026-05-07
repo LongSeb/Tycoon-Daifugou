@@ -15,7 +15,7 @@ private let previewBorders: [ProfileBorder] = [
             unlockedBorders: previewBorders,
             currentBorderID: "silver",
             onBorderSelect: { _ in },
-            onSave: { _, _ in }
+            onSave: { _, _ in true }
         )
     }
     .preferredColorScheme(.dark)
@@ -30,7 +30,7 @@ private let previewBorders: [ProfileBorder] = [
             unlockedBorders: [],
             currentBorderID: nil,
             onBorderSelect: { _ in },
-            onSave: { _, _ in }
+            onSave: { _, _ in true }
         )
     }
     .preferredColorScheme(.dark)
