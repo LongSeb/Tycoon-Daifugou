@@ -30,4 +30,5 @@ struct GameResultData {
     let xpBreakdown: [XPBreakdownItem]
     let roundPointsTotal: Int
     var levelUpUnlocks: [UnlockDefinition]? = nil
+    var earnedDailyBonus: Bool = false
 }

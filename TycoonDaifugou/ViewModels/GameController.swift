@@ -74,6 +74,8 @@ final class GameController {
     private(set) var humanCumulativePoints: Int = 0
     private(set) var humanMillionaireRounds: Int = 0
     private(set) var wasShutOut: Bool = false
+    private(set) var playedFullSend: Bool = false
+    private(set) var humanEnteredRoundAsBeggar: Bool = false
     private(set) var comebackRoundsCount: Int = 0
 
     // Extended stats tracking — accumulated per game, flushed to PlayerProfile on save
@@ -329,6 +331,10 @@ final class GameController {
                         comebackRoundsCount += 1
                     }
 
+                    if roundStartTitle == .beggar {
+                        humanEnteredRoundAsBeggar = true
+                    }
+
                     if humanTitle == .millionaire || humanTitle == .rich {
                         roundsWon += 1
                     }
@@ -504,15 +510,20 @@ final class GameController {
                     humanPlayedJokerOnPile = true
                 }
 
-                // Shutout: human just emptied their hand while others have 3+ cards remaining.
+                // Shutout: human just emptied their hand while others have 4+ cards remaining.
                 if priorHumanHandCount > 0 && humanHand.isEmpty && !wasShutOut {
                     let otherMin = state.players
                         .filter { $0.id != humanPlayerID && $0.currentTitle == nil }
                         .map { $0.hand.count }
                         .min() ?? 0
-                    if otherMin >= 3 {
+                    if otherMin >= 4 {
                         wasShutOut = true
                     }
+                }
+
+                // Full send: human played 2+ cards that cleared their entire hand in one turn.
+                if priorHumanHandCount >= 2 && humanHand.isEmpty {
+                    playedFullSend = true
                 }
             } else {
                 // Non-human play: human's lead is overbeaten

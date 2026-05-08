@@ -4,6 +4,7 @@ import TycoonDaifugouKit
 struct RootView: View {
     @State private var coordinator = NavigationCoordinator()
     @State private var selectedTab: AppTab = .home
+    @State private var achievementManager = AchievementManager()
     @Environment(\.modelContext) private var modelContext
     @Environment(SyncManager.self) private var syncManager
     @Environment(AuthService.self) private var authService
@@ -27,6 +28,7 @@ struct RootView: View {
         } message: {
             Text("Progress will be lost.")
         }
+        .environment(achievementManager)
         .onAppear {
             if coordinator.store == nil {
                 let store = GameRecordStore(context: modelContext)
@@ -35,6 +37,7 @@ struct RootView: View {
                 manager.attach(store: store)
                 coordinator.store = store
                 coordinator.syncManager = manager
+                coordinator.achievementManager = achievementManager
                 if authService.isAuthenticated {
                     Task { await manager.syncOnSignIn() }
                 }

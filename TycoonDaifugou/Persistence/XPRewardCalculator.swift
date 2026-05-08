@@ -22,7 +22,8 @@ struct XPRewardCalculator {
         jokersPlayed: Int,
         wasThreeRoundSweep: Bool,
         wasShutOut: Bool,
-        comebackRounds: Int
+        comebackRounds: Int,
+        isFirstGameOfDay: Bool = false
     ) -> GameXPResult {
         let base = baseBrackets.first { cumulativePoints >= $0.minPoints }?.xp ?? 20
 
@@ -34,16 +35,19 @@ struct XPRewardCalculator {
             bonuses.append(("Counter-revolution\(counterRevolutionsTriggered > 1 ? " ×\(counterRevolutionsTriggered)" : "")", 20 * counterRevolutionsTriggered))
         }
         if wasThreeRoundSweep {
-            bonuses.append(("3-round sweep", 35))
+            bonuses.append(("3-round sweep", 25))
         }
         if jokersPlayed > 0 {
-            bonuses.append(("Joker\(jokersPlayed > 1 ? " ×\(jokersPlayed)" : "") played", 10 * jokersPlayed))
+            bonuses.append(("Joker\(jokersPlayed > 1 ? " ×\(jokersPlayed)" : "") played", 5 * jokersPlayed))
         }
         if wasShutOut {
             bonuses.append(("Shut-out finish", 15))
         }
         if comebackRounds > 0 {
             bonuses.append(("Comeback\(comebackRounds > 1 ? " ×\(comebackRounds)" : "")", 20 * comebackRounds))
+        }
+        if isFirstGameOfDay {
+            bonuses.append(("First game of the day", 10))
         }
 
         return GameXPResult(baseXP: base, bonuses: bonuses)
