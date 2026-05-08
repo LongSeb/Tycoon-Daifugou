@@ -55,6 +55,9 @@ final class PlayerProfile {
     var totalDuration: TimeInterval = 0.0
     var totalRoundsPlayed: Int = 0
 
+    // Daily bonus — nil means never claimed; resets every 25 hours.
+    var lastDailyBonusDate: Date? = nil
+
     init(
         username: String = "TycoonPlayer",
         emoji: String = "😎",

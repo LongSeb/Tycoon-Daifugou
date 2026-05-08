@@ -9,6 +9,7 @@ struct GameView: View {
     var humanEquippedBorder: ProfileBorder? = nil
     var humanEquippedSkin: CardSkin? = nil
 
+    @Environment(AchievementManager.self) private var achievementManager
     @State private var motionManager = MotionManager()
     @State private var showRules = false
     @State private var selected: Set<Card> = []
@@ -32,6 +33,32 @@ struct GameView: View {
     @State private var pendingEventOverlay = false
 
     var body: some View {
+        gameContentWithHandlers
+    }
+
+    private var gameContentWithEvents: some View {
+        gameContent
+            .onChange(of: controller.reversalEventCounter) { _, _ in onReversalEvent() }
+            .onChange(of: controller.revolutionEventCounter) { _, _ in onRevolutionEvent() }
+            .onChange(of: controller.counterRevolutionEventCounter) { _, _ in onCounterRevolutionEvent() }
+            .onChange(of: controller.eightStopEventCounter) { _, _ in onEightStopEvent() }
+            .onChange(of: controller.humanTycoonEventCounter) { _, _ in onHumanTycoonEvent() }
+            .onChange(of: controller.bankruptcyEventCounter) { _, _ in onBankruptcyEvent() }
+    }
+
+    private var gameContentWithHandlers: some View {
+        gameContentWithEvents
+            .onChange(of: controller.pendingRoundResult) { _, newValue in onRoundResultChange(newValue) }
+            .onChange(of: controller.trickResetCounter) { _, _ in onTrickReset() }
+            .onChange(of: achievementTriggers) { _, _ in checkMidGameAchievements() }
+            .achievementToastOverlay()
+            .environment(\.motionManager, motionManager)
+            .onAppear { motionManager.start() }
+            .onDisappear { motionManager.stop() }
+    }
+
+    @ViewBuilder
+    private var gameContent: some View {
         ZStack {
             ZStack(alignment: .bottom) {
                 Color.tycoonBlack.ignoresSafeArea()
@@ -92,17 +119,34 @@ struct GameView: View {
                 .animation(.easeInOut(duration: 0.25), value: controller.pendingExchange != nil)
             }
         }
-        .onChange(of: controller.reversalEventCounter) { _, _ in onReversalEvent() }
-        .onChange(of: controller.revolutionEventCounter) { _, _ in onRevolutionEvent() }
-        .onChange(of: controller.counterRevolutionEventCounter) { _, _ in onCounterRevolutionEvent() }
-        .onChange(of: controller.eightStopEventCounter) { _, _ in onEightStopEvent() }
-        .onChange(of: controller.humanTycoonEventCounter) { _, _ in onHumanTycoonEvent() }
-        .onChange(of: controller.bankruptcyEventCounter) { _, _ in onBankruptcyEvent() }
-        .onChange(of: controller.pendingRoundResult) { _, newValue in onRoundResultChange(newValue) }
-        .onChange(of: controller.trickResetCounter) { _, _ in onTrickReset() }
-        .environment(\.motionManager, motionManager)
-        .onAppear { motionManager.start() }
-        .onDisappear { motionManager.stop() }
+    }
+
+    // MARK: Achievement Tracking
+
+    private struct AchievementTriggers: Equatable {
+        var revolutionCount: Int
+        var counterRevolutionCount: Int
+        var threeSpadeCount: Int
+        var jokersWonTrickCount: Int
+        var playedFullSend: Bool
+    }
+
+    private var achievementTriggers: AchievementTriggers {
+        AchievementTriggers(
+            revolutionCount: controller.revolutionCount,
+            counterRevolutionCount: controller.counterRevolutionCount,
+            threeSpadeCount: controller.threeSpadeCount,
+            jokersWonTrickCount: controller.jokersWonTrickCount,
+            playedFullSend: controller.playedFullSend
+        )
+    }
+
+    private func checkMidGameAchievements() {
+        if controller.revolutionCount > 0 { achievementManager.unlock(id: "revolutionary") }
+        if controller.counterRevolutionCount > 0 { achievementManager.unlock(id: "counter_strike") }
+        if controller.threeSpadeCount > 0 { achievementManager.unlock(id: "spade_sniper") }
+        if controller.jokersWonTrickCount > 0 { achievementManager.unlock(id: "wild_finish") }
+        if controller.playedFullSend { achievementManager.unlock(id: "full_send") }
     }
 
     // MARK: Event Handlers

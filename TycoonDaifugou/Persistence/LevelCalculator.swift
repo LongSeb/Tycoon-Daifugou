@@ -3,7 +3,7 @@ import Foundation
 struct LevelCalculator {
     static let maxLevel = 50
     static let maxPrestigeLevel = 10
-    static let prestigeXPPerLevel = 5_000
+    static let prestigeXPPerLevel = 2_250
 
     /// XP a player must accumulate to unlock the prestige option.
     /// Equals the XP to *reach* Level 50 plus the full cost of Level 50 itself,
@@ -24,13 +24,13 @@ struct LevelCalculator {
     }
 
     // Each entry: level range where that XP cost applies to advance FROM each level.
-    // Levels 1–10 each cost 250 to advance (10 transitions), etc.
+    // Levels 1–10 each cost 275 to advance (10 transitions), etc.
     private static let tiers: [(range: ClosedRange<Int>, xpPerLevel: Int)] = [
-        (1...10,  250),
-        (11...20, 500),
-        (21...30, 1_000),
-        (31...40, 2_000),
-        (41...50, 3_775),
+        (1...10,  275),
+        (11...20, 450),
+        (21...30, 800),
+        (31...40, 1_200),
+        (41...50, 1_800),
     ]
 
     /// The XP cost to advance FROM the given level (i.e. to gain one level).

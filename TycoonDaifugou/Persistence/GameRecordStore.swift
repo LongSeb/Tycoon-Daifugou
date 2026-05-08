@@ -280,6 +280,11 @@ final class GameRecordStore {
             pendingLevelUpUnlocks = nil
         }
 
+        // Stamp daily bonus date so the 25h window resets from this game.
+        if result.earnedDailyBonus {
+            profile.lastDailyBonusDate = Date()
+        }
+
         // Extended stats accumulation
         profile.jokersPlayed += controller.jokerPlayCount
         profile.jokersWonTrick += controller.jokersWonTrickCount

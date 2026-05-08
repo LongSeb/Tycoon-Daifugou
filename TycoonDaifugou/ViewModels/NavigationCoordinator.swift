@@ -17,6 +17,7 @@ final class NavigationCoordinator {
     private(set) var currentRuleSet: RuleSet = .baseOnly
     var store: GameRecordStore?
     var syncManager: SyncManager?
+    var achievementManager: AchievementManager?
 
     var showingQuitConfirm = false
 
@@ -79,13 +80,35 @@ final class NavigationCoordinator {
     }
 
     func showResults(for controller: GameController) {
+        let winsCountBefore = store?.profile.gamesWonCount ?? 0
         var result = Self.buildResult(from: controller, profile: store?.profile)
         if let saved = store?.save(controller: controller, result: result, ruleSet: currentRuleSet) {
             syncManager?.didSaveGameLocally(saved)
         }
         result.levelUpUnlocks = store?.pendingLevelUpUnlocks
+        checkEndGameAchievements(controller: controller, result: result, winsCountBefore: winsCountBefore)
         lastResult = result
         path.append(.results)
+    }
+
+    private func checkEndGameAchievements(
+        controller: GameController,
+        result: GameResultData,
+        winsCountBefore: Int
+    ) {
+        guard let am = achievementManager else { return }
+        let winsAfter = store?.profile.gamesWonCount ?? 0
+        let humanWon = winsAfter > winsCountBefore
+
+        if winsAfter == 1 { am.unlock(id: "first_win") }
+        if winsAfter >= 20 { am.unlock(id: "veteran") }
+
+        if humanWon {
+            let isSweep = controller.humanMillionaireRounds >= 3 && controller.maxRounds == 3
+            if isSweep { am.unlock(id: "tycoon_dynasty") }
+            if controller.humanEnteredRoundAsBeggar { am.unlock(id: "rags_to_riches") }
+            if controller.totalPassesCount == 0 { am.unlock(id: "no_hesitation") }
+        }
     }
 
     func returnToHome() {
@@ -123,6 +146,10 @@ final class NavigationCoordinator {
         // XP is now determined by cumulative round-points bracket + bonus events.
         let isSweep = controller.humanMillionaireRounds >= controller.maxRounds
             && controller.maxRounds == 3
+        let isFirstGameOfDay: Bool = {
+            guard let last = profile?.lastDailyBonusDate else { return true }
+            return Date().timeIntervalSince(last) >= 25 * 3600
+        }()
         let xpResult = XPRewardCalculator.compute(
             cumulativePoints: controller.humanCumulativePoints,
             revolutionsTriggered: controller.revolutionCount,
@@ -130,7 +157,8 @@ final class NavigationCoordinator {
             jokersPlayed: controller.jokerPlayCount,
             wasThreeRoundSweep: isSweep,
             wasShutOut: controller.wasShutOut,
-            comebackRounds: controller.comebackRoundsCount
+            comebackRounds: controller.comebackRoundsCount,
+            isFirstGameOfDay: isFirstGameOfDay
         )
         let humanXP = xpResult.totalXP
 
@@ -167,7 +195,8 @@ final class NavigationCoordinator {
             xpForNextLevel: xpForNext,
             currentLevel: level,
             xpBreakdown: breakdown,
-            roundPointsTotal: controller.humanRoundPointsTotal
+            roundPointsTotal: controller.humanRoundPointsTotal,
+            earnedDailyBonus: isFirstGameOfDay
         )
     }
 }

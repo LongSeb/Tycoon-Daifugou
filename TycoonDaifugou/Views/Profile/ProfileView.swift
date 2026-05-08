@@ -8,10 +8,12 @@ struct ProfileView: View {
 
     @Environment(AuthService.self) private var authService
     @Environment(SyncManager.self) private var syncManager
+    @Environment(AchievementManager.self) private var achievementManager
     @AppStorage("auth.guestModeEnabled") private var guestModeEnabled: Bool = false
     @State private var showingEditor = false
     @State private var showingTitlePicker = false
     @State private var showingSkinPicker = false
+    @State private var showingAchievements = false
     @State private var showingGuestPrompt = false
     @State private var showingSignIn = false
     @State private var motion = MotionManager()
@@ -64,6 +66,9 @@ struct ProfileView: View {
                     }
                 )
             }
+        }
+        .sheet(isPresented: $showingAchievements) {
+            AchievementsSheet()
         }
         .sheet(isPresented: $showingTitlePicker) {
             TitlePickerSheet(
@@ -147,6 +152,16 @@ struct ProfileView: View {
                 .tracking(-0.2)
 
             Spacer()
+
+            Button { showingAchievements = true } label: {
+                Image(systemName: "trophy")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.textTertiary)
+                    .frame(width: 32, height: 32)
+                    .background(Color.tycoonCard)
+                    .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                    .clipShape(Circle())
+            }
 
             Button(action: onSettingsTapped) {
                 Image(systemName: "gearshape")

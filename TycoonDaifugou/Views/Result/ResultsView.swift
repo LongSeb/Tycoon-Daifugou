@@ -32,6 +32,7 @@ struct ResultsView: View {
                 .zIndex(50)
             }
         }
+        .achievementToastOverlay()
         .preferredColorScheme(.dark)
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.65)) {
