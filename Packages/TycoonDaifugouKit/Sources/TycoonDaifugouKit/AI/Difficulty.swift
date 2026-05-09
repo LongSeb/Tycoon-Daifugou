@@ -8,19 +8,21 @@ public enum Difficulty: String, Sendable, CaseIterable, Hashable, Codable {
     case easy
     case medium
     case hard
-    /// Locked tier reserved for v2's 1-ply lookahead bot. Currently unselectable
-    /// in the UI; the case exists so call sites can pattern-match exhaustively.
+    /// Expert tier — backed by `LookaheadOpponent`'s 1-ply forward simulation
+    /// instead of a softmax over `policy.score`. The `temperature` value is
+    /// retained for symmetry but unused by the lookahead bot (Expert is
+    /// deterministic argmax). Player-level gated: feature flag
+    /// `expertDifficulty` unlocks at level 20.
     case expert
 
     /// Softmax temperature. Tuned via the AITournament harness against the
-    /// `~25 / ~40 / ~60` Millionaire-rate calibration targets. v1 heuristics
-    /// cap Hard around ~50% — Expert (locked) is reserved for v2 (card
-    /// counting, 1-ply lookahead).
+    /// 25 / 50 / 70 / 80 Millionaire-rate calibration targets. Expert ignores
+    /// this value — see `LookaheadOpponent`.
     public var temperature: Double {
         switch self {
-        case .easy:   return 1.0
-        case .medium: return 0.3
-        case .hard:   return 0.05
+        case .easy:   return 2.0
+        case .medium: return 0.25
+        case .hard:   return 0.10
         case .expert: return 0.0
         }
     }
@@ -35,8 +37,11 @@ public enum Difficulty: String, Sendable, CaseIterable, Hashable, Codable {
         }
     }
 
-    /// True for difficulty tiers that are not yet user-selectable. The UI
-    /// renders these as greyed-out rows with a lock affordance.
+    /// UI lock affordance flag — `true` means render with a greyed-out row
+    /// and a lock icon. Independent of whether the AI is implemented; Expert
+    /// has a working AI but remains UI-locked for unlock-flow callers.
+    /// Surfaces gating Expert by player level (e.g. `DifficultyPickerSheet`)
+    /// override this with their own `isExpertUnlocked` state.
     public var isLocked: Bool {
         switch self {
         case .easy, .medium, .hard: return false
