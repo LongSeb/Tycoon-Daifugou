@@ -11,50 +11,51 @@ struct LevelCalculatorTests {
         #expect(LevelCalculator.level(forTotalXP: 0) == 1)
     }
 
-    @Test("level 1 just before first tier-1 threshold")
+    @Test("level 1 just before first threshold (49 XP)")
     func levelJustBelowFirstThreshold() {
-        #expect(LevelCalculator.level(forTotalXP: 249) == 1)
+        #expect(LevelCalculator.level(forTotalXP: 49) == 1)
     }
 
-    @Test("level 2 at exactly 250 XP")
+    @Test("level 2 at exactly 50 XP")
     func levelAtFirstThreshold() {
-        #expect(LevelCalculator.level(forTotalXP: 250) == 2)
+        #expect(LevelCalculator.level(forTotalXP: 50) == 2)
     }
 
-    @Test("level 9 at 2249 XP (one short of level 10 threshold)")
-    func levelJustBelowTier1Cap() {
-        // cumXP(10) = 9 × 250 = 2250; 2249 is inside level 9.
-        #expect(LevelCalculator.level(forTotalXP: 2249) == 9)
+    @Test("level 9 at 549 XP (one short of level 10 threshold)")
+    func levelJustBelowTier2Cap() {
+        // cumXP(10) = 5×50 + 4×75 = 550; 549 is inside level 9.
+        #expect(LevelCalculator.level(forTotalXP: 549) == 9)
     }
 
-    @Test("level 10 at exactly 2250 XP")
-    func levelAtTier1Cap() {
-        #expect(LevelCalculator.level(forTotalXP: 2250) == 10)
+    @Test("level 10 at exactly 550 XP")
+    func levelAtTier2Cap() {
+        #expect(LevelCalculator.level(forTotalXP: 550) == 10)
     }
 
-    @Test("level 11 at exactly 2500 XP (start of tier 2)")
-    func levelAtTier2Start() {
-        #expect(LevelCalculator.level(forTotalXP: 2500) == 11)
+    @Test("level 11 at exactly 625 XP (start of tier 3)")
+    func levelAtTier3Start() {
+        // cumXP(11) = 5×50 + 5×75 = 625
+        #expect(LevelCalculator.level(forTotalXP: 625) == 11)
     }
 
-    @Test("level 20 at 7250 XP")
-    func levelMidTier2() {
-        #expect(LevelCalculator.level(forTotalXP: 7250) == 20)
+    @Test("level 20 at 1750 XP")
+    func levelAtTier3End() {
+        #expect(LevelCalculator.level(forTotalXP: 1_750) == 20)
     }
 
-    @Test("level 30 at 17250 XP")
-    func levelMidTier3() {
-        #expect(LevelCalculator.level(forTotalXP: 17250) == 30)
+    @Test("level 30 at 4125 XP")
+    func levelAtTier4End() {
+        #expect(LevelCalculator.level(forTotalXP: 4_125) == 30)
     }
 
-    @Test("level 40 at 37250 XP")
-    func levelMidTier4() {
-        #expect(LevelCalculator.level(forTotalXP: 37250) == 40)
+    @Test("level 40 at 7975 XP")
+    func levelAtTier5End() {
+        #expect(LevelCalculator.level(forTotalXP: 7_975) == 40)
     }
 
-    @Test("level 50 at 75000 XP")
-    func levelAt75000XP() {
-        #expect(LevelCalculator.level(forTotalXP: 75000) == 50)
+    @Test("level 50 at 14225 XP")
+    func levelAt14225XP() {
+        #expect(LevelCalculator.level(forTotalXP: 14_225) == 50)
     }
 
     @Test("level capped at 50 for arbitrarily high XP")
@@ -69,47 +70,53 @@ struct LevelCalculatorTests {
         #expect(LevelCalculator.cumulativeXP(forLevel: 1) == 0)
     }
 
-    @Test("cumulative XP to reach level 2 is 250")
+    @Test("cumulative XP to reach level 2 is 50")
     func cumulativeXPForLevel2() {
-        #expect(LevelCalculator.cumulativeXP(forLevel: 2) == 250)
+        #expect(LevelCalculator.cumulativeXP(forLevel: 2) == 50)
     }
 
-    @Test("cumulative XP to reach level 11 is 2500")
+    @Test("cumulative XP to reach level 11 is 625")
     func cumulativeXPForLevel11() {
-        #expect(LevelCalculator.cumulativeXP(forLevel: 11) == 2500)
+        // 5×50 + 5×75 = 250 + 375 = 625
+        #expect(LevelCalculator.cumulativeXP(forLevel: 11) == 625)
     }
 
-    @Test("cumulative XP to reach level 50 is 71475")
+    @Test("cumulative XP to reach level 50 is 14225")
     func cumulativeXPForLevel50() {
-        // 10×250 + 10×500 + 10×1000 + 10×2000 + 9×3775 = 71475
-        #expect(LevelCalculator.cumulativeXP(forLevel: 50) == 71_475)
+        // 5×50 + 5×75 + 10×125 + 10×250 + 10×400 + 9×650 = 14225
+        #expect(LevelCalculator.cumulativeXP(forLevel: 50) == 14_225)
     }
 
     // MARK: - xpPerLevel(at:)
 
-    @Test("tier 1 cost is 250 at level 5")
+    @Test("tier 1 cost is 50 at level 5")
     func xpPerLevelTier1() {
-        #expect(LevelCalculator.xpPerLevel(at: 5) == 250)
+        #expect(LevelCalculator.xpPerLevel(at: 5) == 50)
     }
 
-    @Test("tier 2 cost is 500 at level 15")
+    @Test("tier 2 cost is 75 at level 8")
     func xpPerLevelTier2() {
-        #expect(LevelCalculator.xpPerLevel(at: 15) == 500)
+        #expect(LevelCalculator.xpPerLevel(at: 8) == 75)
     }
 
-    @Test("tier 3 cost is 1000 at level 25")
+    @Test("tier 3 cost is 125 at level 15")
     func xpPerLevelTier3() {
-        #expect(LevelCalculator.xpPerLevel(at: 25) == 1_000)
+        #expect(LevelCalculator.xpPerLevel(at: 15) == 125)
     }
 
-    @Test("tier 4 cost is 2000 at level 35")
+    @Test("tier 4 cost is 250 at level 25")
     func xpPerLevelTier4() {
-        #expect(LevelCalculator.xpPerLevel(at: 35) == 2_000)
+        #expect(LevelCalculator.xpPerLevel(at: 25) == 250)
     }
 
-    @Test("tier 5 cost is 3775 at level 45")
+    @Test("tier 5 cost is 400 at level 35")
     func xpPerLevelTier5() {
-        #expect(LevelCalculator.xpPerLevel(at: 45) == 3_775)
+        #expect(LevelCalculator.xpPerLevel(at: 35) == 400)
+    }
+
+    @Test("tier 6 cost is 650 at level 45")
+    func xpPerLevelTier6() {
+        #expect(LevelCalculator.xpPerLevel(at: 45) == 650)
     }
 
     // MARK: - progressInCurrentLevel(totalXP:)
@@ -119,25 +126,25 @@ struct LevelCalculatorTests {
         #expect(LevelCalculator.progressInCurrentLevel(totalXP: 0) == 0.0)
     }
 
-    @Test("progress is 0.5 at 125 XP (halfway through level 1)")
+    @Test("progress is 0.5 at 25 XP (halfway through level 1)")
     func progressHalfwayThroughLevel1() {
-        #expect(abs(LevelCalculator.progressInCurrentLevel(totalXP: 125) - 0.5) < 0.0001)
+        #expect(abs(LevelCalculator.progressInCurrentLevel(totalXP: 25) - 0.5) < 0.0001)
     }
 
     @Test("progress is 1.0 at max level")
     func progressAtMaxLevel() {
-        #expect(LevelCalculator.progressInCurrentLevel(totalXP: 75_000) == 1.0)
+        #expect(LevelCalculator.progressInCurrentLevel(totalXP: 14_225) == 1.0)
     }
 
     // MARK: - xpToNextLevel(totalXP:)
 
-    @Test("250 XP to next level at 0 XP")
+    @Test("50 XP to next level at 0 XP")
     func xpToNextLevelAtZeroXP() {
-        #expect(LevelCalculator.xpToNextLevel(totalXP: 0) == 250)
+        #expect(LevelCalculator.xpToNextLevel(totalXP: 0) == 50)
     }
 
     @Test("0 XP to next level at max level")
     func xpToNextLevelAtMaxLevel() {
-        #expect(LevelCalculator.xpToNextLevel(totalXP: 75_000) == 0)
+        #expect(LevelCalculator.xpToNextLevel(totalXP: 14_225) == 0)
     }
 }
