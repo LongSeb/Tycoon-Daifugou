@@ -9,10 +9,10 @@ struct XPRewardCalculator {
 
     // cumulativePoints → base XP. Checked in descending order.
     private static let baseBrackets: [(minPoints: Int, xp: Int)] = [
-        (90, 100),
-        (60, 70),
-        (30, 45),
-        (0,  20),
+        (90, 75),
+        (60, 50),
+        (30, 25),
+        (0,  10),
     ]
 
     static func compute(
@@ -29,13 +29,13 @@ struct XPRewardCalculator {
 
         var bonuses: [(label: String, amount: Int)] = []
         if revolutionsTriggered > 0 {
-            bonuses.append(("Revolution\(revolutionsTriggered > 1 ? " ×\(revolutionsTriggered)" : "")", 15 * revolutionsTriggered))
+            bonuses.append(("Revolution\(revolutionsTriggered > 1 ? " ×\(revolutionsTriggered)" : "")", 10 * revolutionsTriggered))
         }
         if counterRevolutionsTriggered > 0 {
             bonuses.append(("Counter-revolution\(counterRevolutionsTriggered > 1 ? " ×\(counterRevolutionsTriggered)" : "")", 20 * counterRevolutionsTriggered))
         }
         if wasThreeRoundSweep {
-            bonuses.append(("3-round sweep", 25))
+            bonuses.append(("3-round sweep", 20))
         }
         if jokersPlayed > 0 {
             bonuses.append(("Joker\(jokersPlayed > 1 ? " ×\(jokersPlayed)" : "") played", 5 * jokersPlayed))
@@ -47,7 +47,7 @@ struct XPRewardCalculator {
             bonuses.append(("Comeback\(comebackRounds > 1 ? " ×\(comebackRounds)" : "")", 20 * comebackRounds))
         }
         if isFirstGameOfDay {
-            bonuses.append(("First game of the day", 10))
+            bonuses.append(("First game of the day", 35))
         }
 
         return GameXPResult(baseXP: base, bonuses: bonuses)
