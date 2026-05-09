@@ -34,6 +34,14 @@ public final class PolicyOpponent: Opponent, @unchecked Sendable {
         if candidates.isEmpty { return .pass(by: playerID) }
         if candidates.count == 1 { return candidates[0] }
 
+        // Tactical fast-path: obvious plays that the linear scorer can
+        // mis-rank (e.g. Greedy refusing a round-ending quad).
+        if let forced = TacticalRules.forcedMove(
+            for: playerID, in: state, candidates: candidates
+        ) {
+            return forced
+        }
+
         let hand = state.players.first(where: { $0.id == playerID })?.hand ?? []
         let scores = candidates.map { policy.score($0, in: state, hand: hand) }
 

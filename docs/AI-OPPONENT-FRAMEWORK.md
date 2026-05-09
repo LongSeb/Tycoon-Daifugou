@@ -119,23 +119,48 @@ Weight values below are starting points. The tournament harness produces final-t
 
 ---
 
-## 6. Difficulty (v1: Three Tiers)
+## 6. Difficulty (v2: Four Tiers)
 
-Difficulty maps to a temperature τ used in softmax sampling.
+Difficulty maps to a temperature τ used in softmax sampling. Expert is the
+exception — it uses `LookaheadOpponent` (deterministic argmax with a
+hand-quality tiebreaker on close calls) instead of the softmax sampler.
 
 | Tier | τ | Meaning |
 |------|---|---------|
-| Easy | ~1.0 | Sample broadly. Top move chosen often, but realistic-looking second-bests get sampled regularly. Feels like a casual human — never plays a Joker on a 4. |
-| Medium | ~0.5 | Strong preference for the top move; occasional honest second-best. |
-| Hard | ~0.15 | Almost always plays the top-scored move. Near-deterministic. |
+| Easy   | 2.0  | Sample broadly. Statistically indistinguishable from random play. |
+| Medium | 0.25 | Strong preference for the top move; occasional honest second-best. |
+| Hard   | 0.10 | Strong play with occasional human-like slips on close calls. |
+| Expert | 0.0  | Deterministic argmax + 1-ply hand-quality tiebreaker on close-score positions. Never picks a sub-optimal move; resolves ties toward better downstream hand quality. Feature-gated by player level (unlock at level 20). |
 
-τ values are placeholders; the tournament harness tunes them to hit calibration targets.
+### Calibration
 
-**Calibration targets** (bot finishing as Millionaire in a 4-player round vs a Balanced-policy proxy for a skilled human, ~1000 seeded games):
+The single-round Millionaire-rate metric is luck-capped near ~45% in
+4-player Tycoon (the deal's contribution to the round dominates skill).
+**Mean finish position** (1 = millionaire, 4 = beggar) is the cleaner
+measure of play quality across many seeded games.
 
-- Easy: ~25% (baseline = no edge over random play)
-- Medium: ~40%
-- Hard: ~60%
+Calibration vs three Easy-Greedy reference seats (1000 seeded games), as
+of the v2 final tuning on `refactor/make-AI-harder`:
+
+| Tier   | Mil% | Mean rank | Comment |
+|--------|------|-----------|---------|
+| Easy   | 28%  | 2.38      | Within noise of random (2.50). Baseline. |
+| Medium | 57%  | 1.68      | Clearly above random; lands top half consistently. |
+| Hard   | 66%  | 1.48      | Strong; targets the spec ~70% Mil (within tolerance). |
+| Expert | 69%  | 1.47      | Tightest play; edges Hard via the tiebreaker. |
+
+The original spec (25 / 50 / 70 / 80 Mil%) tracked Mil%-only and is
+substantially closer to spec under the new tuning than under v2's first
+linear-heuristic ceiling (24 / 38 / 44 / 43). The breakthrough was
+retuning `Balanced` toward the **endgame-stash** strategy human players
+use: heavy `cardValueSpent` and `jokerHoarding` penalties, reduced
+`winLikelihood`, softer `passBias` so passing is genuinely on the table.
+
+**Reference baseline.** Calibration uses Easy-Greedy refs rather than
+Easy-Balanced because Easy-Balanced was too strong as a baseline (it's
+the same heuristic as the subject, just noisier). Easy-Greedy
+approximates a casual-human passive playstyle and aligns with the spec's
+"Easy ≈ no edge over a casual player" intent.
 
 ---
 
@@ -196,44 +221,42 @@ Tests/TycoonDaifugouKitTests/AI/
 
 ---
 
-## v2 — Smarter Opponents
+## v2 — Smarter Opponents (Implemented)
 
-Adds two new dimensions: awareness (counting) and adaptation (phase-aware play). Two new personalities and one new difficulty tier.
+Adds two new dimensions: awareness (counting) and adaptation (phase-aware play). Two new personalities and one new difficulty tier. v2 is **landed** as of the `refactor/make-AI-harder` branch with the exception of v2 UI (deferred).
 
-### v2 Features (New Additions to MoveFeatures)
+### v2 Features (New Additions to MoveFeatures) — Implemented
 
 | Feature | What it measures |
 |---------|------------------|
-| `effectiveRank` | `cardValueSpent` recomputed against unseen cards rather than absolute rank. Uses `state.playedPile + state.currentTrick.flatMap{$0.cards}` to compute "what's still out there?" If every other 2 has been played, the 2 in my hand is effectively a Joker — the feature reflects that. Unlocks card-counting personalities. |
-| `eightStopValue` | When 8-Stop is enabled, bonus on plays that include an 8 in situations where seizing the lead is high-value. Lets a personality opportunistically lock tricks. |
-| `jokerHoarding` | Separates Joker-spending from `cardValueSpent`, since Jokers are categorically different (unconditional trump). Lets us tune "willing to spend 2s but never Jokers until last 3 cards." |
+| `effectiveRank` | Mean rank-strength of played cards normalized against the **unseen** cards (i.e. `Deck − hand − playedPile − currentTrick`). When every Ace and 2 has been played, a held King reads at ~1.0 rather than its absolute ~0.83. **Lead-gated**: returns 0 on a fresh trick (`currentTrick.isEmpty`), so a positive weight doesn't push the bot to lead its strongest cards — it only kicks in when seizing a contested trick is on the table. |
+| `eightStopValue` | Positive only when 8-Stop is enabled and the move contains an 8 in a tempo-critical position (long hand to dump, contested trick). Lets a personality opportunistically lock tricks. |
+| `jokerHoarding` | Fraction of the played cards that are Jokers (count of Jokers / count of cards). Lets a personality dampen Joker spend separately from regular `cardValueSpent`. |
 
-### v2 Phase Awareness
+### v2 Phase Awareness — Implemented
 
-A `PhaseModifier` struct multiplies the weight vector by a phase-dependent factor:
+`PhaseModifier` multiplies a `Policy`'s base weight vector by a phase-dependent factor at score time. Phase is resolved from the active player's hand size:
 
-```swift
-struct PhaseModifier {
-    let earlyGameMultipliers: FeatureWeights  // hand size > 8
-    let midGameMultipliers:   FeatureWeights  // hand size 4–8
-    let endgameMultipliers:   FeatureWeights  // hand size ≤ 3
-}
-```
+- `early`: hand size > 8
+- `mid`: hand size 4–8
+- `endgame`: hand size ≤ 3
 
-Most personalities will have endgame multipliers that bump `cardsCleared` and dampen `cardValueSpent` — the rational shift toward "just dump everything" once you can see the finish line.
+`PhaseModifier.identity` (all 1.0s) is the default and preserves v1 behavior for the legacy presets. `.endgameRusher` uses a custom modifier that amplifies `cardsCleared` 3.0× and dampens `passBias` to 0 in the endgame bucket.
 
-### v2 Personalities
+### v2 Personalities — Implemented
 
-- **`.counter`** — Greedy-like base, but uses `effectiveRank` so it confidently spends 2s once nothing higher remains. Reads as "this bot is thinking."
-- **`.endgameRusher`** — defensive early, frantic late. Heavy phase modifier on endgame.
+- **`.counter`** — Higher `effectiveRank` weight (+1.2). On a fresh lead the feature is gated to 0, so the bot leads cheap; on a contested trick it's willing to commit a strong card when it dominates the unseen deck. Aggressive `jokerHoarding` (-1.2) to keep Jokers in the bank.
+- **`.endgameRusher`** — Roughly Balanced base weights, paired with `PhaseModifier.endgameRusher` so the bot plays defensively early and dumps aggressively in the endgame bucket.
 
-### v2 Difficulty
+### v2 Difficulty — Implemented
 
-Add **Expert** with 1-ply lookahead: the score for each move is augmented by the best score the bot could achieve on its next turn assuming opponents play their respective top-scored moves. Cheap to compute (already have a pure reducer; just simulate one step). Bumps win rate to ~75%.
+**Expert** uses `LookaheadOpponent` instead of `PolicyOpponent`. The lookahead applies each candidate move, simulates other seats' turns assuming `.balanced` argmax stand-ins, and adds a positional bonus (currently a hand-size differential vs the table) to the direct score.
 
-### v2 UI
+In current heuristic-only tuning, the lookahead bonus does not measurably improve win rate over Hard τ=0.02 (both ~43% in calibration), so `LookaheadOpponent.defaultLookaheadWeight = 0.0` ships as the default — Expert behaves as deterministic argmax of the same policy. The lookahead infrastructure is in place; v2.1 work to make it productive (better stand-in models, multi-ply search, or a stronger terminal evaluator) is tracked in v3+.
 
-Optional: per-CPU personality selection in pre-game setup. Random remains the default.
+### v2 UI — Deferred
+
+Per-CPU personality selection in pre-game setup is deferred. Random remains the default and is the only mode shipped.
 
 ---
 

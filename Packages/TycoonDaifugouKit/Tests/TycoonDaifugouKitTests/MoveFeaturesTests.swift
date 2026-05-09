@@ -353,3 +353,208 @@ struct IsPassFlagTests {
         #expect(!features.isPass)
     }
 }
+
+// MARK: - effectiveRank
+
+@Suite("MoveFeatures.effectiveRank")
+struct EffectiveRankFeatureTests {
+
+    @Test("Pass yields 0")
+    func passZero() {
+        let player = makePlayer("P", cards: [.regular(.king, .hearts)])
+        let state = makeState(players: [player])
+
+        let features = MoveFeatures.extract(
+            for: .pass(by: player.id), in: state, hand: player.hand
+        )
+
+        #expect(features.effectiveRank == 0)
+    }
+
+    @Test("Joker spent on a contested trick reads as effectively-strong (1.0)")
+    func jokerEffectiveOne() throws {
+        let trick = try Hand(cards: [.regular(.queen, .clubs)])
+        let player = makePlayer("P", cards: [.joker(index: 0)])
+        let state = makeState(
+            players: [player], currentTrick: [trick],
+            ruleSet: jokerRules, lastPlayedByIndex: 0
+        )
+        let move = Move.play(cards: [.joker(index: 0)], by: player.id)
+
+        let features = MoveFeatures.extract(for: move, in: state, hand: player.hand)
+
+        #expect(features.effectiveRank == 1.0)
+    }
+
+    @Test("Returns 0 on a fresh lead (no trick to seize)")
+    func freshLeadIsZero() {
+        let player = makePlayer("P", cards: [.regular(.king, .hearts)])
+        let state = makeState(players: [player])  // no trick
+        let move = Move.play(cards: [.regular(.king, .hearts)], by: player.id)
+
+        let features = MoveFeatures.extract(for: move, in: state, hand: player.hand)
+
+        #expect(features.effectiveRank == 0)
+    }
+
+    @Test("All stronger ranks already played makes the held King effectively-strongest")
+    func kingBecomesEffectivelyStrongWhenAcesAndTwosGone() throws {
+        let player = makePlayer("P", cards: [.regular(.king, .hearts)])
+        // Trick is contested — feature is meaningful here.
+        let trick = try Hand(cards: [.regular(.five, .clubs)])
+        // Pile: every Ace and every 2. Nothing in the unseen set outranks K
+        // anymore (jokers are off in baseOnly), so K should read at 1.0.
+        let pile: [Card] = [
+            .regular(.ace, .clubs), .regular(.ace, .diamonds),
+            .regular(.ace, .hearts), .regular(.ace, .spades),
+            .regular(.two, .clubs), .regular(.two, .diamonds),
+            .regular(.two, .hearts), .regular(.two, .spades),
+        ]
+        let state = GameState(
+            players: [player],
+            deck: [],
+            currentTrick: [trick],
+            currentPlayerIndex: 0,
+            phase: .playing,
+            ruleSet: .baseOnly,
+            round: 1,
+            scoresByPlayer: [player.id: 0],
+            lastPlayedByIndex: 0,
+            playedPile: pile
+        )
+        let move = Move.play(cards: [.regular(.king, .hearts)], by: player.id)
+
+        let features = MoveFeatures.extract(for: move, in: state, hand: player.hand)
+
+        // K is the strongest non-Joker rank still alive → ~1.0.
+        #expect(features.effectiveRank > 0.98)
+    }
+
+    @Test("Effective rank is lower when many stronger cards are still alive")
+    func effectiveRankSensitivity() throws {
+        let king = Card.regular(.king, .hearts)
+        let player = makePlayer("P", cards: [king])
+        let trick = try Hand(cards: [.regular(.five, .clubs)])
+        // No pile, just the trick — most stronger cards are still alive.
+        let stateWithManyUnseen = makeState(
+            players: [player], currentTrick: [trick], lastPlayedByIndex: 0
+        )
+        // Pile: aces and 2s already played → only Q-and-below remains alive.
+        let pile: [Card] = [
+            .regular(.ace, .clubs), .regular(.ace, .diamonds),
+            .regular(.ace, .hearts), .regular(.ace, .spades),
+            .regular(.two, .clubs), .regular(.two, .diamonds),
+            .regular(.two, .hearts), .regular(.two, .spades),
+        ]
+        let stateWithFewerUnseen = GameState(
+            players: [player],
+            deck: [],
+            currentTrick: [trick],
+            currentPlayerIndex: 0,
+            phase: .playing,
+            ruleSet: .baseOnly,
+            round: 1,
+            scoresByPlayer: [player.id: 0],
+            lastPlayedByIndex: 0,
+            playedPile: pile
+        )
+        let move = Move.play(cards: [king], by: player.id)
+
+        let manyAlive = MoveFeatures.extract(
+            for: move, in: stateWithManyUnseen, hand: player.hand
+        )
+        let fewAlive = MoveFeatures.extract(
+            for: move, in: stateWithFewerUnseen, hand: player.hand
+        )
+
+        #expect(fewAlive.effectiveRank > manyAlive.effectiveRank)
+    }
+}
+
+// MARK: - eightStopValue
+
+@Suite("MoveFeatures.eightStopValue")
+struct EightStopValueFeatureTests {
+
+    private static let stopOnRules = RuleSet(
+        revolution: false, eightStop: true, jokers: false,
+        threeSpadeReversal: false, bankruptcy: false, jokerCount: 0
+    )
+
+    @Test("Returns 0 when 8-Stop is disabled")
+    func disabledRule() {
+        let player = makePlayer("P", cards: [.regular(.eight, .clubs)])
+        let state = makeState(players: [player], ruleSet: .baseOnly)
+        let move = Move.play(cards: [.regular(.eight, .clubs)], by: player.id)
+
+        let features = MoveFeatures.extract(for: move, in: state, hand: player.hand)
+
+        #expect(features.eightStopValue == 0)
+    }
+
+    @Test("Returns 0 when the move contains no 8")
+    func noEight() {
+        let player = makePlayer("P", cards: [.regular(.king, .hearts)])
+        let state = makeState(players: [player], ruleSet: Self.stopOnRules)
+        let move = Move.play(cards: [.regular(.king, .hearts)], by: player.id)
+
+        let features = MoveFeatures.extract(for: move, in: state, hand: player.hand)
+
+        #expect(features.eightStopValue == 0)
+    }
+
+    @Test("Returns positive when 8 played with hand still long")
+    func eightWithHandLong() {
+        let cards: [Card] = (0..<10).map { _ in .regular(.eight, .clubs) }
+        let player = makePlayer("P", cards: cards)
+        let state = makeState(players: [player], ruleSet: Self.stopOnRules)
+        let move = Move.play(cards: [.regular(.eight, .clubs)], by: player.id)
+
+        let features = MoveFeatures.extract(for: move, in: state, hand: player.hand)
+
+        #expect(features.eightStopValue > 0)
+        #expect(features.eightStopValue <= 1)
+    }
+}
+
+// MARK: - jokerHoarding
+
+@Suite("MoveFeatures.jokerHoarding")
+struct JokerHoardingFeatureTests {
+
+    @Test("All-Joker play returns 1.0")
+    func allJokerOne() {
+        let cards: [Card] = [.joker(index: 0), .joker(index: 1)]
+        let player = makePlayer("P", cards: cards)
+        let state = makeState(players: [player], ruleSet: jokerRules)
+        let move = Move.play(cards: cards, by: player.id)
+
+        let features = MoveFeatures.extract(for: move, in: state, hand: player.hand)
+
+        #expect(features.jokerHoarding == 1.0)
+    }
+
+    @Test("Joker-free play returns 0")
+    func jokerFreeZero() {
+        let cards: [Card] = [.regular(.king, .hearts), .regular(.king, .clubs)]
+        let player = makePlayer("P", cards: cards)
+        let state = makeState(players: [player])
+        let move = Move.play(cards: cards, by: player.id)
+
+        let features = MoveFeatures.extract(for: move, in: state, hand: player.hand)
+
+        #expect(features.jokerHoarding == 0)
+    }
+
+    @Test("Pass returns 0")
+    func passZero() {
+        let player = makePlayer("P", cards: [.joker(index: 0)])
+        let state = makeState(players: [player], ruleSet: jokerRules)
+
+        let features = MoveFeatures.extract(
+            for: .pass(by: player.id), in: state, hand: player.hand
+        )
+
+        #expect(features.jokerHoarding == 0)
+    }
+}

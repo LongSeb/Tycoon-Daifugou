@@ -97,7 +97,12 @@ struct GreedyPolicyTests {
             revolution: false, eightStop: false, jokers: true,
             threeSpadeReversal: false, bankruptcy: false, jokerCount: 1
         )
-        let p0 = makePlayer("P0", cards: [.regular(.three, .diamonds), .joker(index: 0)])
+        // Three cards in hand so no candidate move empties P0 — keeps the
+        // tactical Rule A (round-ending fast-path) out of this scenario and
+        // lets Greedy's personality decide alone.
+        let p0 = makePlayer("P0", cards: [
+            .regular(.three, .diamonds), .joker(index: 0), .regular(.king, .hearts),
+        ])
         let p1 = makePlayer("P1", cards: [.regular(.seven, .clubs)])
         let state = makeState(players: [p0, p1], ruleSet: jokerRuleSet)
 

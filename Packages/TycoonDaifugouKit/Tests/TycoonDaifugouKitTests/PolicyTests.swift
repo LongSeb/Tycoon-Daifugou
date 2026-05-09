@@ -118,4 +118,77 @@ struct PolicyScoreTests {
         #expect(passScore == 5.0)
         #expect(playScore == 0.0)
     }
+
+    @Test("All v2 policies expose distinct identifiers and weights")
+    func policiesV2Distinct() {
+        let ids = Set(Policy.allV2.map(\.id))
+        #expect(ids.count == Policy.allV2.count)
+        let weights = Set(Policy.allV2.map(\.weights))
+        #expect(weights.count == Policy.allV2.count)
+    }
+
+    @Test("Counter prefers spending when stronger cards are gone")
+    func counterFavorsEffectivelyCheap() throws {
+        // King in hand, contested trick (effectiveRank requires a live trick).
+        // Reference state: pile is empty — many stronger cards still alive.
+        // After state: every Ace and every 2 are in the pile → King is now the
+        // effectively-strongest non-Joker remaining.
+        let king = Card.regular(.king, .hearts)
+        let player = makePlayer("P", cards: [king])
+        let trick = try Hand(cards: [.regular(.five, .clubs)])
+        let stateBefore = makeState(
+            players: [player], currentTrick: [trick], lastPlayedByIndex: 0
+        )
+        let pile: [Card] = [
+            .regular(.ace, .clubs), .regular(.ace, .diamonds),
+            .regular(.ace, .hearts), .regular(.ace, .spades),
+            .regular(.two, .clubs), .regular(.two, .diamonds),
+            .regular(.two, .hearts), .regular(.two, .spades),
+        ]
+        let stateAfter = GameState(
+            players: [player], deck: [], currentTrick: [trick],
+            currentPlayerIndex: 0, phase: .playing, ruleSet: .baseOnly,
+            round: 1, scoresByPlayer: [player.id: 0],
+            lastPlayedByIndex: 0, playedPile: pile
+        )
+
+        let move = Move.play(cards: [king], by: player.id)
+        let scoreAfter = Policy.counter.score(move, in: stateAfter, hand: player.hand)
+        let scoreBefore = Policy.counter.score(move, in: stateBefore, hand: player.hand)
+
+        // Counter likes spending the King once it's effectively dominant.
+        #expect(scoreAfter > scoreBefore)
+    }
+
+    @Test("EndgameRusher amplifies dump scores in endgame vs early game")
+    func endgameRusherEndgameAmplification() {
+        let endgameHand: [Card] = [.regular(.three, .clubs), .regular(.king, .hearts)]
+        let earlyHand: [Card] = (0..<12).map { i in
+            .regular(Rank.allCases[i], [.clubs, .diamonds, .hearts, .spades][i % 4])
+        }
+        let endPlayer = Player(displayName: "End", hand: endgameHand)
+        let earlyPlayer = Player(displayName: "Early", hand: earlyHand)
+
+        let endState = GameState(
+            players: [endPlayer], deck: [], currentPlayerIndex: 0,
+            phase: .playing, ruleSet: .baseOnly, round: 1,
+            scoresByPlayer: [endPlayer.id: 0]
+        )
+        let earlyState = GameState(
+            players: [earlyPlayer], deck: [], currentPlayerIndex: 0,
+            phase: .playing, ruleSet: .baseOnly, round: 1,
+            scoresByPlayer: [earlyPlayer.id: 0]
+        )
+
+        let endScore = Policy.endgameRusher.score(
+            .play(cards: [.regular(.three, .clubs)], by: endPlayer.id),
+            in: endState, hand: endgameHand
+        )
+        let earlyScore = Policy.endgameRusher.score(
+            .play(cards: [.regular(.three, .clubs)], by: earlyPlayer.id),
+            in: earlyState, hand: earlyHand
+        )
+
+        #expect(endScore > earlyScore)
+    }
 }
