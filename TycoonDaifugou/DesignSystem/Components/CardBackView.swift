@@ -36,6 +36,10 @@ struct CardBackView: View {
             if skin.isFoil && foilEffectsEnabled {
                 foilOverlay
             }
+
+            if skin.showFallingPetals {
+                CherryBlossomPetalOverlay(width: width, height: height, cornerRadius: cornerRadius)
+            }
         }
         .frame(width: width, height: height)
         .onAppear {
@@ -97,6 +101,70 @@ struct CardBackView: View {
                     )
                 )
         }
+    }
+}
+
+struct CherryBlossomPetalOverlay: View {
+    var width: CGFloat = 68
+    var height: CGFloat = 100
+    var cornerRadius: CGFloat = 10
+
+    private struct PetalConfig {
+        let xFraction: CGFloat
+        let phaseOffset: Double
+        let fallDuration: Double
+        let swayAmplitude: CGFloat
+        let swayFrequency: Double
+        let baseRotation: Double
+        let rotationSpeed: Double
+        let size: CGFloat
+        let opacity: Double
+        let imageName: String
+    }
+
+    private let configs: [PetalConfig] = [
+        PetalConfig(xFraction: 0.15, phaseOffset: 0.00, fallDuration: 9.0,  swayAmplitude: 3.0, swayFrequency: 0.7, baseRotation: 15,  rotationSpeed: 16,  size: 12, opacity: 0.75, imageName: "Petal1"),
+        PetalConfig(xFraction: 0.60, phaseOffset: 0.35, fallDuration: 11.0, swayAmplitude: 4.0, swayFrequency: 0.9, baseRotation: -20, rotationSpeed: -13, size: 10, opacity: 0.70, imageName: "Petal2"),
+        PetalConfig(xFraction: 0.80, phaseOffset: 0.65, fallDuration: 10.0, swayAmplitude: 3.5, swayFrequency: 0.6, baseRotation: 40,  rotationSpeed: 18,  size: 11, opacity: 0.65, imageName: "Petal3"),
+        PetalConfig(xFraction: 0.35, phaseOffset: 0.15, fallDuration: 13.0, swayAmplitude: 4.5, swayFrequency: 0.8, baseRotation: -35, rotationSpeed: -11, size: 9,  opacity: 0.75, imageName: "Petal4"),
+        PetalConfig(xFraction: 0.70, phaseOffset: 0.80, fallDuration: 8.5,  swayAmplitude: 2.5, swayFrequency: 0.75,baseRotation: 60,  rotationSpeed: 14,  size: 13, opacity: 0.70, imageName: "Petal1"),
+    ]
+
+    var body: some View {
+        let scale = width / 68
+        TimelineView(.animation(minimumInterval: 1.0 / 30)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            ZStack {
+                ForEach(configs.indices, id: \.self) { i in
+                    petal(t: t, config: configs[i], scale: scale)
+                }
+            }
+            .drawingGroup()
+        }
+        .frame(width: width, height: height)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .allowsHitTesting(false)
+    }
+
+    private func petal(t: Double, config: PetalConfig, scale: CGFloat) -> some View {
+        let phase = (t + config.phaseOffset * config.fallDuration)
+            .truncatingRemainder(dividingBy: config.fallDuration) / config.fallDuration
+        let petalSize = config.size * scale
+        let y = -petalSize + phase * (height + petalSize * 2)
+        let x = config.xFraction * width + config.swayAmplitude * scale
+            * CGFloat(sin(2 * .pi * config.swayFrequency * (t + config.phaseOffset)))
+        let rotation = config.baseRotation + config.rotationSpeed * t
+        let fadeIn  = min(phase * 7.0, 1.0)
+        let fadeOut = min((1.0 - phase) * 7.0, 1.0)
+        let opacity = config.opacity * fadeIn * fadeOut
+
+        return Image(config.imageName)
+            .resizable()
+            .scaledToFit()
+            .frame(width: petalSize, height: petalSize)
+            .rotationEffect(.degrees(rotation))
+            .opacity(opacity)
+            .position(x: x, y: y)
     }
 }
 

@@ -40,6 +40,9 @@ struct CardSkin: Identifiable, Hashable {
     var strongTextShadow: Bool = false
     var textShadowColor: Color = .black
     var customAnimation: CardSkinCustomAnimation? = nil
+    var showKanjiCorners: Bool = false
+    var textShadowOpacity: Double? = nil
+    var showFallingPetals: Bool = false
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: CardSkin, rhs: CardSkin) -> Bool { lhs.id == rhs.id }

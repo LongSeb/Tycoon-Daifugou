@@ -82,7 +82,7 @@ extension ProfileData {
         lockedSkins: [
             CardSkin(id: "vine_green", name: "Vine Green", color: Color(hex: "#D2DCB6"), isFoil: false),
             CardSkin(id: "wake_up_yellow", name: "Wake Up Yellow", color: Color(hex: "#FFF799"), isFoil: false),
-            CardSkin(id: "pretty_pink", name: "Pretty Pink", color: Color(hex: "#FFD4E5"), isFoil: false),
+            CardSkin(id: "pretty_pink", name: "Cherry Blossom", color: Color(hex: "#f0e4e6"), isFoil: false),
             CardSkin(id: "repeat_blue", name: "Repeat Blue", color: Color(hex: "#99DAFF"), isFoil: false),
             CardSkin(id: "orange", name: "Orange", color: Color(hex: "#FFDCA9"), isFoil: false),
             CardSkin(id: "plum_purple", name: "Plum Purple", color: Color(hex: "#545B77"), isFoil: false),
