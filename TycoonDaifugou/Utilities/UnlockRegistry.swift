@@ -48,8 +48,16 @@ enum UnlockRegistry {
         .init(level: 10, type: .title("All The Primes"),   displayName: "Title: All The Primes"),
         .init(level: 11, type: .title("Lady Amagi"),       displayName: "Title: Lady Amagi"),
         .init(level: 12, type: .cardSkin(.init(
-            id: "pretty_pink", name: "Pretty Pink",
-            color: Color(hex: "#FFD4E5"), isFoil: false)),  displayName: "Card Skin: Pretty Pink"),
+            id: "pretty_pink", name: "Cherry Blossom",
+            color: Color(hex: "#f0e4e6"), isFoil: false,
+            numberFontName: "KeinannPOP",
+            selectionColor: Color(hex: "#fff0f3"),
+            overlayImageName: "CherryBlossomOverlay",
+            inkColorOverride: .white,
+            showTextShadow: true,
+            showKanjiCorners: true,
+            textShadowOpacity: 0.5,
+            showFallingPetals: true)),  displayName: "Card Skin: Cherry Blossom"),
         .init(level: 13, type: .profileBorder(.init(
             id: "silver", name: "Silver",
             color: Color(hex: "#C0C0C0"), isAnimated: false)), displayName: "Border: Silver"),

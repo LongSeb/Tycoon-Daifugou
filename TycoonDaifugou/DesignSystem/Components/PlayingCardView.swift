@@ -35,7 +35,7 @@ struct PlayingCardView: View {
                 Text("JKR")
                     .font(numberFont(size: jokerCornerFontSize))
                     .foregroundStyle(inkColor)
-                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor, opacityOverride: shadowOpacity)
                     .padding(.leading, cornerPadding)
                     .padding(.top, cornerPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -43,22 +43,23 @@ struct PlayingCardView: View {
                 Text("JKR")
                     .font(numberFont(size: jokerCornerFontSize))
                     .foregroundStyle(inkColor)
-                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor, opacityOverride: shadowOpacity)
                     .rotationEffect(.degrees(180))
                     .padding(.trailing, cornerPadding)
                     .padding(.bottom, cornerPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
 
                 jokerCenterImage
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor, opacityOverride: shadowOpacity)
             } else {
                 cornerLabel
-                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor, opacityOverride: shadowOpacity)
                     .padding(.leading, cornerPadding)
                     .padding(.top, cornerPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 cornerLabel
-                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor, opacityOverride: shadowOpacity)
                     .rotationEffect(.degrees(180))
                     .padding(.trailing, cornerPadding)
                     .padding(.bottom, cornerPadding)
@@ -68,19 +69,12 @@ struct PlayingCardView: View {
                     .font(.system(size: centerSuitFontSize))
                     .foregroundStyle(inkColor)
                     .darkOutline(darkOutlined)
-                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor, opacityOverride: shadowOpacity)
+
             }
 
             if skin?.isFoil == true && foilEffectsEnabled {
                 foilOverlay
-            }
-
-            if isSelected {
-                Circle()
-                    .fill(skin?.isDark == true ? Color.white.opacity(0.6) : (skin?.selectionColor ?? Color.cardSelectAccent))
-                    .frame(width: selectionDotSize, height: selectionDotSize)
-                    .offset(y: selectionDotOffset)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
 
             if let overlayName = skin?.overlayImageName {
@@ -91,6 +85,50 @@ struct PlayingCardView: View {
                     .frame(width: width, height: height)
                     .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                     .allowsHitTesting(false)
+            }
+
+            if skin?.showKanjiCorners == true, let kanji = kanjiForCard(card) {
+                if kanji.count == 1 {
+                    Text(kanji)
+                        .font(numberFont(size: kanjiCornerFontSize))
+                        .foregroundStyle(inkColor)
+                        .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor, opacityOverride: shadowOpacity)
+                        .padding(.trailing, cornerPadding)
+                        .padding(.top, cornerPadding)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+
+                    Text(kanji)
+                        .font(numberFont(size: kanjiCornerFontSize))
+                        .foregroundStyle(inkColor)
+                        .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor, opacityOverride: shadowOpacity)
+                        .rotationEffect(.degrees(180))
+                        .padding(.leading, cornerPadding)
+                        .padding(.bottom, cornerPadding)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                } else {
+                    kanjiSideLabel(kanji)
+                        .padding(.trailing, cornerPadding)
+                        .padding(.top, cornerPadding)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+
+                    kanjiSideLabel(kanji)
+                        .rotationEffect(.degrees(180))
+                        .padding(.leading, cornerPadding)
+                        .padding(.bottom, cornerPadding)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                }
+            }
+
+            if isSelected {
+                Circle()
+                    .fill(skin?.isDark == true ? Color.white.opacity(0.6) : (skin?.selectionColor ?? Color.cardSelectAccent))
+                    .frame(width: selectionDotSize, height: selectionDotSize)
+                    .offset(y: selectionDotOffset)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+
+            if skin?.showFallingPetals == true {
+                CherryBlossomPetalOverlay(width: width, height: height, cornerRadius: cornerRadius)
             }
         }
         .frame(width: width, height: height)
@@ -226,6 +264,26 @@ struct PlayingCardView: View {
 
     // MARK: - Helpers
 
+    private func kanjiForCard(_ card: Card) -> String? {
+        if card.isJoker { return "ジョーカー" }
+        switch card.displayValue {
+        case "A":  return "エース"
+        case "2":  return "二"
+        case "3":  return "三"
+        case "4":  return "四"
+        case "5":  return "五"
+        case "6":  return "六"
+        case "7":  return "七"
+        case "8":  return "八"
+        case "9":  return "九"
+        case "10": return "十"
+        case "J":  return "ジャック"
+        case "Q":  return "クイーン"
+        case "K":  return "キング"
+        default:   return nil
+        }
+    }
+
     @ViewBuilder
     private var jokerCenterImage: some View {
         let imageName = skin?.jokerImageName ?? "JokerCard"
@@ -252,7 +310,21 @@ struct PlayingCardView: View {
         }
     }
 
+    @ViewBuilder
+    private func kanjiSideLabel(_ kanji: String) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(kanji.enumerated()), id: \.offset) { _, char in
+                Text(String(char))
+                    .font(numberFont(size: kanjiCornerFontSize))
+                    .foregroundStyle(inkColor)
+                    .textDropShadow(skin?.showTextShadow == true, strong: strongShadow, color: shadowColor, opacityOverride: shadowOpacity)
+            }
+        }
+    }
+
+    private var kanjiCornerFontSize: CGFloat { style == .hand ? 11 : 14 }
     private var shadowColor: Color { skin?.textShadowColor ?? .black }
+    private var shadowOpacity: Double? { skin?.textShadowOpacity }
     private var darkOutlined: Bool { (skin?.isDark == true && isSelected) || skin?.showTextOutline == true }
     private var strongShadow: Bool { skin?.strongTextShadow == true }
 
@@ -343,11 +415,13 @@ private extension View {
             .shadow(color: c, radius: 0, x:    0, y: -0.5)
     }
 
-    func textDropShadow(_ active: Bool, strong: Bool = false, color: Color = .black) -> some View {
-        self
-            .shadow(color: active ? color.opacity(strong ? 0.95 : 0.22) : .clear, radius: strong ? 4 : 2, x: 0, y: strong ? 2 : 1)
-            .shadow(color: (active && strong) ? color.opacity(0.80) : .clear, radius: 2, x: 0, y: 1)
-            .shadow(color: (active && strong) ? color.opacity(0.60) : .clear, radius: 6, x: 0, y: 3)
+    func textDropShadow(_ active: Bool, strong: Bool = false, color: Color = .black, opacityOverride: Double? = nil) -> some View {
+        let opacity = opacityOverride ?? (strong ? 0.95 : 0.22)
+        let useStrong = strong && opacityOverride == nil
+        return self
+            .shadow(color: active ? color.opacity(opacity) : .clear, radius: useStrong ? 4 : 2, x: 0, y: useStrong ? 2 : 1)
+            .shadow(color: (active && useStrong) ? color.opacity(0.80) : .clear, radius: 2, x: 0, y: 1)
+            .shadow(color: (active && useStrong) ? color.opacity(0.60) : .clear, radius: 6, x: 0, y: 3)
     }
 }
 

@@ -26,6 +26,7 @@
 		F61F6C9D2F95DCC9008C0D7A /* GradientCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F61F6C922F95DCC9008C0D7A /* GradientCard.swift */; };
 		F61F6CA12F95DD07008C0D7A /* InstrumentSans.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F61F6C9F2F95DD07008C0D7A /* InstrumentSans.ttf */; };
 		F61F6CA22F95DD07008C0D7A /* Fraunces-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F61F6C9E2F95DD07008C0D7A /* Fraunces-Italic.ttf */; };
+		F66358562FAFA78C00843DF6 /* KeinannPOP 2.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F66358552FAFA78C00843DF6 /* KeinannPOP 2.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,6 +64,7 @@
 		F61F6C972F95DCC9008C0D7A /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		F61F6C9E2F95DD07008C0D7A /* Fraunces-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces-Italic.ttf"; sourceTree = "<group>"; };
 		F61F6C9F2F95DD07008C0D7A /* InstrumentSans.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = InstrumentSans.ttf; sourceTree = "<group>"; };
+		F66358552FAFA78C00843DF6 /* KeinannPOP 2.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "KeinannPOP 2.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -184,6 +186,7 @@
 			children = (
 				945355042F95E275007F8599 /* Fraunces-Italic.ttf */,
 				945355052F95E275007F8599 /* InstrumentSans.ttf */,
+				F66358552FAFA78C00843DF6 /* KeinannPOP 2.ttf */,
 			);
 			name = Fonts;
 			path = TycoonDaifugou/Resources/Fonts;
@@ -352,6 +355,7 @@
 				F61F6CA12F95DD07008C0D7A /* InstrumentSans.ttf in Resources */,
 				F61F6CA22F95DD07008C0D7A /* Fraunces-Italic.ttf in Resources */,
 				945355072F95E275007F8599 /* InstrumentSans.ttf in Resources */,
+				F66358562FAFA78C00843DF6 /* KeinannPOP 2.ttf in Resources */,
 				945355082F95E275007F8599 /* Fraunces-Italic.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -548,7 +552,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TycoonDaifugou/TycoonDaifugou.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = HRQVKD876A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -565,7 +569,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lunariacreative.TycoonDaifugou;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -585,7 +589,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TycoonDaifugou/TycoonDaifugou.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = HRQVKD876A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -602,7 +606,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lunariacreative.TycoonDaifugou;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
