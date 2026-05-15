@@ -28,10 +28,12 @@ struct HomeView: View {
     let onPlayTapped: () -> Void
     var onCustomPlayTapped: () -> Void = {}
     var onSettingsTapped: () -> Void = {}
+    var onPlayOnlineTapped: () -> Void = {}
 
     @State private var showCustomSettings = false
     @State private var showDifficultyPicker = false
     @State private var scrolledMode: GameMode? = .classic
+    @State private var showOnlineLobby = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -109,6 +111,13 @@ struct HomeView: View {
                             onEditTapped: { showCustomSettings = true }
                         )
                         .id(GameMode.custom)
+
+                        GameModeCard(
+                            mode: .online,
+                            width: cardWidth,
+                            onTap: onPlayOnlineTapped
+                        )
+                        .id(GameMode.online)
                     }
                     .scrollTargetLayout()
                     .padding(.horizontal, 24)
@@ -119,12 +128,11 @@ struct HomeView: View {
             .frame(height: 120)
 
             HStack(spacing: 6) {
-                Circle()
-                    .fill(scrolledMode == .custom ? Color.white.opacity(0.25) : Color.tycoonPink)
-                    .frame(width: 6, height: 6)
-                Circle()
-                    .fill(scrolledMode == .custom ? Color.tycoonPink : Color.white.opacity(0.25))
-                    .frame(width: 6, height: 6)
+                ForEach([GameMode.classic, .custom, .online], id: \.self) { mode in
+                    Circle()
+                        .fill(scrolledMode == mode ? Color.tycoonPink : Color.white.opacity(0.25))
+                        .frame(width: 6, height: 6)
+                }
             }
             .animation(.easeInOut(duration: 0.2), value: scrolledMode)
         }
