@@ -1,3 +1,4 @@
+import FirebaseAuth
 import SwiftUI
 import TycoonDaifugouKit
 
@@ -60,7 +61,10 @@ struct RootView: View {
                             )
                         },
                         onCustomPlayTapped: { coordinator.startNewGame() },
-                        onSettingsTapped: { coordinator.showSettings() }
+                        onSettingsTapped: { coordinator.showSettings() },
+                        onPlayOnlineTapped: {
+                            coordinator.startOnlinePlay(myUID: authService.currentUser?.uid)
+                        }
                     )
                 case .profile:
                     if let store = coordinator.store {
@@ -166,6 +170,30 @@ struct RootView: View {
             )
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationBarBackButtonHidden(true)
+
+        case .onlineLobby:
+            if let lobbyVM = coordinator.lobbyViewModel {
+                OnlineLobbyView(
+                    lobbyVM: lobbyVM,
+                    onGameStarted: { lobbyId in
+                        guard let uid = authService.currentUser?.uid else { return }
+                        coordinator.startMultiplayerGame(lobbyId: lobbyId, myUID: uid)
+                    },
+                    onDismiss: { coordinator.leaveMultiplayer() }
+                )
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationBarBackButtonHidden(true)
+            }
+
+        case .multiplayerGame:
+            if let mpController = coordinator.multiplayerGameController {
+                MultiplayerGameView(
+                    controller: mpController,
+                    onLeave: { coordinator.returnToOnlineMenu() }
+                )
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationBarBackButtonHidden(true)
+            }
         }
     }
 }

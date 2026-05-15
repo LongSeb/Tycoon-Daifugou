@@ -3,6 +3,7 @@ import SwiftUI
 enum GameMode: Hashable {
     case classic
     case custom
+    case online
 }
 
 struct GameModeCard: View {
@@ -66,6 +67,7 @@ struct GameModeCard: View {
         switch mode {
         case .classic: return "👑"
         case .custom:  return "✨"
+        case .online:  return "🌐"
         }
     }
 
@@ -73,6 +75,7 @@ struct GameModeCard: View {
         switch mode {
         case .classic: return "Classic"
         case .custom:  return "Custom"
+        case .online:  return "Online"
         }
     }
 
@@ -80,6 +83,7 @@ struct GameModeCard: View {
         switch mode {
         case .classic: return "Standard rules"
         case .custom:  return "Your rules"
+        case .online:  return "Play with friends"
         }
     }
 }

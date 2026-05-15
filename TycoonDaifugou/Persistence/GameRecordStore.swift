@@ -32,30 +32,6 @@ final class GameRecordStore {
         self.profile = Self.fetchOrCreateProfile(context: context)
         self.records = Self.fetchAllRecords(context: context)
 
-        // ────────────────────────────────────────────────────────────────────
-        // OPT-IN DEBUG: bump profile to Level 50 + 20 Hard wins so every
-        // unlock (incl. Expert difficulty) is available without grinding.
-        // Useful when playtesting AI tuning on the `refactor/make-AI-harder`
-        // branch.
-        //
-        // To enable: uncomment the block below, build to a simulator, and
-        // launch once. The override is gated on `DEBUG` and on the profile
-        // being below the target XP, so it fires once per fresh install.
-        //
-        // To revert: comment the block out again, then delete the app from
-        // the simulator and reinstall to get a fresh Level-1 profile.
-        //
-        // #if DEBUG
-        // let targetXP = LevelCalculator.cumulativeXP(forLevel: LevelCalculator.maxLevel)
-        // if self.profile.totalXP < targetXP {
-        //     self.profile.totalXP = targetXP
-        //     self.profile.currentLevel = LevelCalculator.maxLevel
-        //     self.profile.highestLevelEver = max(self.profile.highestLevelEver, LevelCalculator.maxLevel)
-        //     self.profile.hardModeWins = max(self.profile.hardModeWins, 20)
-        //     try? self.context.save()
-        // }
-        // #endif
-        // ────────────────────────────────────────────────────────────────────
     }
 
     // MARK: - Profile

@@ -1,8 +1,11 @@
-import SwiftUI
-import SwiftData
+import FirebaseAuth
 import FirebaseCore
+import FirebaseDatabase
 import FirebaseFirestore
+import FirebaseFunctions
 import GoogleSignIn
+import SwiftData
+import SwiftUI
 import TycoonDaifugouKit
 
 @main
@@ -29,11 +32,12 @@ struct TycoonDaifugouApp: App {
 
     init() {
         FirebaseApp.configure()
-        // Offline persistence keeps writes queued when there's no network and
-        // hot-loads cached reads on launch — both tabs the app expects.
-        let settings = FirestoreSettings()
-        settings.cacheSettings = PersistentCacheSettings(sizeBytes: NSNumber(value: 100 * 1024 * 1024))
-        Firestore.firestore().settings = settings
+
+        // Offline persistence for production builds.
+        let firestoreSettings = FirestoreSettings()
+        firestoreSettings.cacheSettings = PersistentCacheSettings(sizeBytes: NSNumber(value: 100 * 1024 * 1024))
+        Firestore.firestore().settings = firestoreSettings
+
         _authService = State(wrappedValue: AuthService())
         _syncManager = State(wrappedValue: SyncManager())
     }

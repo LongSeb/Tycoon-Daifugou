@@ -6,6 +6,8 @@ enum AppRoute: Hashable {
     case game
     case results
     case settings
+    case onlineLobby
+    case multiplayerGame(lobbyId: String)
 }
 
 @Observable
@@ -20,6 +22,47 @@ final class NavigationCoordinator {
     var achievementManager: AchievementManager?
 
     var showingQuitConfirm = false
+
+    // MARK: - Multiplayer state
+
+    private(set) var multiplayerService: MultiplayerService?
+    private(set) var lobbyViewModel: LobbyViewModel?
+    private(set) var multiplayerGameController: MultiplayerGameController?
+
+    func startOnlinePlay(myUID: String?) {
+        let service = multiplayerService ?? MultiplayerService()
+        multiplayerService = service
+        let displayName = store?.profile.username ?? "Player"
+        let emoji = store?.profile.emoji ?? "😎"
+        let title = store?.profile.equippedTitleID ?? "Commoner"
+        let borderID = store?.profile.equippedBorderID
+        lobbyViewModel = LobbyViewModel(service: service, myUID: myUID, displayName: displayName, emoji: emoji, title: title, borderID: borderID)
+        path = [.onlineLobby]
+    }
+
+    func startMultiplayerGame(lobbyId: String, myUID: String) {
+        guard let service = multiplayerService else { return }
+        let controller = MultiplayerGameController(lobbyId: lobbyId, myUID: myUID, service: service)
+        multiplayerGameController = controller
+        path.append(.multiplayerGame(lobbyId: lobbyId))
+    }
+
+    func leaveMultiplayer() {
+        multiplayerService?.stopAll()
+        multiplayerGameController?.stopListening()
+        lobbyViewModel = nil
+        multiplayerGameController = nil
+        path = []
+    }
+
+    /// Leave the current game or lobby but stay on the Play Online menu.
+    func returnToOnlineMenu() {
+        multiplayerService?.stopListeningToGame()
+        multiplayerGameController?.stopListening()
+        multiplayerGameController = nil
+        lobbyViewModel?.cleanupLocally()  // resets phase to .idle
+        path = [.onlineLobby]
+    }
 
     /// Starts a new game using the provided rule set and player/round counts.
     /// If `ruleSet` is nil, loads the persisted settings (see AppSettings).
